@@ -115,7 +115,7 @@ const leadSchema = new Schema(
             type: Boolean,
             default: false, // Set default to false (not deleted)
         },
-        isSentToPending: {
+        is_sent_to_pending: {
             type: Boolean,
             default: false,
         },

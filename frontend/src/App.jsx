@@ -6,15 +6,20 @@ import Login from "./components/auth/Login";
 import Signup from "./components/auth/Signup";
 import Dashboard from "./components/Dashboard";
 import AddIncomingData from "./components/section1/incoming/AddIncomingData";
+import EditIncomingData from "./components/section1/incoming/EditIncomingData";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AuthOnlyRoute from "./components/auth/AuthOnlyRoute";
 import Sidenav from "./components/Sidenav";
 import useAuthStore from "./store/authStore";
 import { Toaster } from "react-hot-toast";
 import IncomingPage from "./components/section1/incoming/IncomingPage";
+import LeadPage from "./components/section1/lead/LeadPage";
+import AddLeadData from "./components/section1/lead/AddLeadData";
+import EditLeadData from "./components/section1/lead/EditLeadData";
 
 const App = () => {
   const { checkAuth, loading, user } = useAuthStore();
+
 
   useEffect(() => {
     checkAuth();
@@ -75,6 +80,38 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <AddIncomingData />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/edit-incoming-data/:id"
+                  element={
+                    <ProtectedRoute>
+                      <EditIncomingData />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/lead"
+                  element={
+                    <ProtectedRoute>
+                      <LeadPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/add-lead-data"
+                  element={
+                    <ProtectedRoute>
+                      <AddLeadData />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/edit-lead-data/:id"
+                  element={
+                    <ProtectedRoute>
+                      <EditLeadData />
                     </ProtectedRoute>
                   }
                 />

@@ -31,6 +31,7 @@ exports.login = async (req, res) => {
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
         // console.log(isMatch)
         const token = jwt.sign({ _id: user._id.toString(), email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
         // console.log(token)
         res.json({ token });
     } catch (error) {
@@ -39,7 +40,9 @@ exports.login = async (req, res) => {
 };
 
 exports.checkAuth = async (req, res) => {
-    const token = req.header('Authorization');
+    // console.log("AAA")
+    const token = req.header('Authorization').split(" ")[1];;
+    // console.log(token)
     if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
 
     try {

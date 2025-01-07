@@ -4,9 +4,12 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require("body-parser")
 const mongoose = require("mongoose")
+const multer = require("multer");
+const fs = require("fs");
 
 const authRoutes = require('./routes/authRoutes');
 const incomingRoutes = require('./routes/incomingRoutes')
+const leadRoutes = require('./routes/leadRoutes')
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -23,6 +26,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/incoming', incomingRoutes)
+app.use('/api/lead', leadRoutes)
+
 
 // Sync Database and Start Server
 mongoose

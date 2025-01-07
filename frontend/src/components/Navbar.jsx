@@ -18,6 +18,11 @@ const Navbar = () => {
         navigate("/add-incoming-data");
     };
 
+    const handleAddLead = () => {
+        // Add your logic for "Add Incoming" button here
+        navigate("/add-lead-data");
+    };
+
     return (
         <nav className="bg-white shadow-md border-b border-gray-200 h-16 fixed w-full z-10">
             <div className="container mx-auto flex justify-between items-center h-full px-6">
@@ -39,6 +44,16 @@ const Navbar = () => {
                                 className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded hover:bg-blue-600 transition"
                             >
                                 Add Incoming
+                            </button>
+                        </li>
+                    )}
+                    {location.pathname === "/lead" && (
+                        <li>
+                            <button
+                                onClick={handleAddLead}
+                                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded hover:bg-blue-600 transition"
+                            >
+                                Add Lead
                             </button>
                         </li>
                     )}

@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { toast, Toaster } from "react-hot-toast";
 import { create } from "zustand";
-import { getAddIncoming, postAddIncoming } from "../../../services/incomingService";
+// import { getAddIncoming, updateEditIncoming, getEditIncoming } from "../../../services/incomingService";
+import { getAddLead, getEditLead, updateEditLead } from "../../../services/leadService";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Loader2, UserCircle, Phone, MapPin, MessageSquare, Languages, Activity, User2, Building2 } from 'lucide-react';
-
+import { useParams } from "react-router-dom";
 
 const useStore = create((set) => ({
     loading: false,
     setLoading: (loading) => set({ loading }),
 }));
 
-const AddIncomingData = () => {
+const EditLeadData = () => {
+    const { id } = useParams();
     const { loading, setLoading } = useStore();
     const [dropdowns, setDropdowns] = useState({});
     const [formData, setFormData] = useState({
@@ -42,16 +44,44 @@ const AddIncomingData = () => {
         const fetchDropdowns = async () => {
             setLoading(true);
             try {
-                const response = await getAddIncoming();
-                setDropdowns(response.dropdowns);
+                // Fetch dropdown data
+                const response = await getAddLead();
+                setDropdowns(response.data.dropdowns);
+
+                // Fetch edit data using the id
+                const editDataForm = await getEditLead(id)
+                const editData = editDataForm.data.data
+
+                // Map response to formData structure
+                const mappedFormData = {
+                    source: editData.source || { dropdown_data: "", value: "" },
+                    cm_first_name: editData.cm_first_name || "",
+                    cm_last_name: editData.cm_last_name || "",
+                    cm_phone: editData.cm_phone || "",
+                    alternate_phone: editData.alternate_phone || "",
+                    agent_name: editData.agent_name || { dropdown_data: "", value: "" },
+                    language: editData.language || { dropdown_data: "", value: "" },
+                    disease: editData.disease || { dropdown_data: "", value: "" },
+                    age: editData.age || "",
+                    height: editData.height || "",
+                    weight: editData.weight || "",
+                    state: editData.state || { dropdown_data: "", value: "" },
+                    city: editData.city || "",
+                    remark: editData.remark || { dropdown_data: "", value: "" },
+                    comment: editData.comment || "",
+                };
+
+                // Set formData with mapped values
+                setFormData(mappedFormData);
             } catch (error) {
-                toast.error("Failed to load dropdown data");
+                toast.error("Failed to load data");
             } finally {
                 setLoading(false);
             }
         };
+
         fetchDropdowns();
-    }, [setLoading]);
+    }, [id, setLoading]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -108,9 +138,9 @@ const AddIncomingData = () => {
 
         setLoading(true);
         try {
-            const response = await postAddIncoming(formData)
-            toast.success("Data submitted successfully!");
-            navigate('/incoming');
+            const response = await updateEditLead(id, formData)
+            toast.success("Data updated successfully!");
+            navigate('/lead');
         } catch (error) {
             toast.error("Error submitting form");
         } finally {
@@ -137,7 +167,7 @@ const AddIncomingData = () => {
                     <div className="p-6 sm:p-8">
                         <div className="flex items-center space-x-2 mb-8">
                             <UserCircle className="w-8 h-8 text-stone-500" />
-                            <h1 className="text-2xl font-bold text-stone-700">Add Incoming Data</h1>
+                            <h1 className="text-2xl font-bold text-stone-700">Edit Lead Data</h1>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-8">
@@ -401,5 +431,5 @@ const AddIncomingData = () => {
     );
 };
 
-export default AddIncomingData;
+export default EditLeadData;
 

@@ -9,5 +9,11 @@ router.post('/add-incoming-data', isAuthenticated, incomingController.postAddInc
 
 router.get('/get-incoming-data', isAuthenticated, incomingController.getAllIncomingData);
 
+router.get('/edit-incoming-data/:id', isAuthenticated, incomingController.getEditIncomingData);
+
+router.put('/edit-incoming-data/:id', isAuthenticated, incomingController.putEditIncomingData);
+
+router.put('/delete-incoming-data/:id', isAuthenticated, incomingController.deleteIncomingData);
+
 
 module.exports = router;

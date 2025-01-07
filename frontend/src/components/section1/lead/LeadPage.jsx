@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from "react"
-import { getAllIncoming, deleteIncoming } from "@/services/incomingService"
+import { getAllLead, deleteLead } from "@/services/leadService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
@@ -38,8 +38,8 @@ import { Loader2, Search, Trash2 } from 'lucide-react'
 import { Link, useNavigate, useLocation } from "react-router-dom";
 
 
-const IncomingPage = () => {
-    const [incomingData, setIncomingData] = useState([])
+const LeadPage = () => {
+    const [leadData, setLeadData] = useState([])
     const [filteredData, setFilteredData] = useState([])
     const [currentPage, setCurrentPage] = useState(1)
     const [itemsPerPage] = useState(10)
@@ -54,12 +54,12 @@ const IncomingPage = () => {
         const fetchData = async () => {
             try {
                 setIsLoading(true)
-                const response = await getAllIncoming()
-                setIncomingData(response.data.data)
+                const response = await getAllLead()
+                setLeadData(response.data.data)
                 setFilteredData(response.data.data)
                 setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
             } catch (error) {
-                console.error("Error fetching incoming data:", error)
+                console.error("Error fetching lead data:", error)
                 setError("Failed to fetch data. Please try again later.")
             } finally {
                 setIsLoading(false)
@@ -70,7 +70,7 @@ const IncomingPage = () => {
     }, [itemsPerPage])
 
     useEffect(() => {
-        const results = incomingData.filter((item) =>
+        const results = leadData.filter((item) =>
             Object.values(item).some(
                 (val) =>
                     typeof val === "string" &&
@@ -80,13 +80,13 @@ const IncomingPage = () => {
         setFilteredData(results)
         setTotalPages(Math.ceil(results.length / itemsPerPage))
         setCurrentPage(1)
-    }, [searchTerm, incomingData, itemsPerPage])
+    }, [searchTerm, leadData, itemsPerPage])
 
     const handleDelete = async (id) => {
         try {
-            const response = await deleteIncoming(id)
+            const response = await deleteLead(id)
             toast.success("Data deleted successfully")
-            setIncomingData((prevData) => prevData.filter((item) => item._id !== id))
+            setLeadData((prevData) => prevData.filter((item) => item._id !== id))
             setFilteredData((prevData) => prevData.filter((item) => item._id !== id))
             setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
         } catch (error) {
@@ -96,7 +96,7 @@ const IncomingPage = () => {
     }
 
     const handleUpdateClick = async (id) => {
-        navigate(`/edit-incoming-data/${id}`)
+        navigate(`/edit-lead-data/${id}`)
     }
 
     const handlePageChange = (page) => {
@@ -126,7 +126,7 @@ const IncomingPage = () => {
 
     return (
         <div className="container mx-auto p-6">
-            <h1 className="text-3xl font-bold mb-6">Incoming Data</h1>
+            <h1 className="text-3xl font-bold mb-6">Lead Data</h1>
 
             {/* <div className="mb-4">
                 <div className="relative">
@@ -246,5 +246,5 @@ const IncomingPage = () => {
     )
 }
 
-export default IncomingPage
+export default LeadPage
 

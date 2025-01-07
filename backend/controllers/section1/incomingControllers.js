@@ -145,12 +145,10 @@ exports.getAllIncomingData = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // Fetch data with pagination
-        const data = await Incoming.find({ is_sent_to_pending: false })
-            .skip(skip)
-            .limit(limit);
+        const data = await Incoming.find({ is_sent_to_pending: false, isDeleted: false })
 
         // Get total count of documents
-        const totalCount = await Incoming.countDocuments({ is_sent_to_pending: false });
+        const totalCount = await Incoming.countDocuments({ is_sent_to_pending: false, isDeleted: false });
 
         return res.status(200).json({
             message: "Incoming data fetched successfully.",
@@ -166,3 +164,66 @@ exports.getAllIncomingData = async (req, res) => {
         });
     }
 };
+
+
+exports.deleteIncomingData = async (req, res) => {
+    // console.log(req.params)
+    const dataId = new mongoose.Types.ObjectId(req.params.id)
+
+    try {
+        await Incoming.updateOne({ _id: dataId }, { isDeleted: true });
+        return res.status(200).json({
+            message: "Deleted successfully.",
+        });
+    }
+    catch {
+        return res.status(500).json({
+            message: "An error occurred while deleting data.",
+        });
+    }
+}
+
+exports.getEditIncomingData = async (req, res) => {
+    // console.log(req.params)
+    const id = new mongoose.Types.ObjectId(req.params.id)
+
+    try {
+        const data = await Incoming.findOne({ _id: id }, { isDeleted: false });
+        // console.log(data)
+        return res.status(200).json({
+            message: "Data fetched successfully.",
+            data,
+        });
+    }
+    catch {
+        return res.status(500).json({
+            message: "An error occurred while editing data.",
+        });
+    }
+}
+
+exports.putEditIncomingData = async (req, res) => {
+    const id = new mongoose.Types.ObjectId(req.params.id)
+    const data = req.body
+    // console.log(id)
+    // console.log(data)
+
+    try {
+        const updatedIncoming = await Incoming.findByIdAndUpdate(
+            id, // ID to match
+            { $set: data }, // Data to update
+            { new: true, runValidators: true } // Options: return updated document, run validation
+        );
+
+        return res.status(200).json({
+            message: "Data updated successfully."
+        });
+    }
+    catch {
+        return res.status(500).json({
+            message: "An error occurred while updating data.",
+        });
+    }
+
+
+}
