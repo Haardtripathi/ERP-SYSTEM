@@ -1,4 +1,5 @@
 const Lead = require('../../models/Lead')
+const Workbook = require('../../models/Workbook')
 const Dropdown = require('../../models/Dropdown')
 const mongoose = require("mongoose")
 const fs = require("fs");
@@ -87,6 +88,94 @@ const csv = require('csv-parser')
 //     }
 // }
 
+// exports.postAddLeadData = async (req, res) => {
+//     try {
+//         const data = await Dropdown.find(); // Fetch dropdown data
+
+//         const toSnakeCase = (str) => {
+//             return str
+//                 .toLowerCase()
+//                 .replace(/\s+/g, "_"); // Replace spaces with underscores
+//         };
+
+//         const formattedData = data.reduce((acc, item) => {
+//             if (item.name && item.values && item._id) {
+//                 const formattedName = toSnakeCase(item.name); // Convert name to snake_case
+//                 acc[formattedName] = {
+//                     values: item.values,
+//                     id: item._id,
+//                 };
+//             }
+//             return acc;
+//         }, {});
+
+//         const fileContent = req.file.buffer.toString("utf-8"); // Read file content
+//         let rows = [];
+//         const headerMapping = {}; // Map lowercase/underscored headers to schema fields
+
+//         // Parse CSV content
+//         fileContent.split("\n").forEach((line, index) => {
+//             const columns = line.split(",");
+//             if (index === 0) {
+//                 // First line: Headers
+//                 columns.forEach((col, i) => {
+//                     const cleanHeader = col.trim().toLowerCase().replace(/[^a-z0-9]/g, "_");
+//                     headerMapping[i] = cleanHeader;
+//                 });
+//             } else {
+//                 // Map data to headers
+//                 const rowData = {};
+//                 columns.forEach((col, i) => {
+//                     rowData[headerMapping[i]] = col.trim();
+//                 });
+//                 rows.push(rowData);
+//             }
+//         });
+
+//         rows.pop(); // Remove empty row if present at the end
+
+//         // Transform rows to match schema
+//         const leads = rows.map((row) => {
+//             const getDropdownValue = (key) => {
+//                 if (formattedData[key]) {
+//                     return {
+//                         dropdown_data: new mongoose.Types.ObjectId(formattedData[key].id),
+//                         value: row[key] || null,
+//                     };
+//                 }
+//                 return { dropdown_data: null, value: row[key] || null };
+//             };
+
+//             return {
+//                 source: getDropdownValue("source"),
+//                 cm_first_name: row.cm_first_name,
+//                 cm_last_name: row.cm_last_name,
+//                 cm_phone: parseInt(row.cm_phone) || null,
+//                 alternate_phone: parseInt(row.alternate_phone) || null,
+//                 agent_name: getDropdownValue("agent_name"),
+//                 language: getDropdownValue("language"),
+//                 disease: getDropdownValue("disease"),
+//                 age: parseInt(row.age) || null,
+//                 height: parseFloat(row.height) || null,
+//                 weight: parseFloat(row.weight) || null,
+//                 state: getDropdownValue("state"),
+//                 city: row.city,
+//                 remark: getDropdownValue("remark"),
+//                 comment: row.comment,
+//             };
+//         });
+
+//         // Save all leads to the database
+//         await Lead.insertMany(leads);
+
+//         res.status(200).json({ message: "Leads uploaded successfully", leads });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ message: "Error uploading leads", error });
+//     }
+// };
+
+
 exports.postAddLeadData = async (req, res) => {
     try {
         const data = await Dropdown.find(); // Fetch dropdown data
@@ -165,15 +254,28 @@ exports.postAddLeadData = async (req, res) => {
         });
 
         // Save all leads to the database
-        await Lead.insertMany(leads);
+        const savedLeads = await Lead.insertMany(leads);
 
-        res.status(200).json({ message: "Leads uploaded successfully", leads });
+        // Map leads to workbook entries
+        const workbooks = savedLeads.map((lead) => {
+            return {
+                data: {
+                    dropdown_data: new mongoose.Types.ObjectId(formattedData.data.id), // Reference dropdown data
+                    value: "Lead",
+                },
+                dataId: lead._id,
+            };
+        });
+
+        // Save workbook entries to the database
+        await Workbook.insertMany(workbooks);
+
+        res.status(200).json({ message: "Leads and workbooks uploaded successfully", leads, workbooks });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Error uploading leads", error });
+        res.status(500).json({ message: "Error uploading leads and workbooks", error });
     }
 };
-
 
 exports.getAllLeadData = async (req, res) => {
     try {

@@ -166,7 +166,7 @@ const EditIncomingData = () => {
                     <div className="p-6 sm:p-8">
                         <div className="flex items-center space-x-2 mb-8">
                             <UserCircle className="w-8 h-8 text-stone-500" />
-                            <h1 className="text-2xl font-bold text-stone-700">Add Incoming Data</h1>
+                            <h1 className="text-2xl font-bold text-stone-700">Edit Incoming Data</h1>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-8">

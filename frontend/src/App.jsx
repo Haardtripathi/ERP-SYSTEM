@@ -16,6 +16,7 @@ import IncomingPage from "./components/section1/incoming/IncomingPage";
 import LeadPage from "./components/section1/lead/LeadPage";
 import AddLeadData from "./components/section1/lead/AddLeadData";
 import EditLeadData from "./components/section1/lead/EditLeadData";
+import WorkbookPage from "./components/section1/workbook/WorkbookPage";
 
 const App = () => {
   const { checkAuth, loading, user } = useAuthStore();
@@ -112,6 +113,14 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <EditLeadData />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/workbook"
+                  element={
+                    <ProtectedRoute>
+                      <WorkbookPage />
                     </ProtectedRoute>
                   }
                 />

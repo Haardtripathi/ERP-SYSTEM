@@ -10,6 +10,7 @@ const fs = require("fs");
 const authRoutes = require('./routes/authRoutes');
 const incomingRoutes = require('./routes/incomingRoutes')
 const leadRoutes = require('./routes/leadRoutes')
+const workbookRoutes = require('./routes/workbookRoutes')
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -27,6 +28,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use('/api/auth', authRoutes);
 app.use('/api/incoming', incomingRoutes)
 app.use('/api/lead', leadRoutes)
+app.use('/api/workbook', workbookRoutes)
 
 
 // Sync Database and Start Server
