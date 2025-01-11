@@ -76,7 +76,8 @@ const IncomingPage = () => {
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(null)
     const [searchTerm, setSearchTerm] = useState("")
-    const [pendingFilter, setPendingFilter] = useState("all")
+    const [filterStatus, setFilterStatus] = useState("All")
+
 
     const navigate = useNavigate()
 
@@ -99,23 +100,43 @@ const IncomingPage = () => {
         fetchData()
     }, [itemsPerPage])
 
+    // useEffect(() => {
+    //     let results = incomingData.filter((item) =>
+    //         Object.values(item).some(
+    //             (val) =>
+    //                 typeof val === "string" &&
+    //                 val.toLowerCase().includes(searchTerm.toLowerCase())
+    //         )
+    //     )
+    //     if (pendingFilter !== "all") {
+    //         const isPending = pendingFilter === "sent"
+    //         results = results.filter((item) => item.is_sent_to_pending === isPending)
+    //     }
+
+    //     setFilteredData(results)
+    //     setTotalPages(Math.ceil(results.length / itemsPerPage))
+    //     setCurrentPage(1)
+    // }, [searchTerm, incomingData, itemsPerPage, pendingFilter])
+
     useEffect(() => {
-        let results = incomingData.filter((item) =>
+        const results = incomingData.filter((item) =>
             Object.values(item).some(
                 (val) =>
                     typeof val === "string" &&
                     val.toLowerCase().includes(searchTerm.toLowerCase())
             )
-        )
-        if (pendingFilter !== "all") {
-            const isPending = pendingFilter === "sent"
-            results = results.filter((item) => item.is_sent_to_pending === isPending)
-        }
+        ).filter((item) => {
 
+            if (filterStatus === "All") return true;
+            if (filterStatus === "isSent") return item.is_sent_to_pending;
+            if (filterStatus === "isNotSent") return !item.is_sent_to_pending;
+            return true;
+        })
         setFilteredData(results)
         setTotalPages(Math.ceil(results.length / itemsPerPage))
         setCurrentPage(1)
-    }, [searchTerm, incomingData, itemsPerPage, pendingFilter])
+    }, [searchTerm, incomingData, itemsPerPage, filterStatus])
+
 
     const handleDelete = async (id) => {
         try {
@@ -146,6 +167,7 @@ const IncomingPage = () => {
         setIncomingData((prevData) => prevData.filter((item) => item._id !== id))
         setFilteredData((prevData) => prevData.filter((item) => item._id !== id))
         setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
+        window.location.reload()
     }
 
     const startIndex = (currentPage - 1) * itemsPerPage
@@ -170,30 +192,34 @@ const IncomingPage = () => {
     return (
         <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
             <h1 className="text-3xl font-semibold mb-6 text-gray-800">Incoming Data</h1>
-            <div className="flex gap-4 mb-4">
-                <div className="flex items-center gap-2">
+            <div className="mb-4 flex justify-between items-center">
+                <div className="flex space-x-2">
                     <Button
-                        variant={pendingFilter === "all" ? "default" : "outline"}
-                        onClick={() => setPendingFilter("all")}
-                        className="w-24"
+                        onClick={() => setFilterStatus("All")}
+                        variant={filterStatus === "All" ? "default" : "outline"}
                     >
                         All
                     </Button>
                     <Button
-                        variant={pendingFilter === "sent" ? "default" : "outline"}
-                        onClick={() => setPendingFilter("sent")}
-                        className="w-24"
+                        onClick={() => setFilterStatus("isSent")}
+                        variant={filterStatus === "isSent" ? "default" : "outline"}
                     >
-                        Sent
+                        Is Sent
                     </Button>
                     <Button
-                        variant={pendingFilter === "notsent" ? "default" : "outline"}
-                        onClick={() => setPendingFilter("notsent")}
-                        className="w-24"
+                        onClick={() => setFilterStatus("isNotSent")}
+                        variant={filterStatus === "isNotSent" ? "default" : "outline"}
                     >
-                        Not Sent
+                        Is Not Sent
                     </Button>
                 </div>
+                {/* <Input
+                                type="text"
+                                placeholder="Search..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="max-w-sm"
+                            /> */}
             </div>
 
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
@@ -225,10 +251,14 @@ const IncomingPage = () => {
                                     <TableCell>
                                         <SendHorizontal
                                             size={20}
-                                            color="#007BFF"
+                                            color={item.is_sent_to_pending ? "#28a745" : "#007BFF"}
                                             strokeWidth={2}
-                                            style={{ cursor: 'pointer', transition: 'transform 0.2s ease' }}
-                                            onClick={() => handleSendToPending(item._id)}
+                                            style={{
+                                                cursor: item.is_sent_to_pending ? 'not-allowed' : 'pointer',
+                                                transition: 'transform 0.2s ease',
+                                                opacity: item.is_sent_to_pending ? 0.5 : 1
+                                            }}
+                                            onClick={() => !item.is_sent_to_pending && handleSendToPending(item._id)}
                                         />
                                     </TableCell>
                                     <TableCell>{item.source?.value}</TableCell>
@@ -248,16 +278,20 @@ const IncomingPage = () => {
                                             size={20}
                                             color="#007BFF"
                                             strokeWidth={2}
-                                            style={{ cursor: 'pointer', transition: 'transform 0.2s ease' }}
-                                            onClick={() => handleUpdateClick(item._id)}
-                                            onMouseOver={(e) => e.currentTarget.style.transform = 'rotate(90deg)'}
-                                            onMouseOut={(e) => e.currentTarget.style.transform = 'rotate(0deg)'}
+                                            style={{
+                                                cursor: item.is_sent_to_pending ? 'not-allowed' : 'pointer',
+                                                transition: 'transform 0.2s ease',
+                                                opacity: item.is_sent_to_pending ? 0.5 : 1
+                                            }}
+                                            onClick={() => !item.is_sent_to_pending && handleUpdateClick(item._id)}
+                                            onMouseOver={(e) => !item.is_sent_to_pending && (e.currentTarget.style.transform = 'rotate(90deg)')}
+                                            onMouseOut={(e) => !item.is_sent_to_pending && (e.currentTarget.style.transform = 'rotate(0deg)')}
                                         />
                                     </TableCell>
                                     <TableCell>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200">
+                                                <Button variant="ghost" className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200" disabled={item.is_sent_to_pending}>
                                                     <Trash2 className="h-5 w-5 text-red-500" />
                                                 </Button>
                                             </AlertDialogTrigger>

@@ -118,8 +118,8 @@ exports.getAllLeadData = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // Fetch data with pagination
-        const data = await Lead.find({ is_sent_to_pending: false, isDeleted: false })
-        // const data = await Lead.find({ isDeleted: false })
+        // const data = await Lead.find({ is_sent_to_pending: false, isDeleted: false })
+        const data = await Lead.find({ isDeleted: false })
 
         // console.log(data);
 

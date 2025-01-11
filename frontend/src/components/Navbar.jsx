@@ -42,7 +42,7 @@ const Navbar = () => {
                         <li>
                             <button
                                 onClick={handleAddIncoming}
-                                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded hover:bg-blue-600 transition"
+                                className="px-4 py-2 text-sm font-medium text-white bg-black rounded hover:bg-blue-600 transition"
                             >
                                 Add Incoming
                             </button>
@@ -52,7 +52,7 @@ const Navbar = () => {
                         <li>
                             <button
                                 onClick={handleAddLead}
-                                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded hover:bg-blue-600 transition"
+                                className="px-4 py-2 text-sm font-medium text-white bg-black rounded hover:bg-blue-600 transition"
                             >
                                 Add Lead
                             </button>

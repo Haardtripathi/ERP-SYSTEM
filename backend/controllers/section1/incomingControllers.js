@@ -177,8 +177,8 @@ exports.getAllIncomingData = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // Fetch data with pagination
-        const data = await Incoming.find({ is_sent_to_pending: false, isDeleted: false })
-        // const data = await Incoming.find({ isDeleted: false })
+        // const data = await Incoming.find({ is_sent_to_pending: false, isDeleted: false })
+        const data = await Incoming.find({ isDeleted: false })
 
 
         // Get total count of documents
@@ -308,7 +308,7 @@ exports.sendIncomingDataToPending = async (req, res) => {
 
 
         const pendingData = transformIncomingToPending(incomingData);
-        console.log(pendingData)
+        // console.log(pendingData)
         // Save to the Pending collection
         const newPending = new Pending(pendingData);
         await newPending.save();
