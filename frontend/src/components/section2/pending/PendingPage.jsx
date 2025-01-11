@@ -1,9 +1,47 @@
+// import { useEffect } from 'react'
+// import { create } from "zustand";
+// import { toast } from "react-hot-toast"
+// import { getAllPending } from "../../../services/pendingService"
+
+// const useStore = create((set) => ({
+//     loading: false,
+//     setLoading: (loading) => set({ loading }),
+// }));
+
+
+
+// const PendingPage = () => {
+//     const { loading, setLoading } = useStore();
+
+//     useEffect(() => {
+//         const fetchDropdowns = async () => {
+
+//             setLoading(true);
+//             try {
+//                 const response = await getAllPending();
+//                 console.log(response)
+//             } catch (error) {
+//                 toast.error("Failed to load dropdown data");
+//             } finally {
+//                 setLoading(false);
+//             }
+//         };
+//         fetchDropdowns();
+//     }, [setLoading]);
+
+//     return (
+//         <div>PendingPage</div>
+//     )
+// }
+
+// export default PendingPage
 
 
 'use client'
 
 import React, { useState, useEffect } from "react"
 import { getAllIncoming, deleteIncoming, sendIncomingToPending } from "@/services/incomingService"
+import { getAllPending } from "@/services/pendingService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
@@ -67,8 +105,8 @@ const TableCell = ({ children, className }) => (
     </td>
 )
 
-const IncomingPage = () => {
-    const [incomingData, setIncomingData] = useState([])
+const PendingPage = () => {
+    const [pendingData, setPendingData] = useState([])
     const [filteredData, setFilteredData] = useState([])
     const [currentPage, setCurrentPage] = useState(1)
     const [itemsPerPage] = useState(10)
@@ -76,7 +114,6 @@ const IncomingPage = () => {
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(null)
     const [searchTerm, setSearchTerm] = useState("")
-    const [pendingFilter, setPendingFilter] = useState("all")
 
     const navigate = useNavigate()
 
@@ -84,8 +121,8 @@ const IncomingPage = () => {
         const fetchData = async () => {
             try {
                 setIsLoading(true)
-                const response = await getAllIncoming()
-                setIncomingData(response.data.data)
+                const response = await getAllPending()
+                setPendingData(response.data.data)
                 setFilteredData(response.data.data)
                 setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
             } catch (error) {
@@ -100,28 +137,23 @@ const IncomingPage = () => {
     }, [itemsPerPage])
 
     useEffect(() => {
-        let results = incomingData.filter((item) =>
+        const results = pendingData.filter((item) =>
             Object.values(item).some(
                 (val) =>
                     typeof val === "string" &&
                     val.toLowerCase().includes(searchTerm.toLowerCase())
             )
         )
-        if (pendingFilter !== "all") {
-            const isPending = pendingFilter === "sent"
-            results = results.filter((item) => item.is_sent_to_pending === isPending)
-        }
-
         setFilteredData(results)
         setTotalPages(Math.ceil(results.length / itemsPerPage))
         setCurrentPage(1)
-    }, [searchTerm, incomingData, itemsPerPage, pendingFilter])
+    }, [searchTerm, pendingData, itemsPerPage])
 
     const handleDelete = async (id) => {
         try {
             await deleteIncoming(id)
             toast.success("Data deleted successfully")
-            setIncomingData((prevData) => prevData.filter((item) => item._id !== id))
+            setPendingData((prevData) => prevData.filter((item) => item._id !== id))
             setFilteredData((prevData) => prevData.filter((item) => item._id !== id))
             setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
         } catch (error) {
@@ -143,7 +175,7 @@ const IncomingPage = () => {
     const handleSendToPending = async (id) => {
         await sendIncomingToPending(id)
         toast.success("Incoming sent to pending successfully")
-        setIncomingData((prevData) => prevData.filter((item) => item._id !== id))
+        setPendingData((prevData) => prevData.filter((item) => item._id !== id))
         setFilteredData((prevData) => prevData.filter((item) => item._id !== id))
         setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
     }
@@ -169,46 +201,24 @@ const IncomingPage = () => {
 
     return (
         <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
-            <h1 className="text-3xl font-semibold mb-6 text-gray-800">Incoming Data</h1>
-            <div className="flex gap-4 mb-4">
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant={pendingFilter === "all" ? "default" : "outline"}
-                        onClick={() => setPendingFilter("all")}
-                        className="w-24"
-                    >
-                        All
-                    </Button>
-                    <Button
-                        variant={pendingFilter === "sent" ? "default" : "outline"}
-                        onClick={() => setPendingFilter("sent")}
-                        className="w-24"
-                    >
-                        Sent
-                    </Button>
-                    <Button
-                        variant={pendingFilter === "notsent" ? "default" : "outline"}
-                        onClick={() => setPendingFilter("notsent")}
-                        className="w-24"
-                    >
-                        Not Sent
-                    </Button>
-                </div>
-            </div>
+            <h1 className="text-3xl font-semibold mb-6 text-gray-800">Pending Data</h1>
 
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Send</TableHead>
+                                <TableHead>Issue</TableHead>
+                                <TableHead>Ref</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Time</TableHead>
+
 
                                 <TableHead>Source</TableHead>
                                 <TableHead>First Name</TableHead>
                                 <TableHead>Last Name</TableHead>
                                 <TableHead>Phone</TableHead>
                                 <TableHead>Agent</TableHead>
-                                <TableHead>Language</TableHead>
                                 <TableHead>Disease</TableHead>
                                 <TableHead>State</TableHead>
                                 <TableHead>City</TableHead>
@@ -225,18 +235,21 @@ const IncomingPage = () => {
                                     <TableCell>
                                         <SendHorizontal
                                             size={20}
-                                            color="#007BFF"
+                                            color="red"
                                             strokeWidth={2}
                                             style={{ cursor: 'pointer', transition: 'transform 0.2s ease' }}
                                             onClick={() => handleSendToPending(item._id)}
                                         />
                                     </TableCell>
+                                    <TableCell>{item.ref}</TableCell>
+                                    <TableCell>{item.date}</TableCell>
+                                    <TableCell>{item.time}</TableCell>
+
                                     <TableCell>{item.source?.value}</TableCell>
                                     <TableCell>{item.cm_first_name}</TableCell>
                                     <TableCell>{item.cm_last_name}</TableCell>
                                     <TableCell>{item.cm_phone}</TableCell>
                                     <TableCell>{item.agent_name?.value}</TableCell>
-                                    <TableCell>{item.language?.value}</TableCell>
                                     <TableCell>{item.disease?.value}</TableCell>
                                     <TableCell>{item.state?.value}</TableCell>
                                     <TableCell>{item.city}</TableCell>
@@ -329,5 +342,5 @@ const IncomingPage = () => {
     )
 }
 
-export default IncomingPage
+export default PendingPage
 

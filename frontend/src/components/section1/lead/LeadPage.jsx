@@ -252,7 +252,7 @@
 'use client'
 
 import React, { useState, useEffect } from "react"
-import { getAllLead, deleteLead } from "@/services/leadService"
+import { getAllLead, deleteLead, sendLeadToPending } from "@/services/leadService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
@@ -277,7 +277,7 @@ import {
     PaginationPrevious,
     PaginationEllipsis
 } from "@/components/ui/pagination"
-import { Loader2, Search, Trash2 } from 'lucide-react'
+import { Loader2, Search, Trash2, SendHorizontal } from 'lucide-react'
 import { useNavigate } from "react-router-dom"
 
 const Table = ({ children }) => (
@@ -316,6 +316,7 @@ const TableCell = ({ children, className }) => (
     </td>
 )
 
+
 const LeadPage = () => {
     const [leadData, setLeadData] = useState([])
     const [filteredData, setFilteredData] = useState([])
@@ -325,6 +326,8 @@ const LeadPage = () => {
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(null)
     const [searchTerm, setSearchTerm] = useState("")
+    const [filterStatus, setFilterStatus] = useState("all")
+
 
     const navigate = useNavigate()
 
@@ -347,18 +350,41 @@ const LeadPage = () => {
         fetchData()
     }, [itemsPerPage])
 
+    // useEffect(() => {
+    //     const results = leadData.filter((item) =>
+    //         Object.values(item).some(
+    //             (val) =>
+    //                 typeof val === "string" &&
+    //                 val.toLowerCase().includes(searchTerm.toLowerCase())
+    //         )
+    //     )
+    //     setFilteredData(results)
+    //     setTotalPages(Math.ceil(results.length / itemsPerPage))
+    //     setCurrentPage(1)
+    // }, [searchTerm, leadData, itemsPerPage])
+
     useEffect(() => {
-        const results = leadData.filter((item) =>
-            Object.values(item).some(
+        const results = leadData.filter((item) => {
+            const matchesSearch = Object.values(item).some(
                 (val) =>
                     typeof val === "string" &&
                     val.toLowerCase().includes(searchTerm.toLowerCase())
             )
-        )
+
+            // Filter based on is_sent_to_pending status
+            let matchesStatus = true
+            if (filterStatus === "sent") {
+                matchesStatus = item.is_sent_to_pending === true
+            } else if (filterStatus === "not-sent") {
+                matchesStatus = item.is_sent_to_pending === false
+            }
+
+            return matchesSearch && matchesStatus
+        })
         setFilteredData(results)
         setTotalPages(Math.ceil(results.length / itemsPerPage))
         setCurrentPage(1)
-    }, [searchTerm, leadData, itemsPerPage])
+    }, [searchTerm, leadData, itemsPerPage, filterStatus])
 
     const handleDelete = async (id) => {
         try {
@@ -381,6 +407,14 @@ const LeadPage = () => {
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page)
         }
+    }
+
+    const handleSendToPending = async (id) => {
+        await sendLeadToPending(id)
+        toast.success("Lead sent to pending successfully")
+        setLeadData((prevData) => prevData.filter((item) => item._id !== id))
+        setFilteredData((prevData) => prevData.filter((item) => item._id !== id))
+        setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
     }
 
     const startIndex = (currentPage - 1) * itemsPerPage
@@ -406,11 +440,48 @@ const LeadPage = () => {
         <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
             <h1 className="text-3xl font-semibold mb-6 text-gray-800">Lead Data</h1>
 
+            <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+                <Button
+                    variant={filterStatus === "all" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setFilterStatus("all")}
+                    className={`${filterStatus === "all"
+                            ? "bg-white shadow-sm"
+                            : "hover:bg-gray-200"
+                        }`}
+                >
+                    All
+                </Button>
+                <Button
+                    variant={filterStatus === "sent" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setFilterStatus("sent")}
+                    className={`${filterStatus === "sent"
+                            ? "bg-white shadow-sm"
+                            : "hover:bg-gray-200"
+                        }`}
+                >
+                    Sent
+                </Button>
+                <Button
+                    variant={filterStatus === "not-sent" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setFilterStatus("not-sent")}
+                    className={`${filterStatus === "not-sent"
+                            ? "bg-white shadow-sm"
+                            : "hover:bg-gray-200"
+                        }`}
+                >
+                    Not Sent
+                </Button>
+            </div>
+
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead>Send</TableHead>
                                 <TableHead>Source</TableHead>
                                 <TableHead>First Name</TableHead>
                                 <TableHead>Last Name</TableHead>
@@ -430,6 +501,15 @@ const LeadPage = () => {
                         <TableBody>
                             {paginatedData.map((item, index) => (
                                 <TableRow key={item._id} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+                                    <TableCell>
+                                        <SendHorizontal
+                                            size={20}
+                                            color="#007BFF"
+                                            strokeWidth={2}
+                                            style={{ cursor: 'pointer', transition: 'transform 0.2s ease' }}
+                                            onClick={() => handleSendToPending(item._id)}
+                                        />
+                                    </TableCell>
                                     <TableCell>{item.source?.value}</TableCell>
                                     <TableCell>{item.cm_first_name}</TableCell>
                                     <TableCell>{item.cm_last_name}</TableCell>

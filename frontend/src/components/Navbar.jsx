@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import useAuthStore from "../store/authStore";
 import { LogOut, Home } from "lucide-react";
+import { NavLink } from "react-router-dom";
 
 const Navbar = () => {
     const { user, logout } = useAuthStore();
@@ -60,7 +61,19 @@ const Navbar = () => {
 
                     {/* User Info and Logout */}
                     {user ? (
-                        <>
+                        <><li>
+                            <NavLink
+                                to="/dashboard"
+                                className={({ isActive }) =>
+                                    `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${isActive
+                                        ? "bg-blue-50 text-blue-600 font-medium"
+                                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                    }`
+                                }
+                            >
+                                <span>Dashboard</span>
+                            </NavLink>
+                        </li>
                             <li className="text-sm font-medium text-gray-700">{user.email}</li>
                             <li
                                 className="flex items-center text-gray-700 cursor-pointer hover:text-red-500 transition-colors"

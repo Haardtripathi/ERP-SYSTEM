@@ -33,3 +33,9 @@ export const deleteIncoming = async (id) => {
     const response = await axiosInstance.put(`/incoming/delete-incoming-data/${id}`);
     return response;
 };
+
+
+export const sendIncomingToPending = async (id) => {
+    const response = await axiosInstance.post(`/incoming/send-incoming-data-to-pending/${id}`);
+    return response;
+}

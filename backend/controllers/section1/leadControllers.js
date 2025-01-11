@@ -118,14 +118,14 @@ exports.getAllLeadData = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // Fetch data with pagination
-        // const data = await Lead.find({ is_sent_to_pending: false, isDeleted: false })
-        const data = await Lead.find({ isDeleted: false })
+        const data = await Lead.find({ is_sent_to_pending: false, isDeleted: false })
+        // const data = await Lead.find({ isDeleted: false })
 
         // console.log(data);
 
         // Get total count of documents
-        // const totalCount = await Lead.countDocuments({ is_sent_to_pending: false, isDeleted: false });
-        const totalCount = await Lead.countDocuments({ isDeleted: false });
+        const totalCount = await Lead.countDocuments({ is_sent_to_pending: false, isDeleted: false });
+        // const totalCount = await Lead.countDocuments({ isDeleted: false });
 
         return res.status(200).json({
             message: "Lead data fetched successfully.",
@@ -234,8 +234,10 @@ exports.putEditLeadData = async (req, res) => {
 
 const transformLeadToPending = (leadData) => {
     return {
+        dataId: leadData._id,
         payment_type: null, // No equivalent in leadData
         sale_type: null, // No equivalent in leadData
+        source: leadData.source || { dropdown_data: null, value: "" },
         agent_name: leadData.agent_name || { dropdown_data: null, value: "" },
         cm_first_name: leadData.cm_first_name || "",
         cm_last_name: leadData.cm_last_name || "",
@@ -269,6 +271,7 @@ exports.sendLeadDataToPending = async (req, res) => {
 
         const leadData = await Lead.findOne({ _id: id })
         // console.log(leadData)
+        await Lead.updateOne({ _id: id }, { is_sent_to_pending: true })
 
         const pendingData = transformLeadToPending(leadData);
         console.log(pendingData)

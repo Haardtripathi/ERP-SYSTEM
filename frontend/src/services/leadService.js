@@ -26,3 +26,8 @@ export const updateEditLead = async (id, data) => {
     const response = await axiosInstance.put(`/lead/edit-lead-data/${id}`, data);
     return response;
 };
+
+export const sendLeadToPending = async (id) => {
+    const response = await axiosInstance.post(`/lead/send-lead-data-to-pending/${id}`);
+    return response;
+}

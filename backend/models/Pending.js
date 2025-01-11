@@ -4,6 +4,10 @@ const Schema = mongoose.Schema;
 
 const pendingSchema = new Schema(
     {
+        dataId: {
+            type: Schema.Types.ObjectId,
+            required: true,
+        },
         ref: {
             type: String,
             required: true,
@@ -35,6 +39,17 @@ const pendingSchema = new Schema(
             immutable: true,
         },
 
+        source: {
+            type: Object,
+            dropdown_data: {
+                type: Schema.Types.ObjectId,
+                ref: 'Dropdown',
+            },
+            value: {
+                type: String,
+            },
+            required: true,
+        },
         payment_type: {
             type: Object,
             dropdown_data: {

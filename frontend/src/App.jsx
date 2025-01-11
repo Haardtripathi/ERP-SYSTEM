@@ -17,6 +17,7 @@ import LeadPage from "./components/section1/lead/LeadPage";
 import AddLeadData from "./components/section1/lead/AddLeadData";
 import EditLeadData from "./components/section1/lead/EditLeadData";
 import WorkbookPage from "./components/section1/workbook/WorkbookPage";
+import PendingPage from "./components/section2/pending/PendingPage";
 
 const App = () => {
   const { checkAuth, loading, user } = useAuthStore();
@@ -121,6 +122,14 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <WorkbookPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/pending"
+                  element={
+                    <ProtectedRoute>
+                      <PendingPage />
                     </ProtectedRoute>
                   }
                 />

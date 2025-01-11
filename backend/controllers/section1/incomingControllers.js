@@ -177,13 +177,13 @@ exports.getAllIncomingData = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // Fetch data with pagination
-        // const data = await Incoming.find({ is_sent_to_pending: false, isDeleted: false })
-        const data = await Incoming.find({ isDeleted: false })
+        const data = await Incoming.find({ is_sent_to_pending: false, isDeleted: false })
+        // const data = await Incoming.find({ isDeleted: false })
 
 
         // Get total count of documents
-        // const totalCount = await Incoming.countDocuments({ is_sent_to_pending: false, isDeleted: false });
-        const totalCount = await Incoming.countDocuments({ isDeleted: false });
+        const totalCount = await Incoming.countDocuments({ is_sent_to_pending: false, isDeleted: false });
+        // const totalCount = await Incoming.countDocuments({ isDeleted: false });
 
 
         return res.status(200).json({
@@ -268,8 +268,10 @@ exports.putEditIncomingData = async (req, res) => {
 
 const transformIncomingToPending = (incomingData) => {
     return {
+        dataId: incomingData._id,
         payment_type: null, // No equivalent in incomingData
         sale_type: null, // No equivalent in incomingData
+        source: incomingData.source || { dropdown_data: null, value: "" },
         agent_name: incomingData.agent_name || { dropdown_data: null, value: "" },
         cm_first_name: incomingData.cm_first_name || "",
         cm_last_name: incomingData.cm_last_name || "",
@@ -302,6 +304,8 @@ exports.sendIncomingDataToPending = async (req, res) => {
 
         const incomingData = await Incoming.findOne({ _id: id })
         // console.log(incomingData)
+        await Incoming.updateOne({ _id: id }, { is_sent_to_pending: true })
+
 
         const pendingData = transformIncomingToPending(incomingData);
         console.log(pendingData)
