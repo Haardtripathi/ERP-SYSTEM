@@ -1,6 +1,8 @@
 
 const Incoming = require('../../models/Incoming')
 const Dropdown = require('../../models/Dropdown')
+const Workbook = require('../../models/Workbook')
+const Pending = require('../../models/Pending')
 const mongoose = require("mongoose")
 
 require("dotenv").config()
@@ -37,6 +39,25 @@ exports.getAddIncomingData = async (req, res, next) => {
 
 
 exports.postAddIncomingData = async (req, res) => {
+    const data = await Dropdown.find(); // Fetch dropdown data
+
+    const toSnakeCase = (str) => {
+        return str
+            .toLowerCase()
+            .replace(/\s+/g, "_"); // Replace spaces with underscores
+    };
+
+    const formattedData = data.reduce((acc, item) => {
+        if (item.name && item.values && item._id) {
+            const formattedName = toSnakeCase(item.name); // Convert name to snake_case
+            acc[formattedName] = {
+                values: item.values,
+                id: item._id,
+            };
+        }
+        return acc;
+    }, {});
+
     try {
         const {
             source,
@@ -122,6 +143,16 @@ exports.postAddIncomingData = async (req, res) => {
         // Save the document in the database
         await newIncoming.save();
 
+        const workbookData = new Workbook({
+            data: {
+                dropdown_data: new mongoose.Types.ObjectId(formattedData.data.id), // Reference dropdown data
+                value: "Incoming",
+            },
+            dataId: newIncoming._id,
+        })
+
+        await workbookData.save();
+
         return res.status(201).json({
             message: "Incoming data created successfully.",
             data: newIncoming,
@@ -135,6 +166,7 @@ exports.postAddIncomingData = async (req, res) => {
 };
 
 
+
 exports.getAllIncomingData = async (req, res) => {
     try {
         // Get page and limit from query parameters (default values are 1 and 10)
@@ -145,10 +177,14 @@ exports.getAllIncomingData = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // Fetch data with pagination
-        const data = await Incoming.find({ is_sent_to_pending: false, isDeleted: false })
+        // const data = await Incoming.find({ is_sent_to_pending: false, isDeleted: false })
+        const data = await Incoming.find({ isDeleted: false })
+
 
         // Get total count of documents
-        const totalCount = await Incoming.countDocuments({ is_sent_to_pending: false, isDeleted: false });
+        // const totalCount = await Incoming.countDocuments({ is_sent_to_pending: false, isDeleted: false });
+        const totalCount = await Incoming.countDocuments({ isDeleted: false });
+
 
         return res.status(200).json({
             message: "Incoming data fetched successfully.",
@@ -226,4 +262,60 @@ exports.putEditIncomingData = async (req, res) => {
     }
 
 
+}
+
+
+
+const transformIncomingToPending = (incomingData) => {
+    return {
+        payment_type: null, // No equivalent in incomingData
+        sale_type: null, // No equivalent in incomingData
+        agent_name: incomingData.agent_name || { dropdown_data: null, value: "" },
+        cm_first_name: incomingData.cm_first_name || "",
+        cm_last_name: incomingData.cm_last_name || "",
+        cm_phone: incomingData.cm_phone || null,
+        alternate_phone: incomingData.alternate_phone || null,
+        email: "", // No equivalent in incomingData
+        status: null,
+        remark: incomingData.remark || { dropdown_data: null, value: "" },
+        comment: incomingData.comment || "",
+        shipment_type: null, // No equivalent in incomingData
+        address: "", // No equivalent in incomingData
+        post_type: null, // No equivalent in incomingData
+        post: "", // No equivalent in incomingData
+        sub_district_taluka: "", // No equivalent in incomingData
+        city: incomingData.city || "",
+        pincode: "", // No equivalent in incomingData
+        state: incomingData.state || { dropdown_data: null, value: "" },
+        disease: incomingData.disease || { dropdown_data: null, value: "" },
+        amount: null, // No equivalent in incomingData
+        products: null, // No equivalent in incomingData
+        quantity: "", // No equivalent in incomingData
+        isDeleted: incomingData.isDeleted || false,
+    };
+};
+
+exports.sendIncomingDataToPending = async (req, res) => {
+    try {
+        const id = new mongoose.Types.ObjectId(req.params.id)
+        // console.log(id)
+
+        const incomingData = await Incoming.findOne({ _id: id })
+        // console.log(incomingData)
+
+        const pendingData = transformIncomingToPending(incomingData);
+        console.log(pendingData)
+        // Save to the Pending collection
+        const newPending = new Pending(pendingData);
+        await newPending.save();
+
+        return res.status(200).json({
+            message: "Data sent successfully."
+        });
+    }
+    catch {
+        return res.status(500).json({
+            message: "An error occurred while sending data.",
+        });
+    }
 }

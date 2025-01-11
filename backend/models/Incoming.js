@@ -126,14 +126,14 @@ const IncomingSchema = new Schema(
             type: Boolean,
             default: false, // Set default to false (not deleted)
         },
-        is_sent_to_pending: {
-            type: Boolean,
-            default: false,
-        },
-        status: {
-            type: String,
-            default: 'active', // Set default to 'active'
-        },
+        // is_sent_to_pending: {
+        //     type: Boolean,
+        //     default: false,
+        // },
+        // status: {
+        //     type: String,
+        //     default: 'active', // Set default to 'active'
+        // },
     },
     { timestamps: true }
 );

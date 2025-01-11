@@ -20,7 +20,7 @@ const workbookSchema = new Schema(
         dataId: {
             type: Schema.Types.ObjectId,
             required: true,
-            refPath: 'data',
+            refPath: 'data.value',
         },
     },
     { timestamps: true }

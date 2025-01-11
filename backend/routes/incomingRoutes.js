@@ -15,5 +15,8 @@ router.put('/edit-incoming-data/:id', isAuthenticated, incomingController.putEdi
 
 router.put('/delete-incoming-data/:id', isAuthenticated, incomingController.deleteIncomingData);
 
+router.post('/send-incoming-data-to-pending/:id', isAuthenticated, incomingController.sendIncomingDataToPending);
+
+
 
 module.exports = router;

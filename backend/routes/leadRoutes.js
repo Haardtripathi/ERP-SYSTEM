@@ -19,5 +19,6 @@ router.get('/get-edit-lead-data/:id', isAuthenticated, leadController.getEditLea
 
 router.put('/edit-lead-data/:id', isAuthenticated, leadController.putEditLeadData);
 
+router.post('/send-lead-data-to-pending/:id', isAuthenticated, leadController.sendLeadDataToPending);
 
 module.exports = router;
