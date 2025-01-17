@@ -1,253 +1,3 @@
-// 'use client'
-
-// import React, { useState, useEffect } from "react"
-// import { getAllLead, deleteLead } from "@/services/leadService"
-// import { Button } from "@/components/ui/button"
-// import { Input } from "@/components/ui/input"
-// import { toast } from "react-hot-toast"
-// import { RefreshCw, RotateCw, RefreshCcw } from 'lucide-react';
-// import {
-//     Table,
-//     TableBody,
-//     TableCell,
-//     TableHead,
-//     TableHeader,
-//     TableRow,
-// } from "@/components/ui/table"
-// import {
-//     Pagination,
-//     PaginationContent,
-//     PaginationEllipsis,
-//     PaginationItem,
-//     PaginationLink,
-//     PaginationNext,
-//     PaginationPrevious,
-// } from "@/components/ui/pagination"
-// import {
-//     AlertDialog,
-//     AlertDialogAction,
-//     AlertDialogCancel,
-//     AlertDialogContent,
-//     AlertDialogDescription,
-//     AlertDialogFooter,
-//     AlertDialogHeader,
-//     AlertDialogTitle,
-//     AlertDialogTrigger,
-// } from "@/components/ui/alert-dialog"
-// import { Loader2, Search, Trash2 } from 'lucide-react'
-// import { Link, useNavigate, useLocation } from "react-router-dom";
-
-
-// const LeadPage = () => {
-//     const [leadData, setLeadData] = useState([])
-//     const [filteredData, setFilteredData] = useState([])
-//     const [currentPage, setCurrentPage] = useState(1)
-//     const [itemsPerPage] = useState(10)
-//     const [totalPages, setTotalPages] = useState(1)
-//     const [isLoading, setIsLoading] = useState(true)
-//     const [error, setError] = useState(null)
-//     const [searchTerm, setSearchTerm] = useState("")
-
-//     const navigate = useNavigate()
-
-//     useEffect(() => {
-//         const fetchData = async () => {
-//             try {
-//                 setIsLoading(true)
-//                 const response = await getAllLead()
-//                 setLeadData(response.data.data)
-//                 setFilteredData(response.data.data)
-//                 setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
-//             } catch (error) {
-//                 console.error("Error fetching lead data:", error)
-//                 setError("Failed to fetch data. Please try again later.")
-//             } finally {
-//                 setIsLoading(false)
-//             }
-//         }
-
-//         fetchData()
-//     }, [itemsPerPage])
-
-//     useEffect(() => {
-//         const results = leadData.filter((item) =>
-//             Object.values(item).some(
-//                 (val) =>
-//                     typeof val === "string" &&
-//                     val.toLowerCase().includes(searchTerm.toLowerCase())
-//             )
-//         )
-//         setFilteredData(results)
-//         setTotalPages(Math.ceil(results.length / itemsPerPage))
-//         setCurrentPage(1)
-//     }, [searchTerm, leadData, itemsPerPage])
-
-//     const handleDelete = async (id) => {
-//         try {
-//             const response = await deleteLead(id)
-//             toast.success("Data deleted successfully")
-//             setLeadData((prevData) => prevData.filter((item) => item._id !== id))
-//             setFilteredData((prevData) => prevData.filter((item) => item._id !== id))
-//             setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
-//         } catch (error) {
-//             console.error("Error deleting item:", error)
-//             setError("Failed to delete item. Please try again.")
-//         }
-//     }
-
-//     const handleUpdateClick = async (id) => {
-//         navigate(`/edit-lead-data/${id}`)
-//     }
-
-//     const handlePageChange = (page) => {
-//         if (page >= 1 && page <= totalPages) {
-//             setCurrentPage(page)
-//         }
-//     }
-
-//     const startIndex = (currentPage - 1) * itemsPerPage
-//     const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage)
-
-//     if (isLoading) {
-//         return (
-//             <div className="flex justify-center items-center h-screen">
-//                 <Loader2 className="h-8 w-8 animate-spin" />
-//             </div>
-//         )
-//     }
-
-//     if (error) {
-//         return (
-//             <div className="flex justify-center items-center h-screen">
-//                 <p className="text-red-500">{error}</p>
-//             </div>
-//         )
-//     }
-
-//     return (
-//         <div className="container mx-auto p-6">
-//             <h1 className="text-3xl font-bold mb-6">Lead Data</h1>
-
-//             {/* <div className="mb-4">
-//                 <div className="relative">
-//                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-//                     <Input
-//                         type="text"
-//                         placeholder="Search..."
-//                         value={searchTerm}
-//                         onChange={(e) => setSearchTerm(e.target.value)}
-//                         className="pl-8"
-//                     />
-//                 </div>
-//             </div> */}
-//             <div className="rounded-md border">
-//                 <Table>
-//                     <TableHeader>
-//                         <TableRow>
-//                             <TableHead>Source</TableHead>
-//                             <TableHead>First Name</TableHead>
-//                             <TableHead>Last Name</TableHead>
-//                             <TableHead>Phone</TableHead>
-//                             <TableHead>Agent</TableHead>
-//                             <TableHead>Language</TableHead>
-//                             <TableHead>Disease</TableHead>
-//                             <TableHead>State</TableHead>
-//                             <TableHead>City</TableHead>
-//                             <TableHead>Remark</TableHead>
-//                             <TableHead>Comment</TableHead>
-//                             <TableHead>Date</TableHead>
-//                             <TableHead>Update</TableHead>
-//                             <TableHead>Actions</TableHead>
-//                         </TableRow>
-//                     </TableHeader>
-//                     <TableBody>
-//                         {paginatedData.map((item) => (
-//                             <TableRow key={item._id}>
-//                                 <TableCell>{item.source?.value}</TableCell>
-//                                 <TableCell>{item.cm_first_name}</TableCell>
-//                                 <TableCell>{item.cm_last_name}</TableCell>
-//                                 <TableCell>{item.cm_phone}</TableCell>
-//                                 <TableCell>{item.agent_name?.value}</TableCell>
-//                                 <TableCell>{item.language?.value}</TableCell>
-//                                 <TableCell>{item.disease?.value}</TableCell>
-//                                 <TableCell>{item.state?.value}</TableCell>
-//                                 <TableCell>{item.city}</TableCell>
-//                                 <TableCell>{item.remark?.value}</TableCell>
-//                                 <TableCell>{item.comment}</TableCell>
-//                                 <TableCell>{item.date}</TableCell>
-//                                 <TableCell>
-//                                     <RotateCw
-//                                         size={32}
-//                                         color="#007BFF"
-//                                         strokeWidth={2}
-//                                         style={{ cursor: 'pointer', transition: 'transform 0.2s ease' }}
-//                                         onClick={() => handleUpdateClick(item._id)}
-//                                         onMouseOver={(e) => e.currentTarget.style.transform = 'rotate(90deg)'}
-//                                         onMouseOut={(e) => e.currentTarget.style.transform = 'rotate(0deg)'}
-//                                     />
-//                                 </TableCell>
-//                                 <TableCell>
-//                                     <AlertDialog>
-//                                         <AlertDialogTrigger asChild>
-//                                             <Button variant="destructive" size="icon">
-//                                                 <Trash2 className="h-4 w-4" />
-//                                             </Button>
-//                                         </AlertDialogTrigger>
-//                                         <AlertDialogContent>
-//                                             <AlertDialogHeader>
-//                                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-//                                                 <AlertDialogDescription>
-//                                                     This action cannot be undone. This will permanently delete the
-//                                                     selected record.
-//                                                 </AlertDialogDescription>
-//                                             </AlertDialogHeader>
-//                                             <AlertDialogFooter>
-//                                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-//                                                 <AlertDialogAction onClick={() => handleDelete(item._id)}>
-//                                                     Delete
-//                                                 </AlertDialogAction>
-//                                             </AlertDialogFooter>
-//                                         </AlertDialogContent>
-//                                     </AlertDialog>
-
-//                                 </TableCell>
-//                             </TableRow>
-//                         ))}
-//                     </TableBody>
-//                 </Table>
-//             </div>
-//             <Pagination className="mt-4">
-//                 <PaginationContent>
-//                     <PaginationItem>
-//                         <PaginationPrevious
-//                             onClick={() => handlePageChange(currentPage - 1)}
-//                             disabled={currentPage === 1}
-//                         />
-//                     </PaginationItem>
-//                     {[...Array(totalPages)].map((_, index) => (
-//                         <PaginationItem key={index}>
-//                             <PaginationLink
-//                                 onClick={() => handlePageChange(index + 1)}
-//                                 isActive={currentPage === index + 1}
-//                             >
-//                                 {index + 1}
-//                             </PaginationLink>
-//                         </PaginationItem>
-//                     ))}
-//                     <PaginationItem>
-//                         <PaginationNext
-//                             onClick={() => handlePageChange(currentPage + 1)}
-//                             disabled={currentPage === totalPages}
-//                         />
-//                     </PaginationItem>
-//                 </PaginationContent>
-//             </Pagination>
-//         </div>
-//     )
-// }
-
-// export default LeadPage
-
 
 'use client'
 
@@ -279,6 +29,14 @@ import {
 } from "@/components/ui/pagination"
 import { Loader2, Search, Trash2, SendHorizontal } from 'lucide-react'
 import { useNavigate } from "react-router-dom"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog"
 
 const Table = ({ children }) => (
     <table className="w-full border-collapse">
@@ -316,7 +74,6 @@ const TableCell = ({ children, className }) => (
     </td>
 )
 
-
 const LeadPage = () => {
     const [leadData, setLeadData] = useState([])
     const [filteredData, setFilteredData] = useState([])
@@ -327,7 +84,8 @@ const LeadPage = () => {
     const [error, setError] = useState(null)
     const [searchTerm, setSearchTerm] = useState("")
     const [filterStatus, setFilterStatus] = useState("All")
-
+    const [selectedItem, setSelectedItem] = useState(null)
+    const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
 
     const navigate = useNavigate()
 
@@ -350,18 +108,6 @@ const LeadPage = () => {
         fetchData()
     }, [itemsPerPage])
 
-    // useEffect(() => {
-    //     const results = leadData.filter((item) =>
-    //         Object.values(item).some(
-    //             (val) =>
-    //                 typeof val === "string" &&
-    //                 val.toLowerCase().includes(searchTerm.toLowerCase())
-    //         )
-    //     )
-    //     setFilteredData(results)
-    //     setTotalPages(Math.ceil(results.length / itemsPerPage))
-    //     setCurrentPage(1)
-    // }, [searchTerm, leadData, itemsPerPage])
     useEffect(() => {
         const results = leadData.filter((item) =>
             Object.values(item).some(
@@ -370,7 +116,6 @@ const LeadPage = () => {
                     val.toLowerCase().includes(searchTerm.toLowerCase())
             )
         ).filter((item) => {
-
             if (filterStatus === "All") return true;
             if (filterStatus === "isSent") return item.is_sent_to_pending;
             if (filterStatus === "isNotSent") return !item.is_sent_to_pending;
@@ -405,12 +150,21 @@ const LeadPage = () => {
     }
 
     const handleSendToPending = async (id) => {
-        await sendLeadToPending(id)
-        toast.success("Lead sent to pending successfully")
-        setLeadData((prevData) => prevData.filter((item) => item._id !== id))
-        setFilteredData((prevData) => prevData.filter((item) => item._id !== id))
-        setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
-        window.location.reload()
+        const item = leadData.find(item => item._id === id)
+        setSelectedItem(item)
+        setIsReviewDialogOpen(true)
+    }
+
+    const confirmSendToPending = async () => {
+        if (selectedItem) {
+            await sendLeadToPending(selectedItem._id)
+            toast.success("Lead sent to pending successfully")
+            setLeadData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
+            setFilteredData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
+            setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
+            setIsReviewDialogOpen(false)
+            window.location.reload()
+        }
     }
 
     const startIndex = (currentPage - 1) * itemsPerPage
@@ -456,13 +210,6 @@ const LeadPage = () => {
                         Is Not Sent
                     </Button>
                 </div>
-                {/* <Input
-                    type="text"
-                    placeholder="Search..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="max-w-sm"
-                /> */}
             </div>
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
@@ -600,6 +347,35 @@ const LeadPage = () => {
                     </PaginationItem>
                 </PaginationContent>
             </Pagination>
+            <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Review Lead Data</DialogTitle>
+                        <DialogDescription>
+                            Please review the lead data before sending to pending.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {selectedItem && (
+                        <div className="mt-4">
+                            <p><strong>Source:</strong> {selectedItem.source?.value}</p>
+                            <p><strong>Name:</strong> {selectedItem.cm_first_name} {selectedItem.cm_last_name}</p>
+                            <p><strong>Phone:</strong> {selectedItem.cm_phone}</p>
+                            <p><strong>Agent:</strong> {selectedItem.agent_name?.value}</p>
+                            <p><strong>Language:</strong> {selectedItem.language?.value}</p>
+                            <p><strong>Disease:</strong> {selectedItem.disease?.value}</p>
+                            <p><strong>State:</strong> {selectedItem.state?.value}</p>
+                            <p><strong>City:</strong> {selectedItem.city}</p>
+                            <p><strong>Remark:</strong> {selectedItem.remark?.value}</p>
+                            <p><strong>Comment:</strong> {selectedItem.comment}</p>
+                            <p><strong>Date:</strong> {selectedItem.date}</p>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button onClick={() => setIsReviewDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={confirmSendToPending}>Confirm Send</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

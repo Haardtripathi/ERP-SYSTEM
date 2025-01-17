@@ -243,6 +243,21 @@ exports.putEditIncomingData = async (req, res) => {
     const data = req.body
     // console.log(id)
     // console.log(data)
+    const options = {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    };
+    
+    const formatter = new Intl.DateTimeFormat([], options);
+    const formattedDate = formatter.format(new Date());
+    
+    // Add the formatted date to the data object
+    data.date = formattedDate;
 
     try {
         const updatedIncoming = await Incoming.findByIdAndUpdate(

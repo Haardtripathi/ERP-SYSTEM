@@ -1,44 +1,3 @@
-// import { useEffect } from 'react'
-// import { create } from "zustand";
-// import { toast } from "react-hot-toast"
-// import { getAllWorkbook } from "../../../services/workbookService"
-
-
-
-// const useStore = create((set) => ({
-//     loading: false,
-//     setLoading: (loading) => set({ loading }),
-// }));
-
-// const WorkbookPage = () => {
-//     const { loading, setLoading } = useStore();
-
-
-// useEffect(() => {
-//     const fetchDropdowns = async () => {
-
-//         setLoading(true);
-//         try {
-//             const response = await getAllWorkbook();
-//             console.log(response)
-//         } catch (error) {
-//             toast.error("Failed to load dropdown data");
-//         } finally {
-//             setLoading(false);
-//         }
-//     };
-//     fetchDropdowns();
-// }, [setLoading]);
-
-
-//     return (
-//         <div>WorkbookPage</div>
-//     )
-// }
-
-// export default WorkbookPage
-
-
 
 'use client'
 
@@ -72,6 +31,14 @@ import { Loader2, Search, Trash2, SendHorizontal } from 'lucide-react'
 import { useNavigate } from "react-router-dom"
 import { deleteLead, sendLeadToPending } from "@/services/leadService"
 import { deleteIncoming, sendIncomingToPending } from "@/services/incomingService"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog"
 
 const Table = ({ children }) => (
     <table className="w-full border-collapse">
@@ -118,6 +85,9 @@ const WorkbookPage = () => {
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(null)
     const [searchTerm, setSearchTerm] = useState("")
+    const [filterStatus, setFilterStatus] = useState("All")
+    const [selectedItem, setSelectedItem] = useState(null)
+    const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
 
     const navigate = useNavigate()
 
@@ -126,7 +96,6 @@ const WorkbookPage = () => {
             try {
                 setIsLoading(true)
                 const response = await getAllWorkbook()
-                // console.log(response)
                 setWorkbookData(response.data)
                 setFilteredData(response.data)
                 setTotalPages(Math.ceil(response.data.length / itemsPerPage))
@@ -148,23 +117,25 @@ const WorkbookPage = () => {
                     typeof val === "string" &&
                     val.toLowerCase().includes(searchTerm.toLowerCase())
             )
-        )
+        ).filter((item) => {
+            if (filterStatus === "All") return true;
+            if (filterStatus === "isSent") return item.is_sent_to_pending;
+            if (filterStatus === "isNotSent") return !item.is_sent_to_pending;
+            return true;
+        })
         setFilteredData(results)
         setTotalPages(Math.ceil(results.length / itemsPerPage))
         setCurrentPage(1)
-    }, [searchTerm, workbookData, itemsPerPage])
+    }, [searchTerm, workbookData, itemsPerPage, filterStatus])
 
     const handleDelete = async (id, data) => {
         try {
-            if (data == "Lead") {
+            if (data === "Lead") {
                 await deleteLead(id)
-
             }
-            if (data == "Incoming") {
+            if (data === "Incoming") {
                 await deleteIncoming(id)
-
             }
-            // await deleteIncoming(id)
             toast.success("Data deleted successfully")
             setWorkbookData((prevData) => prevData.filter((item) => item._id !== id))
             setFilteredData((prevData) => prevData.filter((item) => item._id !== id))
@@ -176,12 +147,11 @@ const WorkbookPage = () => {
     }
 
     const handleUpdateClick = async (id, data) => {
-        if (data == "Lead") {
+        if (data === "Lead") {
             navigate(`/edit-lead-data/${id}`)
         }
-        if (data == "Incoming") {
+        if (data === "Incoming") {
             navigate(`/edit-incoming-data/${id}`)
-
         }
     }
 
@@ -192,23 +162,31 @@ const WorkbookPage = () => {
     }
 
     const handleSendToPending = async (id, data) => {
-        try {
-            if (data == "Lead") {
-                await sendLeadToPending(id)
+        const item = workbookData.find(item => item._id === id)
+        setSelectedItem(item)
+        setIsReviewDialogOpen(true)
+    }
 
-            }
-            if (data == "Incoming") {
-                await sendIncomingToPending(id)
+    const confirmSendToPending = async () => {
+        if (selectedItem) {
+            try {
+                if (selectedItem.data?.value === "Lead") {
+                    await sendLeadToPending(selectedItem._id)
+                }
+                if (selectedItem.data?.value === "Incoming") {
+                    await sendIncomingToPending(selectedItem._id)
+                }
+                toast.success("Data sent to pending successfully")
+                setWorkbookData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
+                setFilteredData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
+                setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
+                setIsReviewDialogOpen(false)
+                window.location.reload()
 
+            } catch (error) {
+                console.error("Error sending item to pending:", error)
+                setError("Failed to send item to pending. Please try again.")
             }
-            // await deleteIncoming(id)
-            toast.success("Data deleted successfully")
-            setWorkbookData((prevData) => prevData.filter((item) => item._id !== id))
-            setFilteredData((prevData) => prevData.filter((item) => item._id !== id))
-            setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
-        } catch (error) {
-            console.error("Error deleting item:", error)
-            setError("Failed to delete item. Please try again.")
         }
     }
 
@@ -234,7 +212,28 @@ const WorkbookPage = () => {
     return (
         <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
             <h1 className="text-3xl font-semibold mb-6 text-gray-800">Workbook Data</h1>
-
+            <div className="mb-4 flex justify-between items-center">
+                <div className="flex space-x-2">
+                    <Button
+                        onClick={() => setFilterStatus("All")}
+                        variant={filterStatus === "All" ? "default" : "outline"}
+                    >
+                        All
+                    </Button>
+                    <Button
+                        onClick={() => setFilterStatus("isSent")}
+                        variant={filterStatus === "isSent" ? "default" : "outline"}
+                    >
+                        Is Sent
+                    </Button>
+                    <Button
+                        onClick={() => setFilterStatus("isNotSent")}
+                        variant={filterStatus === "isNotSent" ? "default" : "outline"}
+                    >
+                        Is Not Sent
+                    </Button>
+                </div>
+            </div>
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
                     <Table>
@@ -264,10 +263,14 @@ const WorkbookPage = () => {
                                     <TableCell>
                                         <SendHorizontal
                                             size={20}
-                                            color="#007BFF"
+                                            color={item.is_sent_to_pending ? "#28a745" : "#007BFF"}
                                             strokeWidth={2}
-                                            style={{ cursor: 'pointer', transition: 'transform 0.2s ease' }}
-                                            onClick={() => handleSendToPending(item._id, item.data?.value)}
+                                            style={{
+                                                cursor: item.is_sent_to_pending ? 'not-allowed' : 'pointer',
+                                                transition: 'transform 0.2s ease',
+                                                opacity: item.is_sent_to_pending ? 0.5 : 1
+                                            }}
+                                            onClick={() => !item.is_sent_to_pending && handleSendToPending(item._id, item.data?.value)}
                                         />
                                     </TableCell>
                                     <TableCell>{item.data?.value}</TableCell>
@@ -288,16 +291,20 @@ const WorkbookPage = () => {
                                             size={20}
                                             color="#007BFF"
                                             strokeWidth={2}
-                                            style={{ cursor: 'pointer', transition: 'transform 0.2s ease' }}
-                                            onClick={() => handleUpdateClick(item._id, item.data?.value)}
-                                            onMouseOver={(e) => e.currentTarget.style.transform = 'rotate(90deg)'}
-                                            onMouseOut={(e) => e.currentTarget.style.transform = 'rotate(0deg)'}
+                                            style={{
+                                                cursor: item.is_sent_to_pending ? 'not-allowed' : 'pointer',
+                                                transition: 'transform 0.2s ease',
+                                                opacity: item.is_sent_to_pending ? 0.5 : 1
+                                            }}
+                                            onClick={() => !item.is_sent_to_pending && handleUpdateClick(item._id, item.data?.value)}
+                                            onMouseOver={(e) => !item.is_sent_to_pending && (e.currentTarget.style.transform = 'rotate(90deg)')}
+                                            onMouseOut={(e) => !item.is_sent_to_pending && (e.currentTarget.style.transform = 'rotate(0deg)')}
                                         />
                                     </TableCell>
                                     <TableCell>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200">
+                                                <Button variant="ghost" className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200" disabled={item.is_sent_to_pending}>
                                                     <Trash2 className="h-5 w-5 text-red-500" />
                                                 </Button>
                                             </AlertDialogTrigger>
@@ -365,6 +372,36 @@ const WorkbookPage = () => {
                     </PaginationItem>
                 </PaginationContent>
             </Pagination>
+            <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Review Workbook Data</DialogTitle>
+                        <DialogDescription>
+                            Please review the data before sending to pending.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {selectedItem && (
+                        <div className="mt-4">
+                            <p><strong>Data Type:</strong> {selectedItem.data?.value}</p>
+                            <p><strong>Source:</strong> {selectedItem.source?.value}</p>
+                            <p><strong>Name:</strong> {selectedItem.cm_first_name} {selectedItem.cm_last_name}</p>
+                            <p><strong>Phone:</strong> {selectedItem.cm_phone}</p>
+                            <p><strong>Agent:</strong> {selectedItem.agent_name?.value}</p>
+                            <p><strong>Language:</strong> {selectedItem.language?.value}</p>
+                            <p><strong>Disease:</strong> {selectedItem.disease?.value}</p>
+                            <p><strong>State:</strong> {selectedItem.state?.value}</p>
+                            <p><strong>City:</strong> {selectedItem.city}</p>
+                            <p><strong>Remark:</strong> {selectedItem.remark?.value}</p>
+                            <p><strong>Comment:</strong> {selectedItem.comment}</p>
+                            <p><strong>Date:</strong> {selectedItem.date}</p>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button onClick={() => setIsReviewDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={confirmSendToPending}>Confirm Send</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

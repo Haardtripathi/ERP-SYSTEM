@@ -214,6 +214,21 @@ exports.putEditLeadData = async (req, res) => {
     // console.log(data)
 
     try {
+        const options = {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+        };
+        
+        const formatter = new Intl.DateTimeFormat([], options);
+        const formattedDate = formatter.format(new Date());
+        
+        // Add the formatted date to the data object
+        data.date = formattedDate;
         const updatedIncoming = await Lead.findByIdAndUpdate(
             id, // ID to match
             { $set: data }, // Data to update

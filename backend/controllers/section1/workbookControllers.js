@@ -54,6 +54,7 @@ exports.getAllWorkbookData = async (req, res) => {
                     },
                     comment: dataId.comment,
                     isDeleted: dataId.isDeleted ?? false,
+                    is_sent_to_pending: dataId.is_sent_to_pending ?? false
                     // status: dataId.status || 'active',
                 };
             });
