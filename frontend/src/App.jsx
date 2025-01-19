@@ -162,6 +162,7 @@ import AddLeadData from "./components/section1/lead/AddLeadData";
 import EditLeadData from "./components/section1/lead/EditLeadData";
 import WorkbookPage from "./components/section1/workbook/WorkbookPage";
 import PendingPage from "./components/section2/pending/PendingPage";
+import EditPendingData from "./components/section2/pending/EditPendingData";
 
 const App = () => {
   const { checkAuth, loading, user } = useAuthStore();
@@ -179,10 +180,10 @@ const App = () => {
           {user && <Sidenav isCollapsed={isSidenavCollapsed} setIsCollapsed={setIsSidenavCollapsed} />}
           <div
             className={`flex-1 ${user
-                ? isSidenavCollapsed
-                  ? "ml-16"
-                  : "ml-64 lg:ml-56 md:ml-48 sm:ml-40 xs:ml-32"
-                : ""
+              ? isSidenavCollapsed
+                ? "ml-16"
+                : "ml-64 lg:ml-56 md:ml-48 sm:ml-40 xs:ml-32"
+              : ""
               } bg-gray-50 overflow-y-auto pt-16 transition-all duration-300`}
           >
             {!loading && (
@@ -273,6 +274,14 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <PendingPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/edit-pending-data/:id"
+                  element={
+                    <ProtectedRoute>
+                      <EditPendingData />
                     </ProtectedRoute>
                   }
                 />

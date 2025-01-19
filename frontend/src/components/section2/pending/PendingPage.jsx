@@ -1,40 +1,3 @@
-// import { useEffect } from 'react'
-// import { create } from "zustand";
-// import { toast } from "react-hot-toast"
-// import { getAllPending } from "../../../services/pendingService"
-
-// const useStore = create((set) => ({
-//     loading: false,
-//     setLoading: (loading) => set({ loading }),
-// }));
-
-
-
-// const PendingPage = () => {
-//     const { loading, setLoading } = useStore();
-
-//     useEffect(() => {
-//         const fetchDropdowns = async () => {
-
-//             setLoading(true);
-//             try {
-//                 const response = await getAllPending();
-//                 console.log(response)
-//             } catch (error) {
-//                 toast.error("Failed to load dropdown data");
-//             } finally {
-//                 setLoading(false);
-//             }
-//         };
-//         fetchDropdowns();
-//     }, [setLoading]);
-
-//     return (
-//         <div>PendingPage</div>
-//     )
-// }
-
-// export default PendingPage
 
 
 'use client'
@@ -70,7 +33,7 @@ import { Loader2, Search, Trash2 } from 'lucide-react'
 import { useNavigate } from "react-router-dom"
 
 const Table = ({ children }) => (
-    <table className="w-full border-collapse">
+    <table className="w-full border-collapse min-w-max">
         {children}
     </table>
 )
@@ -122,6 +85,7 @@ const PendingPage = () => {
             try {
                 setIsLoading(true)
                 const response = await getAllPending()
+                console.log(response.data.data)
                 setPendingData(response.data.data)
                 setFilteredData(response.data.data)
                 setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
@@ -163,7 +127,7 @@ const PendingPage = () => {
     }
 
     const handleUpdateClick = async (id) => {
-        navigate(`/edit-incoming-data/${id}`)
+        navigate(`/edit-pending-data/${id}`)
     }
 
     const handlePageChange = (page) => {
@@ -200,11 +164,11 @@ const PendingPage = () => {
     }
 
     return (
-        <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
+        <div className="container mx-auto p-8 bg-gray-50 min-h-screen max-w-full">
             <h1 className="text-3xl font-semibold mb-6 text-gray-800">Pending Data</h1>
 
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto max-w-full">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -212,19 +176,35 @@ const PendingPage = () => {
                                 <TableHead>Ref</TableHead>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Time</TableHead>
-
-
                                 <TableHead>Source</TableHead>
+
+                                <TableHead>Payment Type</TableHead>
+                                <TableHead>Sale Type</TableHead>
+                                <TableHead>Agent</TableHead>
+
                                 <TableHead>First Name</TableHead>
                                 <TableHead>Last Name</TableHead>
                                 <TableHead>Phone</TableHead>
-                                <TableHead>Agent</TableHead>
-                                <TableHead>Disease</TableHead>
-                                <TableHead>State</TableHead>
-                                <TableHead>City</TableHead>
-                                <TableHead>Remark</TableHead>
+                                <TableHead>Alternate Number</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Status</TableHead>
                                 <TableHead>Comment</TableHead>
-                                <TableHead>Date</TableHead>
+                                <TableHead>Shipment Type</TableHead>
+                                <TableHead>Address</TableHead>
+                                <TableHead>Post Type</TableHead>
+                                <TableHead>Post</TableHead>
+
+                                <TableHead>Sub District / Taluka</TableHead>
+                                <TableHead>City / District</TableHead>
+                                <TableHead>Pincode</TableHead>
+
+                                <TableHead>State</TableHead>
+
+                                <TableHead>Disease</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead>Products</TableHead>
+
+                                <TableHead>City</TableHead>
                                 <TableHead>Update</TableHead>
                                 <TableHead>Actions</TableHead>
                             </TableRow>
@@ -244,18 +224,36 @@ const PendingPage = () => {
                                     <TableCell>{item.ref}</TableCell>
                                     <TableCell>{item.date}</TableCell>
                                     <TableCell>{item.time}</TableCell>
-
                                     <TableCell>{item.source?.value}</TableCell>
+
+                                    <TableCell>{item.payment_type?.value}</TableCell>
+                                    <TableCell>{item.sale_type?.value}</TableCell>
+
+                                    <TableCell>{item.agent_name?.value}</TableCell>
                                     <TableCell>{item.cm_first_name}</TableCell>
                                     <TableCell>{item.cm_last_name}</TableCell>
                                     <TableCell>{item.cm_phone}</TableCell>
-                                    <TableCell>{item.agent_name?.value}</TableCell>
-                                    <TableCell>{item.disease?.value}</TableCell>
-                                    <TableCell>{item.state?.value}</TableCell>
-                                    <TableCell>{item.city}</TableCell>
-                                    <TableCell>{item.remark?.value}</TableCell>
+                                    <TableCell>{item.alternate_phone}</TableCell>
+                                    <TableCell>{item.email}</TableCell>
+                                    <TableCell>{item.status?.value}</TableCell>
                                     <TableCell>{item.comment}</TableCell>
-                                    <TableCell>{item.date}</TableCell>
+                                    <TableCell>{item.shipment_type?.value}</TableCell>
+                                    <TableCell>{item.address}</TableCell>
+                                    <TableCell>{item.post_type?.value}</TableCell>
+                                    <TableCell>{item.post}</TableCell>
+                                    <TableCell>{item.sub_district_taluka}</TableCell>
+                                    <TableCell>{item.city}</TableCell>
+                                    <TableCell>{item.pincode}</TableCell>
+
+
+
+                                    <TableCell>{item.state?.value}</TableCell>
+
+                                    <TableCell>{item.disease?.value}</TableCell>
+                                    <TableCell>{item.amount?.value}</TableCell>
+                                    <TableCell>{item.products?.value}</TableCell>
+
+                                    <TableCell>{item.city}</TableCell>
                                     <TableCell>
                                         <RotateCw
                                             size={20}

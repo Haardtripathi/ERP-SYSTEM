@@ -158,6 +158,32 @@ const IncomingPage = () => {
         setSelectedItem(item)
         setIsReviewDialogOpen(true)
     }
+    const validateForm = (formData) => {
+        let isValid = true;
+        const phoneRegex = /^\d{10}$/;
+
+        Object.entries(formData).forEach(([key, value]) => {
+            if (typeof value === 'object' && value.value === '') {
+                toast.error(`${key.replace(/_/g, ' ')} is required`);
+                isValid = false;
+            } else if (typeof value === 'string' && value.trim() === '') {
+                toast.error(`${key.replace(/_/g, ' ')} is required`);
+                isValid = false;
+            }
+        });
+
+        if (!phoneRegex.test(formData.cm_phone)) {
+            toast.error('Phone number must be 10 digits');
+            isValid = false;
+        }
+
+        if (formData.alternate_phone && !phoneRegex.test(formData.alternate_phone)) {
+            toast.error('Alternate phone number must be 10 digits');
+            isValid = false;
+        }
+
+        return isValid;
+    };
 
     // const confirmSendToPending = async () => {
     //     if (selectedItem) {
@@ -174,6 +200,12 @@ const IncomingPage = () => {
     const confirmSendToPending = async () => {
         if (selectedItem) {
             try {
+                const isValid = validateForm(selectedItem)
+                console.log(isValid)
+                if (!isValid) {
+                    navigate("/lead")
+                    return
+                }
                 await sendIncomingToPending(selectedItem._id);
                 toast.success("Incoming sent to pending successfully");
 
@@ -230,7 +262,7 @@ const IncomingPage = () => {
     }
 
     return (
-        <div className="container mx-auto p-6 bg-gray-50 min-h-screen">
+        <div className="container mx-auto p-8 bg-gray-50 min-h-screen max-w-full">
             <h1 className="text-3xl font-semibold mb-6 text-gray-800">Incoming Data</h1>
             <div className="mb-4 flex justify-between items-center">
                 <div className="flex space-x-2">
@@ -263,7 +295,7 @@ const IncomingPage = () => {
             </div>
 
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto max-w-full">
                     <Table>
                         <TableHeader>
                             <TableRow>

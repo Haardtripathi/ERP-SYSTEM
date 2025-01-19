@@ -52,6 +52,10 @@ const EditLeadData = () => {
                 const editDataForm = await getEditLead(id)
                 const editData = editDataForm.data.data
 
+                if (editData.is_sent_to_pending) {
+                    navigate(`/lead`)
+
+                }
                 // Map response to formData structure
                 const mappedFormData = {
                     source: editData.source || { dropdown_data: "", value: "" },
@@ -69,6 +73,7 @@ const EditLeadData = () => {
                     city: editData.city || "",
                     remark: editData.remark || { dropdown_data: "", value: "" },
                     comment: editData.comment || "",
+                    is_sent_to_pending: editData.is_sent_to_pending || false
                 };
 
                 // Set formData with mapped values
@@ -131,11 +136,11 @@ const EditLeadData = () => {
     };
 
     const handleSubmit = async (e) => {
+
         e.preventDefault();
         if (!validateForm()) {
             return;
         }
-
         setLoading(true);
         try {
             const response = await updateEditLead(id, formData)

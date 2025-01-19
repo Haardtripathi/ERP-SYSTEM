@@ -51,6 +51,11 @@ const EditIncomingData = () => {
                 const editDataForm = await getEditIncoming(id);
                 const editData = editDataForm.data.data
 
+                if (editData.is_sent_to_pending) {
+                    navigate(`/incoming`)
+
+                }
+
                 // Map response to formData structure
                 const mappedFormData = {
                     source: editData.source || { dropdown_data: "", value: "" },
@@ -68,6 +73,8 @@ const EditIncomingData = () => {
                     city: editData.city || "",
                     remark: editData.remark || { dropdown_data: "", value: "" },
                     comment: editData.comment || "",
+                    is_sent_to_pending: editData.is_sent_to_pending || false
+
                 };
 
                 // Set formData with mapped values
