@@ -167,28 +167,75 @@ const WorkbookPage = () => {
         setIsReviewDialogOpen(true)
     }
 
+    // const confirmSendToPending = async () => {
+    //     if (selectedItem) {
+    //         try {
+    //             if (selectedItem.data?.value === "Lead") {
+    //                 await sendLeadToPending(selectedItem._id)
+    //             }
+    //             if (selectedItem.data?.value === "Incoming") {
+    //                 await sendIncomingToPending(selectedItem._id)
+    //             }
+    //             toast.success("Data sent to pending successfully")
+    //             setWorkbookData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
+    //             setFilteredData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
+    //             setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
+    //             setIsReviewDialogOpen(false)
+    //             window.location.reload()
+
+    //         } catch (error) {
+    //             console.error("Error sending item to pending:", error)
+    //             setError("Failed to send item to pending. Please try again.")
+    //         }
+    //     }
+    // }
+
     const confirmSendToPending = async () => {
         if (selectedItem) {
             try {
+                // Call the appropriate function based on the selected item's type
                 if (selectedItem.data?.value === "Lead") {
-                    await sendLeadToPending(selectedItem._id)
+                    await sendLeadToPending(selectedItem._id);
+                } else if (selectedItem.data?.value === "Incoming") {
+                    await sendIncomingToPending(selectedItem._id);
                 }
-                if (selectedItem.data?.value === "Incoming") {
-                    await sendIncomingToPending(selectedItem._id)
-                }
-                toast.success("Data sent to pending successfully")
-                setWorkbookData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
-                setFilteredData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
-                setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
-                setIsReviewDialogOpen(false)
-                window.location.reload()
 
+                toast.success("Data sent to pending successfully");
+
+                // Update the workbook data to mark the item with is_sent_to_pending = true
+                setWorkbookData((prevData) =>
+                    prevData.map((item) =>
+                        item._id === selectedItem._id
+                            ? { ...item, is_sent_to_pending: true }
+                            : item
+                    )
+                );
+
+                // Update the filtered data based on the new field
+                setFilteredData((prevData) =>
+                    prevData.map((item) =>
+                        item._id === selectedItem._id
+                            ? { ...item, is_sent_to_pending: true }
+                            : item
+                    )
+                );
+
+                // Recalculate the total pages (excluding items with is_sent_to_pending === true)
+                setTotalPages(
+                    Math.ceil(
+                        filteredData.filter((item) => !item.is_sent_to_pending).length /
+                        itemsPerPage
+                    )
+                );
+
+                setIsReviewDialogOpen(false);
             } catch (error) {
-                console.error("Error sending item to pending:", error)
-                setError("Failed to send item to pending. Please try again.")
+                console.error("Error sending item to pending:", error);
+                setError("Failed to send item to pending. Please try again.");
             }
         }
-    }
+    };
+
 
     const startIndex = (currentPage - 1) * itemsPerPage
     const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage)

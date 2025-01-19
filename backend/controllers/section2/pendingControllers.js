@@ -16,7 +16,7 @@ exports.getAllPendingData = async (req, res) => {
         // Fetch data with pagination
         const data = await Pending.find({ isDeleted: false })
 
-        // console.log(data);
+        // (data);
 
         // Get total count of documents
         const totalCount = await Pending.countDocuments({ isDeleted: false });

@@ -155,17 +155,58 @@ const LeadPage = () => {
         setIsReviewDialogOpen(true)
     }
 
+    // const confirmSendToPending = async () => {
+    //     if (selectedItem) {
+    //         await sendLeadToPending(selectedItem._id)
+    //         toast.success("Lead sent to pending successfully")
+    //         setLeadData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
+    //         setFilteredData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
+    //         setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
+    //         setIsReviewDialogOpen(false)
+    //         window.location.reload()
+    //     }
+    // }
+
     const confirmSendToPending = async () => {
         if (selectedItem) {
-            await sendLeadToPending(selectedItem._id)
-            toast.success("Lead sent to pending successfully")
-            setLeadData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
-            setFilteredData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
-            setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
-            setIsReviewDialogOpen(false)
-            window.location.reload()
+            try {
+                await sendLeadToPending(selectedItem._id);
+                toast.success("Lead sent to pending successfully");
+
+                // Update the lead data with the is_sent_to_pending field set to true
+                setLeadData((prevData) =>
+                    prevData.map((item) =>
+                        item._id === selectedItem._id
+                            ? { ...item, is_sent_to_pending: true }
+                            : item
+                    )
+                );
+
+                // Update the filtered data based on the new field
+                setFilteredData((prevData) =>
+                    prevData.map((item) =>
+                        item._id === selectedItem._id
+                            ? { ...item, is_sent_to_pending: true }
+                            : item
+                    )
+                );
+
+                // Recalculate the total pages (excluding items with is_sent_to_pending === true)
+                setTotalPages(
+                    Math.ceil(
+                        filteredData.filter((item) => !item.is_sent_to_pending).length /
+                        itemsPerPage
+                    )
+                );
+
+                setIsReviewDialogOpen(false);
+            } catch (error) {
+                toast.error("Failed to send lead to pending");
+                console.error(error);
+            }
         }
-    }
+    };
+
 
     const startIndex = (currentPage - 1) * itemsPerPage
     const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage)

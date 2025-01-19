@@ -121,7 +121,7 @@ exports.getAllLeadData = async (req, res) => {
         // const data = await Lead.find({ is_sent_to_pending: false, isDeleted: false })
         const data = await Lead.find({ isDeleted: false })
 
-        // console.log(data);
+        // (data);
 
         // Get total count of documents
         const totalCount = await Lead.countDocuments({ is_sent_to_pending: false, isDeleted: false });
@@ -144,7 +144,7 @@ exports.getAllLeadData = async (req, res) => {
 
 exports.deleteLeadData = async (req, res) => {
     const dataId = req.params.id
-    // console.log(dataId)
+    // (dataId)
     try {
         await Lead.updateOne({ _id: dataId }, { isDeleted: true });
         return res.status(200).json({
@@ -180,10 +180,10 @@ exports.getLeadDropdownData = async (req, res, next) => {
             return acc;
         }, {});
 
-        // console.log(formattedData)
+        // (formattedData)
         res.json({ dropdowns: formattedData });
     } catch (err) {
-        console.log(err);
+        (err);
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
@@ -191,10 +191,10 @@ exports.getLeadDropdownData = async (req, res, next) => {
 
 exports.getEditLeadData = async (req, res) => {
     const id = req.params.id
-    // console.log(id)
+    // (id)
     try {
         const data = await Lead.findOne({ _id: id }, { isDeleted: false });
-        // console.log(data)
+        // (data)
         return res.status(200).json({
             message: "Data fetched successfully.",
             data,
@@ -210,8 +210,8 @@ exports.getEditLeadData = async (req, res) => {
 exports.putEditLeadData = async (req, res) => {
     const id = new mongoose.Types.ObjectId(req.params.id)
     const data = req.body
-    // console.log(id)
-    // console.log(data)
+    // (id)
+    // (data)
 
     try {
         const options = {
@@ -223,10 +223,10 @@ exports.putEditLeadData = async (req, res) => {
             minute: '2-digit',
             second: '2-digit',
         };
-        
+
         const formatter = new Intl.DateTimeFormat([], options);
         const formattedDate = formatter.format(new Date());
-        
+
         // Add the formatted date to the data object
         data.date = formattedDate;
         const updatedIncoming = await Lead.findByIdAndUpdate(
@@ -279,17 +279,17 @@ const transformLeadToPending = (leadData) => {
 };
 
 exports.sendLeadDataToPending = async (req, res) => {
-    console.log("Lead")
+    ("Lead")
     try {
         const id = new mongoose.Types.ObjectId(req.params.id)
-        // console.log(id)
+        // (id)
 
         const leadData = await Lead.findOne({ _id: id })
-        // console.log(leadData)
+        // (leadData)
         await Lead.updateOne({ _id: id }, { is_sent_to_pending: true })
 
         const pendingData = transformLeadToPending(leadData);
-        console.log(pendingData)
+        (pendingData)
         // Save to the Pending collection
         const newPending = new Pending(pendingData);
         await newPending.save();

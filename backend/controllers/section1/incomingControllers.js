@@ -29,10 +29,8 @@ exports.getAddIncomingData = async (req, res, next) => {
             return acc;
         }, {});
 
-        // console.log(formattedData)
         res.json({ dropdowns: formattedData });
     } catch (err) {
-        console.log(err);
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
@@ -203,7 +201,7 @@ exports.getAllIncomingData = async (req, res) => {
 
 
 exports.deleteIncomingData = async (req, res) => {
-    // console.log(req.params)
+    // (req.params)
     const dataId = new mongoose.Types.ObjectId(req.params.id)
 
     try {
@@ -220,12 +218,12 @@ exports.deleteIncomingData = async (req, res) => {
 }
 
 exports.getEditIncomingData = async (req, res) => {
-    // console.log(req.params)
+    // (req.params)
     const id = new mongoose.Types.ObjectId(req.params.id)
 
     try {
         const data = await Incoming.findOne({ _id: id }, { isDeleted: false });
-        // console.log(data)
+        // (data)
         return res.status(200).json({
             message: "Data fetched successfully.",
             data,
@@ -241,8 +239,8 @@ exports.getEditIncomingData = async (req, res) => {
 exports.putEditIncomingData = async (req, res) => {
     const id = new mongoose.Types.ObjectId(req.params.id)
     const data = req.body
-    // console.log(id)
-    // console.log(data)
+    // (id)
+    // (data)
     const options = {
         timeZone: 'Asia/Kolkata',
         year: 'numeric',
@@ -252,10 +250,10 @@ exports.putEditIncomingData = async (req, res) => {
         minute: '2-digit',
         second: '2-digit',
     };
-    
+
     const formatter = new Intl.DateTimeFormat([], options);
     const formattedDate = formatter.format(new Date());
-    
+
     // Add the formatted date to the data object
     data.date = formattedDate;
 
@@ -315,15 +313,15 @@ const transformIncomingToPending = (incomingData) => {
 exports.sendIncomingDataToPending = async (req, res) => {
     try {
         const id = new mongoose.Types.ObjectId(req.params.id)
-        // console.log(id)
+        // (id)
 
         const incomingData = await Incoming.findOne({ _id: id })
-        // console.log(incomingData)
+        // (incomingData)
         await Incoming.updateOne({ _id: id }, { is_sent_to_pending: true })
 
 
         const pendingData = transformIncomingToPending(incomingData);
-        // console.log(pendingData)
+        // (pendingData)
         // Save to the Pending collection
         const newPending = new Pending(pendingData);
         await newPending.save();
