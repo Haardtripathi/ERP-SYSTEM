@@ -203,6 +203,12 @@ exports.getAllIncomingData = async (req, res) => {
 exports.deleteIncomingData = async (req, res) => {
     // (req.params)
     const dataId = new mongoose.Types.ObjectId(req.params.id)
+    const data = await Lead.findOne({ _id: dataId });
+    if (data.is_sent_to_pending || data.isDeleted) {
+        return res.status(400).json({
+            message: "Data already sent to pending or already deleted.",
+        });
+    }
 
     try {
         await Incoming.updateOne({ _id: dataId }, { isDeleted: true });
@@ -239,6 +245,11 @@ exports.getEditIncomingData = async (req, res) => {
 exports.putEditIncomingData = async (req, res) => {
     const id = new mongoose.Types.ObjectId(req.params.id)
     const data = req.body
+    if (data.is_sent_to_pending) {
+        return res.status(400).json({
+            message: "Data already sent to pending.",
+        });
+    }
     // (id)
     // (data)
     const options = {

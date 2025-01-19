@@ -33,3 +33,29 @@ exports.getAllPendingData = async (req, res) => {
         return res.status(500).json({ message: "Failed to get pending data" })
     }
 }
+
+exports.getEditPendingData = async (req, res) => {
+    const id = req.params.id
+    // (id)
+    console.log(id)
+    try {
+        // const data = await Lead.findOne({ _id: id }, { isDeleted: false });
+        const data = await Pending.findOne({ _id: id, isDeleted: false });
+
+        if (!data) {
+            return res.status(404).json({
+                message: "Data not found or it has been deleted.",
+            });
+        }
+
+        return res.status(200).json({
+            message: "Data fetched successfully.",
+            data,
+        });
+    }
+    catch {
+        return res.status(500).json({
+            message: "An error occurred while editing data.",
+        });
+    }
+}

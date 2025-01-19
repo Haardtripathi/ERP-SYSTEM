@@ -145,6 +145,13 @@ exports.getAllLeadData = async (req, res) => {
 exports.deleteLeadData = async (req, res) => {
     const dataId = req.params.id
     // (dataId)
+    const data = await Lead.findOne({ _id: dataId });
+    if (data.is_sent_to_pending || data.isDeleted) {
+        return res.status(400).json({
+            message: "Data already sent to pending or already deleted.",
+        });
+    }
+
     try {
         await Lead.updateOne({ _id: dataId }, { isDeleted: true });
         return res.status(200).json({
@@ -193,8 +200,22 @@ exports.getEditLeadData = async (req, res) => {
     const id = req.params.id
     // (id)
     try {
-        const data = await Lead.findOne({ _id: id }, { isDeleted: false });
-        // (data)
+        // const data = await Lead.findOne({ _id: id }, { isDeleted: false });
+        const data = await Lead.findOne({ _id: id, isDeleted: false });
+
+        if (!data) {
+            return res.status(404).json({
+                message: "Data not found or it has been deleted.",
+            });
+        }
+
+        // Check if the data is already sent to pending
+        // if (data.is_sent_to_pending) {
+        //     return res.status(400).json({
+        //         message: "Data already sent to pending.",
+        //     });
+        // }
+
         return res.status(200).json({
             message: "Data fetched successfully.",
             data,
@@ -210,8 +231,11 @@ exports.getEditLeadData = async (req, res) => {
 exports.putEditLeadData = async (req, res) => {
     const id = new mongoose.Types.ObjectId(req.params.id)
     const data = req.body
-    // (id)
-    // (data)
+    if (data.is_sent_to_pending) {
+        return res.status(400).json({
+            message: "Data already sent to pending.",
+        });
+    }
 
     try {
         const options = {
@@ -229,7 +253,7 @@ exports.putEditLeadData = async (req, res) => {
 
         // Add the formatted date to the data object
         data.date = formattedDate;
-        const updatedIncoming = await Lead.findByIdAndUpdate(
+        const updatedLead = await Lead.findByIdAndUpdate(
             id, // ID to match
             { $set: data }, // Data to update
             { new: true, runValidators: true } // Options: return updated document, run validation

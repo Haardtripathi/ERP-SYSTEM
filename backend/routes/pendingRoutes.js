@@ -15,7 +15,7 @@ router.get('/get-pending-data', isAuthenticated, pendingController.getAllPending
 
 // router.get('/get-pending-dropdown-data', isAuthenticated, pendingController.getpendingDropdownData)
 
-// router.get('/get-edit-pending-data/:id', isAuthenticated, pendingController.getEditpendingData)
+router.get('/get-edit-pending-data/:id', isAuthenticated, pendingController.getEditPendingData)
 
 // router.put('/edit-pending-data/:id', isAuthenticated, pendingController.putEditpendingData);
 
