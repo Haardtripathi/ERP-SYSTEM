@@ -203,7 +203,7 @@ const IncomingPage = () => {
                 const isValid = validateForm(selectedItem)
                 console.log(isValid)
                 if (!isValid) {
-                    navigate("/lead")
+                    navigate("/incoming")
                     return
                 }
                 await sendIncomingToPending(selectedItem._id);

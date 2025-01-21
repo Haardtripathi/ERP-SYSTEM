@@ -273,6 +273,7 @@ exports.putEditLeadData = async (req, res) => {
 
 const transformLeadToPending = (leadData) => {
     return {
+        data: "Lead",
         dataId: leadData._id,
         payment_type: null, // No equivalent in leadData
         sale_type: null, // No equivalent in leadData
@@ -313,7 +314,6 @@ exports.sendLeadDataToPending = async (req, res) => {
         await Lead.updateOne({ _id: id }, { is_sent_to_pending: true })
 
         const pendingData = transformLeadToPending(leadData);
-        (pendingData)
         // Save to the Pending collection
         const newPending = new Pending(pendingData);
         await newPending.save();

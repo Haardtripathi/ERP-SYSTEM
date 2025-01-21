@@ -1,14 +1,13 @@
 
-
-'use client'
+"use client"
 
 import React, { useState, useEffect } from "react"
 import { getAllIncoming, deleteIncoming, sendIncomingToPending } from "@/services/incomingService"
-import { getAllPending } from "@/services/pendingService"
+import { getAllPending, deletePending, issuePending } from "@/services/pendingService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
-import { RotateCw, SendHorizontal } from 'lucide-react'
+import { RotateCw, SendHorizontal } from "lucide-react"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -29,43 +28,39 @@ import {
     PaginationPrevious,
     PaginationEllipsis,
 } from "@/components/ui/pagination"
-import { Loader2, Search, Trash2 } from 'lucide-react'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog"
+import { Loader2, Search, Trash2, Forward } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
 const Table = ({ children }) => (
-    <table className="w-full border-collapse min-w-max">
-        {children}
-    </table>
+    <div className="overflow-x-auto">
+        <table className="w-full border-collapse min-w-max">{children}</table>
+    </div>
 )
 
-const TableHeader = ({ children }) => (
-    <thead className="bg-gray-200">
-        {children}
-    </thead>
-)
+const TableHeader = ({ children }) => <thead className="bg-gray-200">{children}</thead>
 
-const TableRow = ({ children, className }) => (
-    <tr className={className}>
-        {children}
-    </tr>
-)
+const TableRow = ({ children, className }) => <tr className={`${className} hover:bg-gray-100`}>{children}</tr>
 
 const TableHead = ({ children, className }) => (
-    <th className={`${className} p-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-300`}>
+    <th
+        className={`${className} p-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-300 bg-gray-200 sticky top-0 z-10`}
+    >
         {children}
     </th>
 )
 
-const TableBody = ({ children }) => (
-    <tbody className="bg-white divide-y divide-gray-200">
-        {children}
-    </tbody>
-)
+const TableBody = ({ children }) => <tbody className="bg-white divide-y divide-gray-200">{children}</tbody>
 
 const TableCell = ({ children, className }) => (
-    <td className={`${className} p-3 text-sm text-gray-700`}>
-        {children}
-    </td>
+    <td className={`${className} p-3 text-sm text-gray-700 break-words max-w-[200px]`}>{children}</td>
 )
 
 const PendingPage = () => {
@@ -78,6 +73,9 @@ const PendingPage = () => {
     const [error, setError] = useState(null)
     const [searchTerm, setSearchTerm] = useState("")
 
+    const [selectedItem, setSelectedItem] = useState(null)
+    const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
+
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -85,12 +83,13 @@ const PendingPage = () => {
             try {
                 setIsLoading(true)
                 const response = await getAllPending()
+
                 console.log(response.data.data)
                 setPendingData(response.data.data)
                 setFilteredData(response.data.data)
                 setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
             } catch (error) {
-                console.error("Error fetching incoming data:", error)
+                console.error("Error fetching pending data:", error)
                 setError("Failed to fetch data. Please try again later.")
             } finally {
                 setIsLoading(false)
@@ -103,19 +102,17 @@ const PendingPage = () => {
     useEffect(() => {
         const results = pendingData.filter((item) =>
             Object.values(item).some(
-                (val) =>
-                    typeof val === "string" &&
-                    val.toLowerCase().includes(searchTerm.toLowerCase())
-            )
+                (val) => typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase()),
+            ),
         )
         setFilteredData(results)
         setTotalPages(Math.ceil(results.length / itemsPerPage))
         setCurrentPage(1)
     }, [searchTerm, pendingData, itemsPerPage])
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (id, dataId, data) => {
         try {
-            await deleteIncoming(id)
+            await deletePending(id, dataId, data)
             toast.success("Data deleted successfully")
             setPendingData((prevData) => prevData.filter((item) => item._id !== id))
             setFilteredData((prevData) => prevData.filter((item) => item._id !== id))
@@ -130,18 +127,55 @@ const PendingPage = () => {
         navigate(`/edit-pending-data/${id}`)
     }
 
+    const validateForm = (formData) => {
+        let isValid = true;
+        const phoneRegex = /^\d{10}$/;
+
+        Object.entries(formData).forEach(([key, value]) => {
+            if (typeof value === 'object' && value.value === '') {
+                toast.error(`${key.replace(/_/g, ' ')} is required`);
+                isValid = false;
+            } else if (typeof value === 'string' && value.trim() === '') {
+                toast.error(`${key.replace(/_/g, ' ')} is required`);
+                isValid = false;
+            }
+        });
+
+        if (!phoneRegex.test(formData.cm_phone)) {
+            toast.error('Phone number must be 10 digits');
+            isValid = false;
+        }
+
+        if (formData.alternate_phone && !phoneRegex.test(formData.alternate_phone)) {
+            toast.error('Alternate phone number must be 10 digits');
+            isValid = false;
+        }
+
+        return isValid;
+    };
+
+    const handleIssuePending = async (id) => {
+        const item = pendingData.find(item => item._id === id)
+        setSelectedItem(item)
+        setIsReviewDialogOpen(true)
+    }
+
     const handlePageChange = (page) => {
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page)
         }
     }
 
-    const handleSendToPending = async (id) => {
-        await sendIncomingToPending(id)
-        toast.success("Incoming sent to pending successfully")
+    const handleSendToPending = async (id, dataId, data) => {
+        await issuePending(id, dataId, data)
+        toast.success("Issue sent successfully")
         setPendingData((prevData) => prevData.filter((item) => item._id !== id))
         setFilteredData((prevData) => prevData.filter((item) => item._id !== id))
         setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
+    }
+
+    const handleSearch = (e) => {
+        setSearchTerm(e.target.value)
     }
 
     const startIndex = (currentPage - 1) * itemsPerPage
@@ -164,14 +198,20 @@ const PendingPage = () => {
     }
 
     return (
-        <div className="container mx-auto p-8 bg-gray-50 min-h-screen max-w-full">
+        <div className="container mx-auto p-4 bg-gray-50 min-h-screen max-w-[95vw]">
             <h1 className="text-3xl font-semibold mb-6 text-gray-800">Pending Data</h1>
 
+            {/* <div className="mb-4">
+                <Input type="text" placeholder="Search..." value={searchTerm} onChange={handleSearch} className="max-w-sm" />
+            </div> */}
+
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
-                <div className="overflow-x-auto max-w-full">
+                <div className="max-w-full">
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead>Send</TableHead>
+
                                 <TableHead>Issue</TableHead>
                                 <TableHead>Ref</TableHead>
                                 <TableHead>Date</TableHead>
@@ -211,14 +251,24 @@ const PendingPage = () => {
                         </TableHeader>
                         <TableBody>
                             {paginatedData.map((item, index) => (
+
                                 <TableRow key={item._id} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+                                    <TableCell>
+                                        <Forward
+                                            size={25}
+                                            color="green"
+                                            strokeWidth={2}
+                                            style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
+                                            onClick={() => handleSendToConfirmed(item._id, item.dataId, item.data)}
+                                        />
+                                    </TableCell>
                                     <TableCell>
                                         <SendHorizontal
                                             size={20}
                                             color="red"
                                             strokeWidth={2}
-                                            style={{ cursor: 'pointer', transition: 'transform 0.2s ease' }}
-                                            onClick={() => handleSendToPending(item._id)}
+                                            style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
+                                            onClick={() => handleSendToPending(item._id, item.dataId, item.data)}
                                         />
                                     </TableCell>
                                     <TableCell>{item.ref}</TableCell>
@@ -245,8 +295,6 @@ const PendingPage = () => {
                                     <TableCell>{item.city}</TableCell>
                                     <TableCell>{item.pincode}</TableCell>
 
-
-
                                     <TableCell>{item.state?.value}</TableCell>
 
                                     <TableCell>{item.disease?.value}</TableCell>
@@ -259,16 +307,19 @@ const PendingPage = () => {
                                             size={20}
                                             color="#007BFF"
                                             strokeWidth={2}
-                                            style={{ cursor: 'pointer', transition: 'transform 0.2s ease' }}
+                                            style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
                                             onClick={() => handleUpdateClick(item._id)}
-                                            onMouseOver={(e) => e.currentTarget.style.transform = 'rotate(90deg)'}
-                                            onMouseOut={(e) => e.currentTarget.style.transform = 'rotate(0deg)'}
+                                            onMouseOver={(e) => (e.currentTarget.style.transform = "rotate(90deg)")}
+                                            onMouseOut={(e) => (e.currentTarget.style.transform = "rotate(0deg)")}
                                         />
                                     </TableCell>
                                     <TableCell>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200">
+                                                <Button
+                                                    variant="ghost"
+                                                    className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200"
+                                                >
                                                     <Trash2 className="h-5 w-5 text-red-500" />
                                                 </Button>
                                             </AlertDialogTrigger>
@@ -276,15 +327,12 @@ const PendingPage = () => {
                                                 <AlertDialogHeader>
                                                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                                     <AlertDialogDescription>
-                                                        This action cannot be undone. This will permanently delete the
-                                                        selected record.
+                                                        This action cannot be undone. This will permanently delete the selected record.
                                                     </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleDelete(item._id)}>
-                                                        Delete
-                                                    </AlertDialogAction>
+                                                    <AlertDialogAction onClick={() => handleDelete(item._id, item.dataId, item.data)}>Delete</AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>
@@ -298,13 +346,10 @@ const PendingPage = () => {
             <Pagination className="mt-4 flex justify-center">
                 <PaginationContent>
                     <PaginationItem>
-                        <PaginationPrevious
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                        />
+                        <PaginationPrevious onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
                     </PaginationItem>
                     {[...Array(totalPages)].map((_, index) => {
-                        const pageNumber = index + 1;
+                        const pageNumber = index + 1
                         if (
                             pageNumber === 1 ||
                             pageNumber === totalPages ||
@@ -312,27 +357,18 @@ const PendingPage = () => {
                         ) {
                             return (
                                 <PaginationItem key={index}>
-                                    <PaginationLink
-                                        onClick={() => handlePageChange(pageNumber)}
-                                        isActive={currentPage === pageNumber}
-                                    >
+                                    <PaginationLink onClick={() => handlePageChange(pageNumber)} isActive={currentPage === pageNumber}>
                                         {pageNumber}
                                     </PaginationLink>
                                 </PaginationItem>
-                            );
-                        } else if (
-                            pageNumber === currentPage - 2 ||
-                            pageNumber === currentPage + 2
-                        ) {
-                            return <PaginationEllipsis key={index} />;
+                            )
+                        } else if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
+                            return <PaginationEllipsis key={index} />
                         }
-                        return null;
+                        return null
                     })}
                     <PaginationItem>
-                        <PaginationNext
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                        />
+                        <PaginationNext onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} />
                     </PaginationItem>
                 </PaginationContent>
             </Pagination>

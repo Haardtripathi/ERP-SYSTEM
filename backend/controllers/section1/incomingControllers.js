@@ -292,6 +292,7 @@ exports.putEditIncomingData = async (req, res) => {
 
 const transformIncomingToPending = (incomingData) => {
     return {
+        data: "Incoming",
         dataId: incomingData._id,
         payment_type: null, // No equivalent in incomingData
         sale_type: null, // No equivalent in incomingData

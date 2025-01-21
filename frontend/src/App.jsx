@@ -163,6 +163,7 @@ import EditLeadData from "./components/section1/lead/EditLeadData";
 import WorkbookPage from "./components/section1/workbook/WorkbookPage";
 import PendingPage from "./components/section2/pending/PendingPage";
 import EditPendingData from "./components/section2/pending/EditPendingData";
+import ConfirmedPage from "./components/section2/confirmed/ConfirmedPage";
 
 const App = () => {
   const { checkAuth, loading, user } = useAuthStore();
@@ -282,6 +283,14 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <EditPendingData />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/confirmed"
+                  element={
+                    <ProtectedRoute>
+                      <ConfirmedPage />
                     </ProtectedRoute>
                   }
                 />

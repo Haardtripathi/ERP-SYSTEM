@@ -38,7 +38,19 @@ const pendingSchema = new Schema(
                 }).format(new Date()),
             immutable: true,
         },
-
+        data: {
+            type: Object,
+            dropdown_data: {
+                type: Schema.Types.ObjectId,
+                ref: 'Dropdown',
+            },
+            value: {
+                type: String,
+                required: true,
+                enum: ['Lead', 'Incoming'],
+            },
+            required: true,
+        },
         source: {
             type: Object,
             dropdown_data: {
