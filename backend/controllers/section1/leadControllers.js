@@ -41,6 +41,7 @@ exports.postAddLeadData = async (req, res) => {
                     const cleanHeader = col.trim().toLowerCase().replace(/[^a-z0-9]/g, "_");
                     headerMapping[i] = cleanHeader;
                 });
+                // console.log(columns)
             } else {
                 // Map data to headers
                 const rowData = {};
@@ -124,7 +125,7 @@ exports.getAllLeadData = async (req, res) => {
         // (data);
 
         // Get total count of documents
-        const totalCount = await Lead.countDocuments({ is_sent_to_pending: false, isDeleted: false });
+        const totalCount = await Lead.countDocuments({ isDeleted: false });
         // const totalCount = await Lead.countDocuments({ isDeleted: false });
 
         return res.status(200).json({

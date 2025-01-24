@@ -156,10 +156,11 @@ export default function EditPendingData() {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
         Object.entries(formData).forEach(([key, value]) => {
-            if (typeof value === "object" && value.value === "") {
+            console.log(key, value, typeof value)
+            if (key !== "alternate_phone" && typeof value === "object" && (value.value === null || value.value === "")) {
                 toast.error(`${key.replace(/_/g, " ")} is required`)
                 isValid = false
-            } else if (typeof value === "string" && value.trim() === "") {
+            } else if (key !== "alternate_phone" && typeof value === "string" && value.trim() === "") {
                 toast.error(`${key.replace(/_/g, " ")} is required`)
                 isValid = false
             }
@@ -297,7 +298,7 @@ export default function EditPendingData() {
                                     </div>
                                     <div>
                                         <Label htmlFor="alternate_phone" className="text-stone-600">
-                                            Alternate Phone *
+                                            Alternate Phone
                                         </Label>
                                         <Input
                                             id="alternate_phone"
@@ -306,7 +307,7 @@ export default function EditPendingData() {
                                             onChange={handleChange}
                                             className="mt-1.5 bg-stone-50 border-stone-300"
                                             pattern="\d{10}"
-                                            required
+
                                         />
                                     </div>
                                     <div>

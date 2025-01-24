@@ -2,8 +2,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { getAllIncoming, deleteIncoming, sendIncomingToPending } from "@/services/incomingService"
-import { getAllPending, deletePending, issuePending } from "@/services/pendingService"
+import { getAllPending, deletePending, issuePending, sendToConfirmed } from "@/services/pendingService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
@@ -166,7 +165,7 @@ const PendingPage = () => {
         }
     }
 
-    const handleSendToPending = async (id, dataId, data) => {
+    const handleIssue = async (id, dataId, data) => {
         await issuePending(id, dataId, data)
         toast.success("Issue sent successfully")
         setPendingData((prevData) => prevData.filter((item) => item._id !== id))
@@ -268,7 +267,7 @@ const PendingPage = () => {
                                             color="red"
                                             strokeWidth={2}
                                             style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
-                                            onClick={() => handleSendToPending(item._id, item.dataId, item.data)}
+                                            onClick={() => handleIssue(item._id, item.dataId, item.data)}
                                         />
                                     </TableCell>
                                     <TableCell>{item.ref}</TableCell>

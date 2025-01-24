@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const Schema = mongoose.Schema;
 
-const pendingSchema = new Schema(
+const confirmedSchema = new Schema(
     {
         dataId: {
             type: Schema.Types.ObjectId,
@@ -206,27 +206,5 @@ const pendingSchema = new Schema(
     { timestamps: true }
 );
 
-pendingSchema.pre("validate", async function (next) {
-    if (!this.ref) {
-        const currentDate = new Date();
-        const year = currentDate.getFullYear();
-        const month = (currentDate.getMonth() + 1).toString().padStart(2, "0");
-
-        const lastDocument = await this.constructor.findOne(
-            { ref: new RegExp(`^${year}${month}`) },
-            { ref: 1 },
-            { sort: { ref: -1 } }
-        );
-
-        let newId = "001";
-        if (lastDocument) {
-            const lastId = parseInt(lastDocument.ref.slice(-3));
-            newId = (lastId + 1).toString().padStart(3, "0");
-        }
-
-        this.ref = `${year}${month}${newId}`;
-    }
-    next();
-});
 
 module.exports = mongoose.model("Confirmed", confirmedSchema);

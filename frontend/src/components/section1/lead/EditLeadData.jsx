@@ -265,14 +265,13 @@ const EditLeadData = () => {
                                         />
                                     </div>
                                     <div>
-                                        <Label htmlFor="alternate_phone" className="text-stone-600">Alternate Number *</Label>
+                                        <Label htmlFor="alternate_phone" className="text-stone-600">Alternate Number</Label>
                                         <Input
                                             id="alternate_phone"
                                             name="alternate_phone"
                                             value={formData.alternate_phone}
                                             onChange={handleChange}
                                             className="mt-1.5 bg-stone-50 border-stone-300 text-stone-700"
-                                            required
                                             pattern="\d{10}"
                                             title="Alternate phone number must be 10 digits"
                                         />

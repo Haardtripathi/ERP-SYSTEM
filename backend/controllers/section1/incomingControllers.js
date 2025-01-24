@@ -178,9 +178,8 @@ exports.getAllIncomingData = async (req, res) => {
         // const data = await Incoming.find({ is_sent_to_pending: false, isDeleted: false })
         const data = await Incoming.find({ isDeleted: false })
 
-
         // Get total count of documents
-        const totalCount = await Incoming.countDocuments({ is_sent_to_pending: false, isDeleted: false });
+        const totalCount = await Incoming.countDocuments({ isDeleted: false });
         // const totalCount = await Incoming.countDocuments({ isDeleted: false });
 
 

@@ -45,6 +45,7 @@ const leadSchema = new Schema(
         },
         alternate_phone: {
             type: Number,
+            //required: true,
         },
         agent_name: {
             type: Object,

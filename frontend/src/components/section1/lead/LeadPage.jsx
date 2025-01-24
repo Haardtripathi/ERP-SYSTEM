@@ -172,28 +172,48 @@ const LeadPage = () => {
     //     }
     // }
     const validateForm = (formData) => {
+        console.log(formData)
         let isValid = true;
         const phoneRegex = /^\d{10}$/;
 
-        Object.entries(formData).forEach(([key, value]) => {
-            if (typeof value === 'object' && value.value === '') {
-                toast.error(`${key.replace(/_/g, ' ')} is required`);
-                isValid = false;
-            } else if (typeof value === 'string' && value.trim() === '') {
-                toast.error(`${key.replace(/_/g, ' ')} is required`);
-                isValid = false;
-            }
-        });
+        // Object.entries(formData).forEach(([key, value]) => {
+        //     console.log(key, value)
+        //     if (typeof value === 'object' && value.value === null) {
+        //     // console.log(key,typeof value)
+        //     // console.log(value.value)
+        //         toast.error(`${key.replace(/_/g, ' ')} is required`);
+        //         isValid = false;
+        //     } else if (typeof value === 'string' && value.trim() === '') {
+        //         toast.error(`${key.replace(/_/g, ' ')} is required`);
+        //         isValid = false;
+        //     }
+        //     // console.log({key,value,isValid})
+        // });
 
+        Object.entries(formData).forEach(([key, value]) => {
+            console.log(key, value, typeof value)
+            if (key !== "alternate_phone" && typeof value === "object" && value.value === null) {
+              toast.error(`${key.replace(/_/g, " ")} is required`)
+              isValid = false
+            } else if (key !== "alternate_phone" && typeof value === "string" && value.trim() === "") {
+              toast.error(`${key.replace(/_/g, " ")} is required`)
+              isValid = false
+            }
+          })
+          
+        console.log(isValid)
         if (!phoneRegex.test(formData.cm_phone)) {
             toast.error('Phone number must be 10 digits');
             isValid = false;
         }
+        console.log(isValid)
 
         if (formData.alternate_phone && !phoneRegex.test(formData.alternate_phone)) {
+
             toast.error('Alternate phone number must be 10 digits');
             isValid = false;
         }
+        console.log(isValid)
 
         return isValid;
     };
@@ -299,6 +319,7 @@ const LeadPage = () => {
                                 <TableHead>First Name</TableHead>
                                 <TableHead>Last Name</TableHead>
                                 <TableHead>Phone</TableHead>
+                                <TableHead>Alternate Phone</TableHead>
                                 <TableHead>Agent</TableHead>
                                 <TableHead>Language</TableHead>
                                 <TableHead>Disease</TableHead>
@@ -331,6 +352,7 @@ const LeadPage = () => {
                                     <TableCell>{item.cm_first_name}</TableCell>
                                     <TableCell>{item.cm_last_name}</TableCell>
                                     <TableCell>{item.cm_phone}</TableCell>
+                                    <TableCell>{item.alternate_phone}</TableCell>
                                     <TableCell>{item.agent_name?.value}</TableCell>
                                     <TableCell>{item.language?.value}</TableCell>
                                     <TableCell>{item.disease?.value}</TableCell>
