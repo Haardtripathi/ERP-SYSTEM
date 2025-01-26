@@ -193,14 +193,14 @@ const LeadPage = () => {
         Object.entries(formData).forEach(([key, value]) => {
             console.log(key, value, typeof value)
             if (key !== "alternate_phone" && typeof value === "object" && value.value === null) {
-              toast.error(`${key.replace(/_/g, " ")} is required`)
-              isValid = false
+                toast.error(`${key.replace(/_/g, " ")} is required`)
+                isValid = false
             } else if (key !== "alternate_phone" && typeof value === "string" && value.trim() === "") {
-              toast.error(`${key.replace(/_/g, " ")} is required`)
-              isValid = false
+                toast.error(`${key.replace(/_/g, " ")} is required`)
+                isValid = false
             }
-          })
-          
+        })
+
         console.log(isValid)
         if (!phoneRegex.test(formData.cm_phone)) {
             toast.error('Phone number must be 10 digits');

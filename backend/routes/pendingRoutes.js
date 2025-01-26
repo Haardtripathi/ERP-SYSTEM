@@ -24,6 +24,6 @@ router.put('/edit-pending-data/:id', isAuthenticated, pendingController.putEditP
 router.post('/issue-pending-data/:id', isAuthenticated, pendingController.issuePendingData);
 
 
-// router.post('/send-pending-data-to-pending/:id', isAuthenticated, pendingController.sendpendingDataToPending);
+router.post('/send-pending-data-to-confirmed/:id', isAuthenticated, pendingController.sendPendingDataToConfirmed);
 
 module.exports = router;

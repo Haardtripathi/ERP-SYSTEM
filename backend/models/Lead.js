@@ -1,3 +1,139 @@
+// const mongoose = require('mongoose');
+
+// const Schema = mongoose.Schema;
+
+// const leadSchema = new Schema(
+//     {
+//         source: {
+//             type: Object,
+//             dropdown_data: {
+//                 type: Schema.Types.ObjectId,
+//                 ref: 'Dropdown',
+//             },
+//             value: {
+//                 type: String,
+//             },
+//         },
+//         date: {
+//             type: String,
+//             default: () => {
+//                 // Get the current date and time in Indian timezone
+//                 const options = {
+//                     timeZone: 'Asia/Kolkata',
+//                     year: 'numeric',
+//                     month: '2-digit',
+//                     day: '2-digit',
+//                     hour: '2-digit',
+//                     minute: '2-digit',
+//                     second: '2-digit',
+//                 };
+//                 const formatter = new Intl.DateTimeFormat([], options);
+//                 return formatter.format(new Date());
+//             }
+//         },
+//         cm_first_name: {
+//             type: String,
+//             required: true,
+//         },
+//         cm_last_name: {
+//             type: String,
+//             required: true,
+//         },
+//         cm_phone: {
+//             type: Number,
+//             required: true,
+//         },
+//         alternate_phone: {
+//             type: Number,
+//             //required: true,
+//         },
+//         agent_name: {
+//             type: Object,
+//             dropdown_data: {
+//                 type: Schema.Types.ObjectId,
+//                 ref: 'Dropdown',
+//             },
+//             value: {
+//                 type: String,
+//             },
+//         },
+//         language: {
+//             type: Object,
+//             dropdown_data: {
+//                 type: Schema.Types.ObjectId,
+//                 ref: 'Dropdown',
+//             },
+//             value: {
+//                 type: String,
+//             },
+//         },
+//         disease: {
+//             type: Object,
+//             dropdown_data: {
+//                 type: Schema.Types.ObjectId,
+//                 ref: 'Dropdown',
+//             },
+//             value: {
+//                 type: String,
+//             },
+//         },
+//         age: {
+//             type: Number,
+//         },
+//         height: {
+//             type: Number,
+//         },
+//         weight: {
+//             type: Number,
+//         },
+//         state: {
+//             type: Object,
+//             dropdown_data: {
+//                 type: Schema.Types.ObjectId,
+//                 ref: 'Dropdown',
+//             },
+//             value: {
+//                 type: String,
+//             },
+//         },
+//         city: {
+//             type: String,
+//         },
+//         remark: {
+//             type: Object,
+//             dropdown_data: {
+//                 type: Schema.Types.ObjectId,
+//                 ref: 'Dropdown',
+//             },
+//             value: {
+//                 type: String,
+//             },
+//         },
+//         comment: {
+//             type: String,
+//         },
+//         isDeleted: {
+//             type: Boolean,
+//             default: false, // Set default to false (not deleted)
+//         },
+//         is_sent_to_pending: {
+//             type: Boolean,
+//             default: false,
+//         },
+//         // status: {
+//         //     type: String,
+//         //     default: 'active', // Set default to 'active'
+//         // },
+//     },
+//     { timestamps: true }
+// );
+
+
+// leadSchema.index({ isDeleted: 1, createdAt: -1 })
+
+// module.exports = mongoose.model('Lead', leadSchema);
+
+// models/Lead.js
 const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
@@ -45,7 +181,6 @@ const leadSchema = new Schema(
         },
         alternate_phone: {
             type: Number,
-            //required: true,
         },
         agent_name: {
             type: Object,
@@ -114,18 +249,17 @@ const leadSchema = new Schema(
         },
         isDeleted: {
             type: Boolean,
-            default: false, // Set default to false (not deleted)
+            default: false,
         },
         is_sent_to_pending: {
             type: Boolean,
             default: false,
         },
-        // status: {
-        //     type: String,
-        //     default: 'active', // Set default to 'active'
-        // },
     },
     { timestamps: true }
 );
+
+// Add index for faster queries
+leadSchema.index({ isDeleted: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Lead', leadSchema);

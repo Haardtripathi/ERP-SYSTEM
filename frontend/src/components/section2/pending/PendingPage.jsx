@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect } from "react"
@@ -126,35 +125,86 @@ const PendingPage = () => {
         navigate(`/edit-pending-data/${id}`)
     }
 
+    const handleSendToConfirmed = async (id, dataId, data) => {
+        const item = pendingData.find((item) => item._id === id)
+        setSelectedItem(item)
+        setIsReviewDialogOpen(true)
+    }
+
     const validateForm = (formData) => {
-        let isValid = true;
-        const phoneRegex = /^\d{10}$/;
+        let isValid = true
+        const phoneRegex = /^\d{10}$/
 
         Object.entries(formData).forEach(([key, value]) => {
-            if (typeof value === 'object' && value.value === '') {
-                toast.error(`${key.replace(/_/g, ' ')} is required`);
-                isValid = false;
-            } else if (typeof value === 'string' && value.trim() === '') {
-                toast.error(`${key.replace(/_/g, ' ')} is required`);
-                isValid = false;
+            if (key !== "alternate_phone" && key !== "email") {
+                // Handle null/undefined values
+                if (value === null || value === undefined) {
+                    toast.error(`${key.replace(/_/g, " ")} is required`)
+                    isValid = false
+                    return
+                }
+
+                // Handle object type values (dropdowns)
+                if (typeof value === "object") {
+                    if (!value.value || (value.value !== null && value.value.toString().trim() === "")) {
+                        toast.error(`${key.replace(/_/g, " ")} is required`)
+                        isValid = false
+                    }
+                }
+                // Handle string type values
+                else if (typeof value === "string") {
+                    if (value.trim() === "") {
+                        toast.error(`${key.replace(/_/g, " ")} is required`)
+                        isValid = false
+                    }
+                }
             }
-        });
+        })
 
-        if (!phoneRegex.test(formData.cm_phone)) {
-            toast.error('Phone number must be 10 digits');
-            isValid = false;
+        // Validate phone number if it exists
+        if (!formData.cm_phone || (typeof formData.cm_phone === "string" && !phoneRegex.test(formData.cm_phone))) {
+            toast.error("Phone number must be 10 digits")
+            isValid = false
         }
 
-        if (formData.alternate_phone && !phoneRegex.test(formData.alternate_phone)) {
-            toast.error('Alternate phone number must be 10 digits');
-            isValid = false;
+        // Validate alternate phone only if it exists and is not empty
+        if (
+            formData.alternate_phone &&
+            typeof formData.alternate_phone === "string" &&
+            formData.alternate_phone.trim() !== "" &&
+            !phoneRegex.test(formData.alternate_phone)
+        ) {
+            toast.error("Alternate phone number must be 10 digits")
+            isValid = false
         }
 
-        return isValid;
-    };
+        return isValid
+    }
+
+    const confirmSendToConfirmed = async () => {
+        if (selectedItem) {
+            console.log(selectedItem)
+            const isValid = validateForm(selectedItem)
+            if (!isValid) {
+                setIsReviewDialogOpen(false)
+                return
+            }
+            try {
+                await sendToConfirmed(selectedItem._id)
+                toast.success("Data sent to confirmed successfully")
+                setPendingData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
+                setFilteredData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
+                setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
+                setIsReviewDialogOpen(false)
+            } catch (error) {
+                console.error("Error sending to confirmed:", error)
+                toast.error("Failed to send data to confirmed")
+            }
+        }
+    }
 
     const handleIssuePending = async (id) => {
-        const item = pendingData.find(item => item._id === id)
+        const item = pendingData.find((item) => item._id === id)
         setSelectedItem(item)
         setIsReviewDialogOpen(true)
     }
@@ -250,7 +300,6 @@ const PendingPage = () => {
                         </TableHeader>
                         <TableBody>
                             {paginatedData.map((item, index) => (
-
                                 <TableRow key={item._id} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
                                     <TableCell>
                                         <Forward
@@ -331,7 +380,9 @@ const PendingPage = () => {
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleDelete(item._id, item.dataId, item.data)}>Delete</AlertDialogAction>
+                                                    <AlertDialogAction onClick={() => handleDelete(item._id, item.dataId, item.data)}>
+                                                        Delete
+                                                    </AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>
@@ -371,6 +422,96 @@ const PendingPage = () => {
                     </PaginationItem>
                 </PaginationContent>
             </Pagination>
+            <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Review Pending Data</DialogTitle>
+                        <DialogDescription>Please review the pending data before sending to confirmed.</DialogDescription>
+                    </DialogHeader>
+                    {selectedItem && (
+                        <div className="mt-4 max-h-[60vh] overflow-y-auto">
+                            <div className="mt-4">
+                                <p>
+                                    <strong>Reference:</strong> {selectedItem.ref}
+                                </p>
+                                <p>
+                                    <strong>Date:</strong> {selectedItem.date}
+                                </p>
+                                <p>
+                                    <strong>Time:</strong> {selectedItem.time}
+                                </p>
+                                <p>
+                                    <strong>Source:</strong> {selectedItem.source?.value}
+                                </p>
+                                <p>
+                                    <strong>Name:</strong> {selectedItem.cm_first_name} {selectedItem.cm_last_name}
+                                </p>
+                                <p>
+                                    <strong>Phone:</strong> {selectedItem.cm_phone}
+                                </p>
+                                <p>
+                                    <strong>Alternate Phone:</strong> {selectedItem.alternate_phone}
+                                </p>
+                                <p>
+                                    <strong>Email:</strong> {selectedItem.email}
+                                </p>
+                                <p>
+                                    <strong>Agent Name:</strong> {selectedItem.agent_name?.value}
+                                </p>
+                                <p>
+                                    <strong>Status:</strong> {selectedItem.status?.value}
+                                </p>
+                                <p>
+                                    <strong>Remark:</strong> {selectedItem.remark?.value}
+                                </p>
+                                <p>
+                                    <strong>Comment:</strong> {selectedItem.comment}
+                                </p>
+                                <p>
+                                    <strong>Shipment Type:</strong> {selectedItem.shipment_type?.value}
+                                </p>
+                                <p>
+                                    <strong>Address:</strong> {selectedItem.address}
+                                </p>
+                                <p>
+                                    <strong>Post Type:</strong> {selectedItem.post_type?.value}
+                                </p>
+                                <p>
+                                    <strong>Post:</strong> {selectedItem.post}
+                                </p>
+                                <p>
+                                    <strong>Sub District/Taluka:</strong> {selectedItem.sub_district_taluka}
+                                </p>
+                                <p>
+                                    <strong>City:</strong> {selectedItem.city}
+                                </p>
+                                <p>
+                                    <strong>Pincode:</strong> {selectedItem.pincode}
+                                </p>
+                                <p>
+                                    <strong>State:</strong> {selectedItem.state?.value}
+                                </p>
+                                <p>
+                                    <strong>Disease:</strong> {selectedItem.disease?.value}
+                                </p>
+                                <p>
+                                    <strong>Amount:</strong> {selectedItem.amount?.value}
+                                </p>
+                                <p>
+                                    <strong>Products:</strong> {selectedItem.products?.value}
+                                </p>
+                                <p>
+                                    <strong>Quantity:</strong> {selectedItem.quantity}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button onClick={() => setIsReviewDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={confirmSendToConfirmed}>Confirm Send</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

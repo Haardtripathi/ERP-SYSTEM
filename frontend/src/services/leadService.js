@@ -2,8 +2,8 @@
 import axiosInstance from '../axiosInstance'
 
 
-export const getAllLead = async () => {
-    const response = await axiosInstance.get(`/lead/get-lead-data`);
+export const getAllLead = async (page, limit) => {
+    const response = await axiosInstance.get(`/lead/get-lead-data`,);
     return response;
 };
 

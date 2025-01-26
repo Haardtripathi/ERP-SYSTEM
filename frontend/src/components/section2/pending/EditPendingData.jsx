@@ -157,10 +157,10 @@ export default function EditPendingData() {
 
         Object.entries(formData).forEach(([key, value]) => {
             console.log(key, value, typeof value)
-            if (key !== "alternate_phone" && typeof value === "object" && (value.value === null || value.value === "")) {
+            if (key !== "alternate_phone" && key !== "email" && typeof value === "object" && (value.value === null || value.value === "")) {
                 toast.error(`${key.replace(/_/g, " ")} is required`)
                 isValid = false
-            } else if (key !== "alternate_phone" && typeof value === "string" && value.trim() === "") {
+            } else if (key !== "alternate_phone" && key !== "email" && typeof value === "string" && value.trim() === "") {
                 toast.error(`${key.replace(/_/g, " ")} is required`)
                 isValid = false
             }
@@ -260,7 +260,7 @@ export default function EditPendingData() {
                                     </div>
                                     <div>
                                         <Label htmlFor="email" className="text-stone-600">
-                                            Email *
+                                            Email
                                         </Label>
                                         <Input
                                             id="email"
@@ -269,7 +269,7 @@ export default function EditPendingData() {
                                             value={formData.email}
                                             onChange={handleChange}
                                             className="mt-1.5 bg-stone-50 border-stone-300"
-                                            required
+
                                         />
                                     </div>
                                 </div>

@@ -34,3 +34,8 @@ export const issuePending = async (id, dataId, data) => {
     const response = await axiosInstance.post(`/pending/issue-pending-data/${id}`, { dataId, data });
     return response;
 };
+
+export const sendToConfirmed = async (id, dataId, data) => {
+    const response = await axiosInstance.post(`/pending/send-pending-data-to-confirmed/${id}`, { dataId, data });
+    return response;
+}

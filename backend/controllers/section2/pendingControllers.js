@@ -233,3 +233,40 @@ exports.issuePendingData = async (req, res) => {
         });
     }
 }
+
+
+exports.sendPendingDataToConfirmed = async (req, res) => {
+    const { id } = req.params; // Extract Pending ID
+
+    try {
+        // Find the specific Pending document by ID
+        const pendingData = await Pending.findById(id);
+
+        if (!pendingData) {
+            return res.status(404).json({
+                message: "Pending data not found.",
+            });
+        }
+
+        // Exclude the `status` and `date` fields from the document
+        const { status, date, ...confirmedData } = pendingData.toObject();
+
+        // Insert the data into the Confirmed collection
+        const newConfirmed = new Confirmed(confirmedData);
+        await newConfirmed.save();
+
+        // Optionally delete the Pending document after transferring
+        await Pending.findByIdAndDelete(id);
+
+        return res.status(200).json({
+            message: "Data successfully transferred to Confirmed.",
+            data: newConfirmed,
+        });
+    } catch (e) {
+        console.error("Error transferring data:", e);
+        return res.status(500).json({
+            message: "Internal server error.",
+            error: e.message,
+        });
+    }
+};
