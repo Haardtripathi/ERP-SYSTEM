@@ -21,6 +21,7 @@ exports.getAllPendingData = async (req, res) => {
 
         // Get total count of documents
         const totalCount = await Pending.countDocuments({ isDeleted: false });
+        console.log(totalCount)
 
         return res.status(200).json({
             message: "Pending data fetched successfully.",
