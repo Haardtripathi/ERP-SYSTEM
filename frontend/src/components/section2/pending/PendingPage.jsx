@@ -634,6 +634,8 @@ const PendingPage = () => {
     const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
     const [paginatedData, setPaginatedData] = useState([])
     const [searchColumn, setSearchColumn] = useState("all")
+    const [goToPage, setGoToPage] = useState("")
+
 
     const navigate = useNavigate()
 
@@ -696,6 +698,15 @@ const PendingPage = () => {
         }
     }
 
+    const handleGoToPage = () => {
+        const pageNumber = Number.parseInt(goToPage, 10)
+        if (pageNumber >= 1 && pageNumber <= totalPages) {
+            setCurrentPage(pageNumber)
+            setGoToPage("")
+        } else {
+            toast.error(`Please enter a valid page number between 1 and ${totalPages}`)
+        }
+    }
     const handleUpdateClick = async (id) => {
         navigate(`/edit-pending-data/${id}`)
     }
@@ -1067,6 +1078,26 @@ const PendingPage = () => {
                     </PaginationItem>
                 </PaginationContent>
             </Pagination>
+            <div className="flex items-center space-x-2">
+                <Input
+                    type="number"
+                    placeholder="Go to page"
+                    value={goToPage}
+                    onChange={(e) => setGoToPage(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && goToPage) {
+                            handleGoToPage();
+                        }
+                    }}
+                    className="w-40"
+                    min={1}
+                    max={totalPages}
+                />
+                <Button onClick={handleGoToPage} disabled={!goToPage}>
+                    Go
+                </Button>
+            </div>
+
             <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
                 <DialogContent>
                     <DialogHeader>

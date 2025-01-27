@@ -1399,20 +1399,21 @@ const IncomingPage = () => {
                         </PaginationItem>
                     </PaginationContent>
                 </Pagination>
-                <div className="flex items-center space-x-2">
-                    <Input
-                        type="number"
-                        placeholder="Go to page"
-                        value={goToPage}
-                        onChange={(e) => setGoToPage(e.target.value)}
-                        className="w-40"
-                        min={1}
-                        max={totalPages}
-                    />
-                    <Button onClick={handleGoToPage} disabled={!goToPage}>
-                        Go
-                    </Button>
-                </div>
+
+            </div>
+            <div className="flex items-center space-x-2">
+                <Input
+                    type="number"
+                    placeholder="Go to page"
+                    value={goToPage}
+                    onChange={(e) => setGoToPage(e.target.value)}
+                    className="w-40"
+                    min={1}
+                    max={totalPages}
+                />
+                <Button onClick={handleGoToPage} disabled={!goToPage}>
+                    Go
+                </Button>
             </div>
             <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
                 <DialogContent>
