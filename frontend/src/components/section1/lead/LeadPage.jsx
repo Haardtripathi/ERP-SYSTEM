@@ -431,6 +431,8 @@
 
 // export default LeadPage
 
+
+
 "use client"
 
 import React, { useState, useEffect } from "react"
@@ -558,7 +560,7 @@ const LeadPage = () => {
     const handleUpdateClick = async (id, is_sent_to_pending) => {
         if (is_sent_to_pending) {
             toast.error("Already sent to pending")
-            return
+            navigate(`/lead`)
         }
         navigate(`/edit-lead-data/${id}`)
     }
@@ -613,7 +615,6 @@ const LeadPage = () => {
                 const isValid = validateForm(selectedItem)
                 console.log(isValid)
                 if (!isValid) {
-                    setIsReviewDialogOpen(false)
                     return
                 }
                 await sendLeadToPending(selectedItem._id)
@@ -626,14 +627,6 @@ const LeadPage = () => {
                 setFilteredData((prevData) =>
                     prevData.map((item) => (item._id === selectedItem._id ? { ...item, is_sent_to_pending: true } : item)),
                 )
-
-                const newTotalPages = Math.ceil(filteredData.filter((item) => !item.is_sent_to_pending).length / itemsPerPage)
-                setTotalPages(newTotalPages)
-
-                // Only adjust currentPage if it exceeds the new total pages
-                if (currentPage > newTotalPages) {
-                    setCurrentPage(newTotalPages || 1)
-                }
 
                 setIsReviewDialogOpen(false)
             } catch (error) {
@@ -733,8 +726,7 @@ const LeadPage = () => {
                             {paginatedData.map((item, index) => (
                                 <TableRow
                                     key={item._id}
-                                    className={`${index % 2 === 0 ? "bg-gray-50" : "bg-white"} ${item.is_sent_to_pending ? "bg-green-100" : ""
-                                        }`}
+                                    className={item.is_sent_to_pending ? "bg-green-100" : index % 2 === 0 ? "bg-gray-50" : "bg-white"}
                                 >
                                     <TableCell>
                                         <SendHorizontal
@@ -846,7 +838,7 @@ const LeadPage = () => {
                         placeholder="Go to page"
                         value={goToPage}
                         onChange={(e) => setGoToPage(e.target.value)}
-                        className="w-24"
+                        className="w-40"
                         min={1}
                         max={totalPages}
                     />

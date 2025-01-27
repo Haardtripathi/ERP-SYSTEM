@@ -1,12 +1,12 @@
 
-'use client'
+"use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { getAllWorkbook } from "@/services/workbookService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
-import { RotateCw } from 'lucide-react'
+import { RotateCw } from "lucide-react"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -27,7 +27,7 @@ import {
     PaginationPrevious,
     PaginationEllipsis,
 } from "@/components/ui/pagination"
-import { Loader2, Search, Trash2, SendHorizontal } from 'lucide-react'
+import { Loader2, Search, Trash2, SendHorizontal } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { deleteLead, sendLeadToPending } from "@/services/leadService"
 import { deleteIncoming, sendIncomingToPending } from "@/services/incomingService"
@@ -40,41 +40,16 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog"
 
-const Table = ({ children }) => (
-    <table className="w-full border-collapse">
-        {children}
-    </table>
-)
-
-const TableHeader = ({ children }) => (
-    <thead className="bg-gray-200">
-        {children}
-    </thead>
-)
-
-const TableRow = ({ children, className }) => (
-    <tr className={className}>
-        {children}
-    </tr>
-)
-
+const Table = ({ children }) => <table className="w-full border-collapse">{children}</table>
+const TableHeader = ({ children }) => <thead className="bg-gray-200">{children}</thead>
+const TableRow = ({ children, className }) => <tr className={className}>{children}</tr>
 const TableHead = ({ children, className }) => (
     <th className={`${className} p-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-300`}>
         {children}
     </th>
 )
-
-const TableBody = ({ children }) => (
-    <tbody className="bg-white divide-y divide-gray-200">
-        {children}
-    </tbody>
-)
-
-const TableCell = ({ children, className }) => (
-    <td className={`${className} p-3 text-sm text-gray-700`}>
-        {children}
-    </td>
-)
+const TableBody = ({ children }) => <tbody className="bg-white divide-y divide-gray-200">{children}</tbody>
+const TableCell = ({ children, className }) => <td className={`${className} p-3 text-sm text-gray-700`}>{children}</td>
 
 const WorkbookPage = () => {
     const [workbookData, setWorkbookData] = useState([])
@@ -88,45 +63,29 @@ const WorkbookPage = () => {
     const [filterStatus, setFilterStatus] = useState("All")
     const [selectedItem, setSelectedItem] = useState(null)
     const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
+    const [goToPage, setGoToPage] = useState("")
+    const [paginatedData, setPaginatedData] = useState([])
 
     const navigate = useNavigate()
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setIsLoading(true)
-                const response = await getAllWorkbook()
-                setWorkbookData(response.data)
-                setFilteredData(response.data)
-                setTotalPages(Math.ceil(response.data.length / itemsPerPage))
-            } catch (error) {
-                console.error("Error fetching incoming data:", error)
-                setError("Failed to fetch data. Please try again later.")
-            } finally {
-                setIsLoading(false)
-            }
+    const fetchData = useCallback(async () => {
+        try {
+            setIsLoading(true)
+            const response = await getAllWorkbook()
+            setWorkbookData(response.data)
+            setFilteredData(response.data)
+            setTotalPages(Math.ceil(response.data.length / itemsPerPage))
+        } catch (error) {
+            console.error("Error fetching workbook data:", error)
+            setError("Failed to fetch data. Please try again later.")
+        } finally {
+            setIsLoading(false)
         }
-
-        fetchData()
     }, [itemsPerPage])
 
     useEffect(() => {
-        const results = workbookData.filter((item) =>
-            Object.values(item).some(
-                (val) =>
-                    typeof val === "string" &&
-                    val.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-        ).filter((item) => {
-            if (filterStatus === "All") return true;
-            if (filterStatus === "isSent") return item.is_sent_to_pending;
-            if (filterStatus === "isNotSent") return !item.is_sent_to_pending;
-            return true;
-        })
-        setFilteredData(results)
-        setTotalPages(Math.ceil(results.length / itemsPerPage))
-        setCurrentPage(1)
-    }, [searchTerm, workbookData, itemsPerPage, filterStatus])
+        fetchData()
+    }, [fetchData])
 
     const handleDelete = async (id, data) => {
         try {
@@ -138,8 +97,8 @@ const WorkbookPage = () => {
             }
             toast.success("Data deleted successfully")
             setWorkbookData((prevData) => prevData.filter((item) => item._id !== id))
-            setFilteredData((prevData) => prevData.filter((item) => item._id !== id))
-            setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
+            // applyFilters() // Removed as applyFilters function is removed
+            setCurrentPage((prevPage) => prevPage) // Force re-render
         } catch (error) {
             console.error("Error deleting item:", error)
             setError("Failed to delete item. Please try again.")
@@ -162,39 +121,16 @@ const WorkbookPage = () => {
     }
 
     const handleSendToPending = async (id, data) => {
-        const item = workbookData.find(item => item._id === id)
+        const item = workbookData.find((item) => item._id === id)
         setSelectedItem(item)
         setIsReviewDialogOpen(true)
     }
 
-    // const confirmSendToPending = async () => {
-    //     if (selectedItem) {
-    //         try {
-    //             if (selectedItem.data?.value === "Lead") {
-    //                 await sendLeadToPending(selectedItem._id)
-    //             }
-    //             if (selectedItem.data?.value === "Incoming") {
-    //                 await sendIncomingToPending(selectedItem._id)
-    //             }
-    //             toast.success("Data sent to pending successfully")
-    //             setWorkbookData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
-    //             setFilteredData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
-    //             setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
-    //             setIsReviewDialogOpen(false)
-    //             window.location.reload()
-
-    //         } catch (error) {
-    //             console.error("Error sending item to pending:", error)
-    //             setError("Failed to send item to pending. Please try again.")
-    //         }
-    //     }
-    // }
     const validateForm = (formData) => {
-        let isValid = true;
-        const phoneRegex = /^\d{10}$/;
+        let isValid = true
+        const phoneRegex = /^\d{10}$/
 
         Object.entries(formData).forEach(([key, value]) => {
-            console.log(key, value, typeof value)
             if (key !== "alternate_phone" && typeof value === "object" && (value.value === null || value.value === "")) {
                 toast.error(`${key.replace(/_/g, " ")} is required`)
                 isValid = false
@@ -204,72 +140,124 @@ const WorkbookPage = () => {
             }
         })
         if (!phoneRegex.test(formData.cm_phone)) {
-            toast.error('Phone number must be 10 digits');
-            isValid = false;
+            toast.error("Phone number must be 10 digits")
+            isValid = false
         }
 
         if (formData.alternate_phone && !phoneRegex.test(formData.alternate_phone)) {
-            toast.error('Alternate phone number must be 10 digits');
-            isValid = false;
+            toast.error("Alternate phone number must be 10 digits")
+            isValid = false
         }
 
-        return isValid;
-    };
+        return isValid
+    }
+
     const confirmSendToPending = async () => {
         if (selectedItem) {
             try {
                 const isValid = validateForm(selectedItem)
-                console.log(isValid)
                 if (!isValid) {
-                    navigate("/lead")
                     return
                 }
-                // Call the appropriate function based on the selected item's type
+
                 if (selectedItem.data?.value === "Lead") {
-                    await sendLeadToPending(selectedItem._id);
+                    await sendLeadToPending(selectedItem._id)
                 } else if (selectedItem.data?.value === "Incoming") {
-                    await sendIncomingToPending(selectedItem._id);
+                    await sendIncomingToPending(selectedItem._id)
                 }
 
-                toast.success("Data sent to pending successfully");
+                toast.success("Data sent to pending successfully")
 
-                // Update the workbook data to mark the item with is_sent_to_pending = true
-                setWorkbookData((prevData) =>
-                    prevData.map((item) =>
-                        item._id === selectedItem._id
-                            ? { ...item, is_sent_to_pending: true }
-                            : item
+                const updatedWorkbookData = workbookData.map((item) =>
+                    item._id === selectedItem._id ? { ...item, is_sent_to_pending: true } : item,
+                )
+
+                // Update workbookData
+                setWorkbookData(updatedWorkbookData)
+
+                // Apply filters and update filteredData
+                const updatedFilteredData = updatedWorkbookData
+                    .filter((item) =>
+                        Object.values(item).some(
+                            (val) => typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase()),
+                        ),
                     )
-                );
+                    .filter((item) => {
+                        if (filterStatus === "All") return true
+                        if (filterStatus === "isSent") return item.is_sent_to_pending
+                        if (filterStatus === "isNotSent") return !item.is_sent_to_pending
+                        return true
+                    })
 
-                // Update the filtered data based on the new field
-                setFilteredData((prevData) =>
-                    prevData.map((item) =>
-                        item._id === selectedItem._id
-                            ? { ...item, is_sent_to_pending: true }
-                            : item
-                    )
-                );
+                setFilteredData(updatedFilteredData)
 
-                // Recalculate the total pages (excluding items with is_sent_to_pending === true)
-                setTotalPages(
-                    Math.ceil(
-                        filteredData.filter((item) => !item.is_sent_to_pending).length /
-                        itemsPerPage
-                    )
-                );
+                const newTotalPages = Math.ceil(updatedFilteredData.length / itemsPerPage)
+                setTotalPages(newTotalPages)
 
-                setIsReviewDialogOpen(false);
+                // Adjust current page if necessary
+                if (currentPage > newTotalPages) {
+                    setCurrentPage(newTotalPages || 1)
+                } else if (
+                    currentPage === newTotalPages &&
+                    updatedFilteredData.length % itemsPerPage === 0 &&
+                    currentPage > 1
+                ) {
+                    setCurrentPage(currentPage - 1)
+                }
+
+                setIsReviewDialogOpen(false)
+
+                // Force a re-render by updating a state
+                setCurrentPage((prevPage) => prevPage)
             } catch (error) {
-                console.error("Error sending item to pending:", error);
-                setError("Failed to send item to pending. Please try again.");
+                console.error("Error sending item to pending:", error)
+                setError("Failed to send item to pending. Please try again.")
             }
         }
-    };
+    }
 
+    const handleGoToPage = () => {
+        const pageNumber = Number.parseInt(goToPage, 10)
+        if (pageNumber >= 1 && pageNumber <= totalPages) {
+            setCurrentPage(pageNumber)
+            setGoToPage("")
+        } else {
+            toast.error(`Please enter a valid page number between 1 and ${totalPages}`)
+        }
+    }
 
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage)
+    const handleFilterChange = (newStatus) => {
+        setFilterStatus(newStatus)
+        setCurrentPage(1) // Reset to page 1 when changing filter
+    }
+
+    useEffect(() => {
+        const applyFiltersAndPaginate = () => {
+            const filtered = workbookData
+                .filter((item) =>
+                    Object.values(item).some(
+                        (val) => typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase()),
+                    ),
+                )
+                .filter((item) => {
+                    if (filterStatus === "All") return true
+                    if (filterStatus === "isSent") return item.is_sent_to_pending
+                    if (filterStatus === "isNotSent") return !item.is_sent_to_pending
+                    return true
+                })
+
+            setFilteredData(filtered)
+            const newTotalPages = Math.ceil(filtered.length / itemsPerPage)
+            setTotalPages(newTotalPages)
+
+            const startIndex = (currentPage - 1) * itemsPerPage
+            setPaginatedData(filtered.slice(startIndex, startIndex + itemsPerPage))
+        }
+
+        applyFiltersAndPaginate()
+    }, [workbookData, filterStatus, searchTerm, currentPage, itemsPerPage])
+
+    // This line is no longer needed as we're using the paginatedData state
 
     if (isLoading) {
         return (
@@ -292,23 +280,20 @@ const WorkbookPage = () => {
             <h1 className="text-3xl font-semibold mb-6 text-gray-800">Workbook Data</h1>
             <div className="mb-4 flex justify-between items-center">
                 <div className="flex space-x-2">
-                    <Button
-                        onClick={() => setFilterStatus("All")}
-                        variant={filterStatus === "All" ? "default" : "outline"}
-                    >
+                    <Button onClick={() => handleFilterChange("All")} variant={filterStatus === "All" ? "default" : "outline"}>
                         All
                     </Button>
                     <Button
-                        onClick={() => setFilterStatus("isSent")}
+                        onClick={() => handleFilterChange("isSent")}
                         variant={filterStatus === "isSent" ? "default" : "outline"}
                     >
-                        Is Sent
+                        Sent to Pending
                     </Button>
                     <Button
-                        onClick={() => setFilterStatus("isNotSent")}
+                        onClick={() => handleFilterChange("isNotSent")}
                         variant={filterStatus === "isNotSent" ? "default" : "outline"}
                     >
-                        Is Not Sent
+                        Not Sent
                     </Button>
                 </div>
             </div>
@@ -337,16 +322,19 @@ const WorkbookPage = () => {
                         </TableHeader>
                         <TableBody>
                             {paginatedData.map((item, index) => (
-                                <TableRow key={item._id} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+                                <TableRow
+                                    key={item._id}
+                                    className={`${item.is_sent_to_pending ? "bg-green-100" : index % 2 === 0 ? "bg-gray-50" : "bg-white"}`}
+                                >
                                     <TableCell>
                                         <SendHorizontal
                                             size={20}
                                             color={item.is_sent_to_pending ? "#28a745" : "#007BFF"}
                                             strokeWidth={2}
                                             style={{
-                                                cursor: item.is_sent_to_pending ? 'not-allowed' : 'pointer',
-                                                transition: 'transform 0.2s ease',
-                                                opacity: item.is_sent_to_pending ? 0.5 : 1
+                                                cursor: item.is_sent_to_pending ? "not-allowed" : "pointer",
+                                                transition: "transform 0.2s ease",
+                                                opacity: item.is_sent_to_pending ? 0.5 : 1,
                                             }}
                                             onClick={() => !item.is_sent_to_pending && handleSendToPending(item._id, item.data?.value)}
                                         />
@@ -370,19 +358,25 @@ const WorkbookPage = () => {
                                             color="#007BFF"
                                             strokeWidth={2}
                                             style={{
-                                                cursor: item.is_sent_to_pending ? 'not-allowed' : 'pointer',
-                                                transition: 'transform 0.2s ease',
-                                                opacity: item.is_sent_to_pending ? 0.5 : 1
+                                                cursor: item.is_sent_to_pending ? "not-allowed" : "pointer",
+                                                transition: "transform 0.2s ease",
+                                                opacity: item.is_sent_to_pending ? 0.5 : 1,
                                             }}
                                             onClick={() => !item.is_sent_to_pending && handleUpdateClick(item._id, item.data?.value)}
-                                            onMouseOver={(e) => !item.is_sent_to_pending && (e.currentTarget.style.transform = 'rotate(90deg)')}
-                                            onMouseOut={(e) => !item.is_sent_to_pending && (e.currentTarget.style.transform = 'rotate(0deg)')}
+                                            onMouseOver={(e) =>
+                                                !item.is_sent_to_pending && (e.currentTarget.style.transform = "rotate(90deg)")
+                                            }
+                                            onMouseOut={(e) => !item.is_sent_to_pending && (e.currentTarget.style.transform = "rotate(0deg)")}
                                         />
                                     </TableCell>
                                     <TableCell>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200" disabled={item.is_sent_to_pending}>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200"
+                                                    disabled={item.is_sent_to_pending}
+                                                >
                                                     <Trash2 className="h-5 w-5 text-red-500" />
                                                 </Button>
                                             </AlertDialogTrigger>
@@ -390,8 +384,7 @@ const WorkbookPage = () => {
                                                 <AlertDialogHeader>
                                                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                                     <AlertDialogDescription>
-                                                        This action cannot be undone. This will permanently delete the
-                                                        selected record.
+                                                        This action cannot be undone. This will permanently delete the selected record.
                                                     </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
@@ -409,69 +402,95 @@ const WorkbookPage = () => {
                     </Table>
                 </div>
             </div>
-            <Pagination className="mt-4 flex justify-center">
-                <PaginationContent>
-                    <PaginationItem>
-                        <PaginationPrevious
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                        />
-                    </PaginationItem>
-                    {[...Array(totalPages)].map((_, index) => {
-                        const pageNumber = index + 1;
-                        if (
-                            pageNumber === 1 ||
-                            pageNumber === totalPages ||
-                            (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                        ) {
-                            return (
-                                <PaginationItem key={index}>
-                                    <PaginationLink
-                                        onClick={() => handlePageChange(pageNumber)}
-                                        isActive={currentPage === pageNumber}
-                                    >
-                                        {pageNumber}
-                                    </PaginationLink>
-                                </PaginationItem>
-                            );
-                        } else if (
-                            pageNumber === currentPage - 2 ||
-                            pageNumber === currentPage + 2
-                        ) {
-                            return <PaginationEllipsis key={index} />;
-                        }
-                        return null;
-                    })}
-                    <PaginationItem>
-                        <PaginationNext
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                        />
-                    </PaginationItem>
-                </PaginationContent>
-            </Pagination>
+            <div className="mt-4 flex flex-col items-center justify-center space-y-4">
+                <Pagination className="mt-4 flex justify-center">
+                    <PaginationContent>
+                        <PaginationItem>
+                            <PaginationPrevious onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
+                        </PaginationItem>
+                        {[...Array(totalPages)].map((_, index) => {
+                            const pageNumber = index + 1
+                            if (
+                                pageNumber === 1 ||
+                                pageNumber === totalPages ||
+                                (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                            ) {
+                                return (
+                                    <PaginationItem key={index}>
+                                        <PaginationLink onClick={() => handlePageChange(pageNumber)} isActive={currentPage === pageNumber}>
+                                            {pageNumber}
+                                        </PaginationLink>
+                                    </PaginationItem>
+                                )
+                            } else if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
+                                return <PaginationEllipsis key={index} />
+                            }
+                            return null
+                        })}
+                        <PaginationItem>
+                            <PaginationNext onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} />
+                        </PaginationItem>
+                    </PaginationContent>
+                </Pagination>
+                <div className="flex items-center space-x-2">
+                    <Input
+                        type="number"
+                        placeholder="Go to page"
+                        value={goToPage}
+                        onChange={(e) => setGoToPage(e.target.value)}
+                        className="w-40"
+                        min={1}
+                        max={totalPages}
+                    />
+                    <Button onClick={handleGoToPage} disabled={!goToPage}>
+                        Go
+                    </Button>
+                </div>
+            </div>
             <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Review Workbook Data</DialogTitle>
-                        <DialogDescription>
-                            Please review the data before sending to pending.
-                        </DialogDescription>
+                        <DialogDescription>Please review the data before sending to pending.</DialogDescription>
                     </DialogHeader>
                     {selectedItem && (
                         <div className="mt-4">
-                            <p><strong>Data Type:</strong> {selectedItem.data?.value}</p>
-                            <p><strong>Source:</strong> {selectedItem.source?.value}</p>
-                            <p><strong>Name:</strong> {selectedItem.cm_first_name} {selectedItem.cm_last_name}</p>
-                            <p><strong>Phone:</strong> {selectedItem.cm_phone}</p>
-                            <p><strong>Agent:</strong> {selectedItem.agent_name?.value}</p>
-                            <p><strong>Language:</strong> {selectedItem.language?.value}</p>
-                            <p><strong>Disease:</strong> {selectedItem.disease?.value}</p>
-                            <p><strong>State:</strong> {selectedItem.state?.value}</p>
-                            <p><strong>City:</strong> {selectedItem.city}</p>
-                            <p><strong>Remark:</strong> {selectedItem.remark?.value}</p>
-                            <p><strong>Comment:</strong> {selectedItem.comment}</p>
-                            <p><strong>Date:</strong> {selectedItem.date}</p>
+                            <p>
+                                <strong>Data Type:</strong> {selectedItem.data?.value}
+                            </p>
+                            <p>
+                                <strong>Source:</strong> {selectedItem.source?.value}
+                            </p>
+                            <p>
+                                <strong>Name:</strong> {selectedItem.cm_first_name} {selectedItem.cm_last_name}
+                            </p>
+                            <p>
+                                <strong>Phone:</strong> {selectedItem.cm_phone}
+                            </p>
+                            <p>
+                                <strong>Agent:</strong> {selectedItem.agent_name?.value}
+                            </p>
+                            <p>
+                                <strong>Language:</strong> {selectedItem.language?.value}
+                            </p>
+                            <p>
+                                <strong>Disease:</strong> {selectedItem.disease?.value}
+                            </p>
+                            <p>
+                                <strong>State:</strong> {selectedItem.state?.value}
+                            </p>
+                            <p>
+                                <strong>City:</strong> {selectedItem.city}
+                            </p>
+                            <p>
+                                <strong>Remark:</strong> {selectedItem.remark?.value}
+                            </p>
+                            <p>
+                                <strong>Comment:</strong> {selectedItem.comment}
+                            </p>
+                            <p>
+                                <strong>Date:</strong> {selectedItem.date}
+                            </p>
                         </div>
                     )}
                     <DialogFooter>

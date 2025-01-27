@@ -467,7 +467,6 @@
 
 // export default IncomingPage
 
-
 "use client"
 
 import React, { useState, useEffect } from "react"
@@ -574,7 +573,7 @@ const IncomingPage = () => {
             })
         setFilteredData(results)
         setTotalPages(Math.ceil(results.length / itemsPerPage))
-        setCurrentPage(1)
+        // Removed setCurrentPage(1) from here
     }, [searchTerm, incomingData, itemsPerPage, filterStatus])
 
     const handleDelete = async (id) => {
@@ -639,7 +638,6 @@ const IncomingPage = () => {
                 const isValid = validateForm(selectedItem)
                 console.log(isValid)
                 if (!isValid) {
-                    navigate("/incoming")
                     return
                 }
                 await sendIncomingToPending(selectedItem._id)
@@ -649,13 +647,18 @@ const IncomingPage = () => {
                     prevData.map((item) => (item._id === selectedItem._id ? { ...item, is_sent_to_pending: true } : item)),
                 )
 
-                // Update the filtered data based on the new field
                 setFilteredData((prevData) =>
                     prevData.map((item) => (item._id === selectedItem._id ? { ...item, is_sent_to_pending: true } : item)),
                 )
 
-                // Recalculate the total pages (excluding items with is_sent_to_pending === true)
-                setTotalPages(Math.ceil(filteredData.filter((item) => !item.is_sent_to_pending).length / itemsPerPage))
+                // Recalculate total pages without changing the current page
+                const newTotalPages = Math.ceil(filteredData.filter((item) => !item.is_sent_to_pending).length / itemsPerPage)
+                setTotalPages(newTotalPages)
+
+                // Adjust currentPage only if it exceeds the new total pages
+                if (currentPage > newTotalPages) {
+                    setCurrentPage(newTotalPages || 1)
+                }
 
                 setIsReviewDialogOpen(false)
             } catch (error) {
@@ -702,7 +705,10 @@ const IncomingPage = () => {
                     <Button
                         onClick={() => {
                             setFilterStatus("All")
-                            setCurrentPage(1)
+                            const newTotalPages = Math.ceil(incomingData.length / itemsPerPage)
+                            if (currentPage > newTotalPages) {
+                                setCurrentPage(newTotalPages || 1)
+                            }
                         }}
                         variant={filterStatus === "All" ? "default" : "outline"}
                     >
@@ -711,7 +717,11 @@ const IncomingPage = () => {
                     <Button
                         onClick={() => {
                             setFilterStatus("isSent")
-                            setCurrentPage(1)
+                            const sentData = incomingData.filter((item) => item.is_sent_to_pending)
+                            const newTotalPages = Math.ceil(sentData.length / itemsPerPage)
+                            if (currentPage > newTotalPages) {
+                                setCurrentPage(newTotalPages || 1)
+                            }
                         }}
                         variant={filterStatus === "isSent" ? "default" : "outline"}
                     >
@@ -720,7 +730,11 @@ const IncomingPage = () => {
                     <Button
                         onClick={() => {
                             setFilterStatus("isNotSent")
-                            setCurrentPage(1)
+                            const notSentData = incomingData.filter((item) => !item.is_sent_to_pending)
+                            const newTotalPages = Math.ceil(notSentData.length / itemsPerPage)
+                            if (currentPage > newTotalPages) {
+                                setCurrentPage(newTotalPages || 1)
+                            }
                         }}
                         variant={filterStatus === "isNotSent" ? "default" : "outline"}
                     >
@@ -763,8 +777,7 @@ const IncomingPage = () => {
                             {paginatedData.map((item, index) => (
                                 <TableRow
                                     key={item._id}
-                                    className={`${index % 2 === 0 ? "bg-gray-50" : "bg-white"} ${item.is_sent_to_pending ? "bg-green-100" : ""
-                                        }`}
+                                    className={`${item.is_sent_to_pending ? "bg-green-100" : index % 2 === 0 ? "bg-gray-50" : "bg-white"}`}
                                 >
                                     <TableCell>
                                         <SendHorizontal
@@ -839,43 +852,43 @@ const IncomingPage = () => {
                     </Table>
                 </div>
             </div>
-            <Pagination className="mt-4 flex justify-center">
-                <PaginationContent>
-                    <PaginationItem>
-                        <PaginationPrevious onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
-                    </PaginationItem>
-                    {[...Array(totalPages)].map((_, index) => {
-                        const pageNumber = index + 1
-                        if (
-                            pageNumber === 1 ||
-                            pageNumber === totalPages ||
-                            (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                        ) {
-                            return (
-                                <PaginationItem key={index}>
-                                    <PaginationLink onClick={() => handlePageChange(pageNumber)} isActive={currentPage === pageNumber}>
-                                        {pageNumber}
-                                    </PaginationLink>
-                                </PaginationItem>
-                            )
-                        } else if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
-                            return <PaginationEllipsis key={index} />
-                        }
-                        return null
-                    })}
-                    <PaginationItem>
-                        <PaginationNext onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} />
-                    </PaginationItem>
-                </PaginationContent>
-            </Pagination>
             <div className="mt-4 flex flex-col items-center justify-center space-y-4">
+                <Pagination>
+                    <PaginationContent>
+                        <PaginationItem>
+                            <PaginationPrevious onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
+                        </PaginationItem>
+                        {[...Array(totalPages)].map((_, index) => {
+                            const pageNumber = index + 1
+                            if (
+                                pageNumber === 1 ||
+                                pageNumber === totalPages ||
+                                (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                            ) {
+                                return (
+                                    <PaginationItem key={index}>
+                                        <PaginationLink onClick={() => handlePageChange(pageNumber)} isActive={currentPage === pageNumber}>
+                                            {pageNumber}
+                                        </PaginationLink>
+                                    </PaginationItem>
+                                )
+                            } else if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
+                                return <PaginationEllipsis key={index} />
+                            }
+                            return null
+                        })}
+                        <PaginationItem>
+                            <PaginationNext onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} />
+                        </PaginationItem>
+                    </PaginationContent>
+                </Pagination>
                 <div className="flex items-center space-x-2">
                     <Input
                         type="number"
                         placeholder="Go to page"
                         value={goToPage}
                         onChange={(e) => setGoToPage(e.target.value)}
-                        className="w-24"
+                        className="w-40"
                         min={1}
                         max={totalPages}
                     />
