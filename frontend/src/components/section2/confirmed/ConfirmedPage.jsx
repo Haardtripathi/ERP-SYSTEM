@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-// import { getAllPending, deletePending, issuePending, sendToConfirmed } from "@/services/pendingService"
+import React, { useState, useEffect, useCallback } from "react"
+import { getAllPending, deletePending, issuePending, sendToConfirmed } from "@/services/pendingService"
 import { getAllConfirmed } from "@/services/confirmedService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dialog"
 import { Loader2, Search, Trash2, Forward } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const Table = ({ children }) => (
     <div className="overflow-x-auto">
@@ -71,56 +72,83 @@ const ConfirmedPage = () => {
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(null)
     const [searchTerm, setSearchTerm] = useState("")
-
     const [selectedItem, setSelectedItem] = useState(null)
     const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
+    const [paginatedData, setPaginatedData] = useState([])
+    const [searchColumn, setSearchColumn] = useState("all")
+    const [goToPage, setGoToPage] = useState("")
+
 
     const navigate = useNavigate()
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setIsLoading(true)
-                const response = await getAllConfirmed()
-
-                console.log(response.data.data)
-                setConfirmedData(response.data.data)
-                setFilteredData(response.data.data)
-                setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
-            } catch (error) {
-                console.error("Error fetching confirmed data:", error)
-                setError("Failed to fetch data. Please try again later.")
-            } finally {
-                setIsLoading(false)
-            }
+    const fetchData = useCallback(async () => {
+        try {
+            setIsLoading(true)
+            const response = await getAllConfirmed()
+            setConfirmedData(response.data.data)
+            setFilteredData(response.data.data)
+            setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
+        } catch (error) {
+            console.error("Error fetching pending data:", error)
+            setError("Failed to fetch data. Please try again later.")
+        } finally {
+            setIsLoading(false)
         }
-        fetchData()
     }, [itemsPerPage])
 
     useEffect(() => {
-        const results = confirmedData.filter((item) =>
-            Object.values(item).some(
-                (val) => typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase()),
-            ),
-        )
+        fetchData()
+    }, [fetchData])
+
+    const applyFiltersAndPaginate = useCallback(() => {
+        const results = confirmedData.filter((item) => {
+            if (searchColumn === "all") {
+                return Object.values(item).some(
+                    (val) => typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase()),
+                )
+            } else {
+                const value = item[searchColumn]
+                if (typeof value === "string") {
+                    return value.toLowerCase().includes(searchTerm.toLowerCase())
+                } else if (typeof value === "object" && value !== null && "value" in value) {
+                    return value.value.toLowerCase().includes(searchTerm.toLowerCase())
+                }
+                return false
+            }
+        })
         setFilteredData(results)
-        setTotalPages(Math.ceil(results.length / itemsPerPage))
-        setCurrentPage(1)
-    }, [searchTerm, confirmedData, itemsPerPage])
+        const newTotalPages = Math.ceil(results.length / itemsPerPage)
+        setTotalPages(newTotalPages)
+
+        const startIndex = (currentPage - 1) * itemsPerPage
+        setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
+    }, [confirmedData, searchTerm, searchColumn, itemsPerPage, currentPage])
+
+    useEffect(() => {
+        applyFiltersAndPaginate()
+    }, [applyFiltersAndPaginate])
 
     const handleDelete = async (id, dataId, data) => {
         try {
-            // await deletePending(id, dataId, data)
+            await deletePending(id, dataId, data)
             toast.success("Data deleted successfully")
             setConfirmedData((prevData) => prevData.filter((item) => item._id !== id))
-            setFilteredData((prevData) => prevData.filter((item) => item._id !== id))
-            setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
+            applyFiltersAndPaginate()
         } catch (error) {
             console.error("Error deleting item:", error)
             setError("Failed to delete item. Please try again.")
         }
     }
 
+    const handleGoToPage = () => {
+        const pageNumber = Number.parseInt(goToPage, 10)
+        if (pageNumber >= 1 && pageNumber <= totalPages) {
+            setCurrentPage(pageNumber)
+            setGoToPage("")
+        } else {
+            toast.error(`Please enter a valid page number between 1 and ${totalPages}`)
+        }
+    }
     const handleUpdateClick = async (id) => {
         navigate(`/edit-pending-data/${id}`)
     }
@@ -135,47 +163,41 @@ const ConfirmedPage = () => {
         let isValid = true
         const phoneRegex = /^\d{10}$/
 
-        Object.entries(formData).forEach(([key, value]) => {
+        // Check all required fields
+        for (const [key, value] of Object.entries(formData)) {
             if (key !== "alternate_phone" && key !== "email") {
-                // Handle null/undefined values
                 if (value === null || value === undefined) {
-                    toast.error(`${key.replace(/_/g, " ")} is required`)
                     isValid = false
-                    return
+                    break
                 }
-
-                // Handle object type values (dropdowns)
-                if (typeof value === "object") {
-                    if (!value.value || (value.value !== null && value.value.toString().trim() === "")) {
-                        toast.error(`${key.replace(/_/g, " ")} is required`)
-                        isValid = false
-                    }
+                if (typeof value === "object" && (!value.value || value.value.toString().trim() === "")) {
+                    isValid = false
+                    break
                 }
-                // Handle string type values
-                else if (typeof value === "string") {
-                    if (value.trim() === "") {
-                        toast.error(`${key.replace(/_/g, " ")} is required`)
-                        isValid = false
-                    }
+                if (typeof value === "string" && value.trim() === "") {
+                    isValid = false
+                    break
                 }
             }
-        })
+        }
 
-        // Validate phone number if it exists
+        // Check phone number
         if (!formData.cm_phone || (typeof formData.cm_phone === "string" && !phoneRegex.test(formData.cm_phone))) {
-            toast.error("Phone number must be 10 digits")
             isValid = false
         }
 
-        // Validate alternate phone only if it exists and is not empty
+        // Check alternate phone if provided
         if (
             formData.alternate_phone &&
             typeof formData.alternate_phone === "string" &&
             formData.alternate_phone.trim() !== "" &&
             !phoneRegex.test(formData.alternate_phone)
         ) {
-            toast.error("Alternate phone number must be 10 digits")
             isValid = false
+        }
+
+        if (!isValid) {
+            toast.error("Please fill all the fields before sending to confirmed.")
         }
 
         return isValid
@@ -183,18 +205,36 @@ const ConfirmedPage = () => {
 
     const confirmSendToConfirmed = async () => {
         if (selectedItem) {
-            console.log(selectedItem)
             const isValid = validateForm(selectedItem)
             if (!isValid) {
                 setIsReviewDialogOpen(false)
                 return
             }
             try {
-                // await sendToConfirmed(selectedItem._id)
+                await sendToConfirmed(selectedItem._id)
                 toast.success("Data sent to confirmed successfully")
-                setConfirmedData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
-                setFilteredData((prevData) => prevData.filter((item) => item._id !== selectedItem._id))
-                setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
+
+                const updatedPendingData = confirmedData.filter((item) => item._id !== selectedItem._id)
+                setConfirmedData(updatedPendingData)
+
+                const updatedFilteredData = filteredData.filter((item) => item._id !== selectedItem._id)
+                setFilteredData(updatedFilteredData)
+
+                const newTotalPages = Math.ceil(updatedFilteredData.length / itemsPerPage)
+                setTotalPages(newTotalPages)
+
+                // Adjust current page if necessary
+                if (currentPage > newTotalPages) {
+                    setCurrentPage(newTotalPages || 1)
+                } else if (
+                    currentPage === newTotalPages &&
+                    updatedFilteredData.length % itemsPerPage === 0 &&
+                    currentPage > 1
+                ) {
+                    setCurrentPage(currentPage - 1)
+                }
+
+                applyFiltersAndPaginate()
                 setIsReviewDialogOpen(false)
             } catch (error) {
                 console.error("Error sending to confirmed:", error)
@@ -216,19 +256,45 @@ const ConfirmedPage = () => {
     }
 
     const handleIssue = async (id, dataId, data) => {
-        // await issuePending(id, dataId, data)
-        toast.success("Issue sent successfully")
-        setConfirmedData((prevData) => prevData.filter((item) => item._id !== id))
-        setFilteredData((prevData) => prevData.filter((item) => item._id !== id))
-        setTotalPages(Math.ceil((filteredData.length - 1) / itemsPerPage))
+        try {
+            await issuePending(id, dataId, data)
+            toast.success("Issue sent successfully")
+
+            const updatedPendingData = confirmedData.filter((item) => item._id !== id)
+            setConfirmedData(updatedPendingData)
+
+            const updatedFilteredData = filteredData.filter((item) => item._id !== id)
+            setFilteredData(updatedFilteredData)
+
+            const newTotalPages = Math.ceil(updatedFilteredData.length / itemsPerPage)
+            setTotalPages(newTotalPages)
+
+            // Adjust current page if necessary
+            if (currentPage > newTotalPages) {
+                setCurrentPage(newTotalPages || 1)
+            } else if (currentPage === newTotalPages && updatedFilteredData.length % itemsPerPage === 0 && currentPage > 1) {
+                setCurrentPage(currentPage - 1)
+            }
+
+            applyFiltersAndPaginate()
+        } catch (error) {
+            console.error("Error issuing item:", error)
+            toast.error("Failed to issue item")
+        }
     }
 
     const handleSearch = (e) => {
         setSearchTerm(e.target.value)
+        setCurrentPage(1)
+    }
+
+    const handleColumnSelect = (value) => {
+        setSearchColumn(value)
+        setCurrentPage(1)
     }
 
     const startIndex = (currentPage - 1) * itemsPerPage
-    const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage)
+    // const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage)
 
     if (isLoading) {
         return (
@@ -248,20 +314,52 @@ const ConfirmedPage = () => {
 
     return (
         <div className="container mx-auto p-4 bg-gray-50 min-h-screen max-w-[95vw]">
-            <h1 className="text-3xl font-semibold mb-6 text-gray-800">Confirmed Data</h1>
+            <h1 className="text-3xl font-semibold mb-6 text-gray-800">Pending Data</h1>
 
-            {/* <div className="mb-4">
+            <div className="mb-4 flex items-center space-x-2">
+                <Select onValueChange={handleColumnSelect} defaultValue="all">
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select column" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Columns</SelectItem>
+                        <SelectItem value="ref">Reference</SelectItem>
+                        <SelectItem value="date">Date</SelectItem>
+                        <SelectItem value="time">Time</SelectItem>
+                        <SelectItem value="source">Source</SelectItem>
+                        <SelectItem value="payment_type">Payment Type</SelectItem>
+                        <SelectItem value="sale_type">Sale Type</SelectItem>
+                        <SelectItem value="agent_name">Agent</SelectItem>
+                        <SelectItem value="cm_first_name">First Name</SelectItem>
+                        <SelectItem value="cm_last_name">Last Name</SelectItem>
+                        <SelectItem value="cm_phone">Phone</SelectItem>
+                        <SelectItem value="alternate_phone">Alternate Number</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="status">Status</SelectItem>
+                        <SelectItem value="shipment_type">Shipment Type</SelectItem>
+                        <SelectItem value="address">Address</SelectItem>
+                        <SelectItem value="post_type">Post Type</SelectItem>
+                        <SelectItem value="post">Post</SelectItem>
+                        <SelectItem value="sub_district_taluka">Sub District / Taluka</SelectItem>
+                        <SelectItem value="city">City / District</SelectItem>
+                        <SelectItem value="pincode">Pincode</SelectItem>
+                        <SelectItem value="state">State</SelectItem>
+                        <SelectItem value="disease">Disease</SelectItem>
+                        <SelectItem value="amount">Amount</SelectItem>
+                        <SelectItem value="products">Products</SelectItem>
+                    </SelectContent>
+                </Select>
                 <Input type="text" placeholder="Search..." value={searchTerm} onChange={handleSearch} className="max-w-sm" />
-            </div> */}
+            </div>
 
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="max-w-full">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Send</TableHead>
+                                {/* <TableHead>Send</TableHead>
 
-                                <TableHead>Issue</TableHead>
+                                <TableHead>Issue</TableHead> */}
                                 <TableHead>Ref</TableHead>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Time</TableHead>
@@ -276,7 +374,7 @@ const ConfirmedPage = () => {
                                 <TableHead>Phone</TableHead>
                                 <TableHead>Alternate Number</TableHead>
                                 <TableHead>Email</TableHead>
-                                <TableHead>Status</TableHead>
+                                {/* <TableHead>Status</TableHead> */}
                                 <TableHead>Comment</TableHead>
                                 <TableHead>Shipment Type</TableHead>
                                 <TableHead>Address</TableHead>
@@ -294,14 +392,14 @@ const ConfirmedPage = () => {
                                 <TableHead>Products</TableHead>
 
                                 <TableHead>City</TableHead>
-                                <TableHead>Update</TableHead>
-                                <TableHead>Actions</TableHead>
+                                {/* <TableHead>Update</TableHead>
+                                <TableHead>Actions</TableHead> */}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {paginatedData.map((item, index) => (
                                 <TableRow key={item._id} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
-                                    <TableCell>
+                                    {/* <TableCell>
                                         <Forward
                                             size={25}
                                             color="green"
@@ -318,7 +416,7 @@ const ConfirmedPage = () => {
                                             style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
                                             onClick={() => handleIssue(item._id, item.dataId, item.data)}
                                         />
-                                    </TableCell>
+                                    </TableCell> */}
                                     <TableCell>{item.ref}</TableCell>
                                     <TableCell>{item.date}</TableCell>
                                     <TableCell>{item.time}</TableCell>
@@ -333,7 +431,7 @@ const ConfirmedPage = () => {
                                     <TableCell>{item.cm_phone}</TableCell>
                                     <TableCell>{item.alternate_phone}</TableCell>
                                     <TableCell>{item.email}</TableCell>
-                                    <TableCell>{item.status?.value}</TableCell>
+                                    {/* <TableCell>{item.status?.value}</TableCell> */}
                                     <TableCell>{item.comment}</TableCell>
                                     <TableCell>{item.shipment_type?.value}</TableCell>
                                     <TableCell>{item.address}</TableCell>
@@ -350,7 +448,7 @@ const ConfirmedPage = () => {
                                     <TableCell>{item.products?.value}</TableCell>
 
                                     <TableCell>{item.city}</TableCell>
-                                    <TableCell>
+                                    {/* <TableCell>
                                         <RotateCw
                                             size={20}
                                             color="#007BFF"
@@ -386,7 +484,7 @@ const ConfirmedPage = () => {
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>
-                                    </TableCell>
+                                    </TableCell> */}
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -422,6 +520,26 @@ const ConfirmedPage = () => {
                     </PaginationItem>
                 </PaginationContent>
             </Pagination>
+            <div className="flex items-center space-x-2">
+                <Input
+                    type="number"
+                    placeholder="Go to page"
+                    value={goToPage}
+                    onChange={(e) => setGoToPage(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && goToPage) {
+                            handleGoToPage();
+                        }
+                    }}
+                    className="w-40"
+                    min={1}
+                    max={totalPages}
+                />
+                <Button onClick={handleGoToPage} disabled={!goToPage}>
+                    Go
+                </Button>
+            </div>
+
             <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
