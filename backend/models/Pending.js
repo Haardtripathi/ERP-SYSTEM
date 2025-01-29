@@ -202,12 +202,12 @@ const pendingSchema = new Schema(
                 ref: "Dropdown",
             },
             value: {
-                type: String,
+                type: [Object],
             },
         },
-        quantity: {
-            type: String,
-        },
+        // quantity: {
+        //     type: [String],
+        // },
         isDeleted: {
             type: Boolean,
             default: 0, // Set default to 0 (closed)

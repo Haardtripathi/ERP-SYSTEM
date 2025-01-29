@@ -208,6 +208,20 @@ exports.deletePendingData = async (req, res) => {
 
 }
 
+function getFormattedDate() {
+    const options = {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    };
+    const formatter = new Intl.DateTimeFormat([], options);
+    return formatter.format(new Date());
+}
+
 exports.issuePendingData = async (req, res) => {
     const { id } = req.params; // Extract Pending ID
     const dataId = req.body.dataId;
@@ -217,12 +231,12 @@ exports.issuePendingData = async (req, res) => {
     try {
         const deletePending = await Pending.deleteOne({ _id: id })
         if (data == "Lead") {
-            await Lead.updateOne({ _id: dataId }, { is_sent_to_pending: false });
+            await Lead.updateOne({ _id: dataId }, { is_sent_to_pending: false, date: getFormattedDate() });
 
         }
 
         if (data == "Incoming") {
-            await Incoming.updateOne({ _id: dataId }, { is_sent_to_pending: false });
+            await Incoming.updateOne({ _id: dataId }, { is_sent_to_pending: false, date: getFormattedDate() });
 
         }
         return res.status(200).json({
@@ -251,7 +265,7 @@ exports.sendPendingDataToConfirmed = async (req, res) => {
 
         // Exclude the `status` and `date` fields from the document
         const { status, date, ...confirmedData } = pendingData.toObject();
-
+        confirmedData.awb_number = "";
         // Insert the data into the Confirmed collection
         const newConfirmed = new Confirmed(confirmedData);
         await newConfirmed.save();

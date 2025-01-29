@@ -146,6 +146,9 @@ const confirmedSchema = new Schema(
         post: {
             type: String,
         },
+        awb_number: {
+            type: String,
+        },
         sub_district_taluka: {
             type: String,
         },

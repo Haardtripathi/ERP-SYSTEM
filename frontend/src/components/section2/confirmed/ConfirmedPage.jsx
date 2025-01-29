@@ -1,3 +1,5 @@
+
+
 "use client"
 
 import React, { useState, useEffect, useCallback } from "react"
@@ -78,13 +80,13 @@ const ConfirmedPage = () => {
     const [searchColumn, setSearchColumn] = useState("all")
     const [goToPage, setGoToPage] = useState("")
 
-
     const navigate = useNavigate()
 
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true)
             const response = await getAllConfirmed()
+            // console.log(response)
             setConfirmedData(response.data.data)
             setFilteredData(response.data.data)
             setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
@@ -155,53 +157,121 @@ const ConfirmedPage = () => {
 
     const handleSendToConfirmed = async (id, dataId, data) => {
         const item = confirmedData.find((item) => item._id === id)
+        console.log(item)
         setSelectedItem(item)
         setIsReviewDialogOpen(true)
     }
 
-    const validateForm = (formData) => {
-        let isValid = true
-        const phoneRegex = /^\d{10}$/
 
-        // Check all required fields
+    const validateForm = (formData) => {
+        let isValid = true;
+        const phoneRegex = /^\d{10}$/;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        // Helper function to check if a value is empty
+        const isEmpty = (value) => {
+            if (value === null || value === undefined) return true;
+            if (typeof value === "string") return value.trim() === "";
+            if (Array.isArray(value)) return value.length === 0;
+            if (typeof value === "object") return Object.keys(value).length === 0;
+            return false;
+        };
+
+        // Helper function to validate nested object values
+        const validateNestedValue = (obj) => {
+            if (!obj || typeof obj !== "object") return false;
+            if (obj.value === undefined || obj.value === null) return false;
+            if (typeof obj.value === "string") return obj.value.trim() !== "";
+            if (Array.isArray(obj.value)) return obj.value.length > 0;
+            return true;
+        };
+
+        // Check if shipment type is Indian Post
+        const isIndianPost = formData.shipment_type?.value === "Indian Post";
+
+        // Validate all required fields except email and alternate_phone
         for (const [key, value] of Object.entries(formData)) {
-            if (key !== "alternate_phone" && key !== "email") {
-                if (value === null || value === undefined) {
-                    isValid = false
-                    break
+            // Skip optional fields
+            if (key === "alternate_phone" || key === "email") {
+                continue;
+            }
+
+            // Skip post and post_type validation if shipment_type is not Indian Post
+            if ((key === "post" || key === "post_type") && !isIndianPost) {
+                continue;
+            }
+
+            // Handle products array specially
+            if (key === "products") {
+                if (!value || !value.value || !Array.isArray(value.value) || value.value.length === 0) {
+                    isValid = false;
+                    break;
                 }
-                if (typeof value === "object" && (!value.value || value.value.toString().trim() === "")) {
-                    isValid = false
-                    break
+                // Validate each product in the array
+                const hasInvalidProduct = value.value.some(product =>
+                    isEmpty(product) || Object.values(product).some(val => isEmpty(val))
+                );
+                if (hasInvalidProduct) {
+                    isValid = false;
+                    break;
                 }
-                if (typeof value === "string" && value.trim() === "") {
-                    isValid = false
-                    break
+                continue;
+            }
+
+            // Handle nested objects with 'value' property
+            if (value && typeof value === "object" && 'value' in value) {
+                if (!validateNestedValue(value)) {
+                    isValid = false;
+                    break;
                 }
+                continue;
+            }
+
+            // Handle direct string values
+            if (isEmpty(value)) {
+                isValid = false;
+                break;
             }
         }
 
-        // Check phone number
-        if (!formData.cm_phone || (typeof formData.cm_phone === "string" && !phoneRegex.test(formData.cm_phone))) {
-            isValid = false
+        // Validate required phone number
+        if (!formData.cm_phone || !phoneRegex.test(formData.cm_phone.toString())) {
+            isValid = false;
         }
 
-        // Check alternate phone if provided
-        if (
-            formData.alternate_phone &&
-            typeof formData.alternate_phone === "string" &&
-            formData.alternate_phone.trim() !== "" &&
-            !phoneRegex.test(formData.alternate_phone)
-        ) {
-            isValid = false
+        // Validate optional alternate phone if provided
+        if (formData.alternate_phone &&
+            !phoneRegex.test(formData.alternate_phone)) {
+            isValid = false;
+        }
+
+        // Validate optional email if provided
+        if (formData.email &&
+            formData.email.trim() !== "" &&
+            !emailRegex.test(formData.email)) {
+            isValid = false;
+        }
+
+        // Additional validation for Indian Post shipment type
+        if (isIndianPost) {
+            if (!formData.post_type?.value || formData.post_type.value.trim() === "") {
+                isValid = false;
+            }
+            if (!formData.post?.value || formData.post.value.trim() === "") {
+                isValid = false;
+            }
         }
 
         if (!isValid) {
-            toast.error("Please fill all the fields before sending to confirmed.")
+            let errorMessage = "Please fill all required fields correctly before sending to confirmed.";
+            if (isIndianPost) {
+                errorMessage = "Please fill all required fields including post details for Indian Post shipment.";
+            }
+            toast.error(errorMessage);
         }
 
-        return isValid
-    }
+        return isValid;
+    };
 
     const confirmSendToConfirmed = async () => {
         if (selectedItem) {
@@ -335,7 +405,6 @@ const ConfirmedPage = () => {
                         <SelectItem value="cm_phone">Phone</SelectItem>
                         <SelectItem value="alternate_phone">Alternate Number</SelectItem>
                         <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="status">Status</SelectItem>
                         <SelectItem value="shipment_type">Shipment Type</SelectItem>
                         <SelectItem value="address">Address</SelectItem>
                         <SelectItem value="post_type">Post Type</SelectItem>
@@ -357,12 +426,11 @@ const ConfirmedPage = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                {/* <TableHead>Send</TableHead>
-
-                                <TableHead>Issue</TableHead> */}
                                 <TableHead>Ref</TableHead>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Time</TableHead>
+                                <TableHead>AWB Number</TableHead>
+
                                 <TableHead>Source</TableHead>
 
                                 <TableHead>Payment Type</TableHead>
@@ -374,7 +442,7 @@ const ConfirmedPage = () => {
                                 <TableHead>Phone</TableHead>
                                 <TableHead>Alternate Number</TableHead>
                                 <TableHead>Email</TableHead>
-                                {/* <TableHead>Status</TableHead> */}
+                                <TableHead>Status</TableHead>
                                 <TableHead>Comment</TableHead>
                                 <TableHead>Shipment Type</TableHead>
                                 <TableHead>Address</TableHead>
@@ -392,34 +460,18 @@ const ConfirmedPage = () => {
                                 <TableHead>Products</TableHead>
 
                                 <TableHead>City</TableHead>
-                                {/* <TableHead>Update</TableHead>
-                                <TableHead>Actions</TableHead> */}
+                                <TableHead>Update</TableHead>
+                                <TableHead>Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {paginatedData.map((item, index) => (
                                 <TableRow key={item._id} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
-                                    {/* <TableCell>
-                                        <Forward
-                                            size={25}
-                                            color="green"
-                                            strokeWidth={2}
-                                            style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
-                                            onClick={() => handleSendToConfirmed(item._id, item.dataId, item.data)}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <SendHorizontal
-                                            size={20}
-                                            color="red"
-                                            strokeWidth={2}
-                                            style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
-                                            onClick={() => handleIssue(item._id, item.dataId, item.data)}
-                                        />
-                                    </TableCell> */}
+
                                     <TableCell>{item.ref}</TableCell>
                                     <TableCell>{item.date}</TableCell>
                                     <TableCell>{item.time}</TableCell>
+                                    <TableCell>{item.awb_number}</TableCell>
                                     <TableCell>{item.source?.value}</TableCell>
 
                                     <TableCell>{item.payment_type?.value}</TableCell>
@@ -431,7 +483,6 @@ const ConfirmedPage = () => {
                                     <TableCell>{item.cm_phone}</TableCell>
                                     <TableCell>{item.alternate_phone}</TableCell>
                                     <TableCell>{item.email}</TableCell>
-                                    {/* <TableCell>{item.status?.value}</TableCell> */}
                                     <TableCell>{item.comment}</TableCell>
                                     <TableCell>{item.shipment_type?.value}</TableCell>
                                     <TableCell>{item.address}</TableCell>
@@ -445,10 +496,20 @@ const ConfirmedPage = () => {
 
                                     <TableCell>{item.disease?.value}</TableCell>
                                     <TableCell>{item.amount?.value}</TableCell>
-                                    <TableCell>{item.products?.value}</TableCell>
+                                    <TableCell>
+                                        {Array.isArray(item.products?.value)
+                                            ? item.products.value.map((product, index) => (
+
+                                                <div key={index}>
+                                                    {/* {`${Object.keys(product)[0]}: ${Object.values(product)[0]}`} */}
+                                                    {product.product} : {product.quantity}
+                                                </div>
+                                            ))
+                                            : null}
+                                    </TableCell>
 
                                     <TableCell>{item.city}</TableCell>
-                                    {/* <TableCell>
+                                    <TableCell>
                                         <RotateCw
                                             size={20}
                                             color="#007BFF"
@@ -484,7 +545,7 @@ const ConfirmedPage = () => {
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>
-                                    </TableCell> */}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -527,8 +588,8 @@ const ConfirmedPage = () => {
                     value={goToPage}
                     onChange={(e) => setGoToPage(e.target.value)}
                     onKeyDown={(e) => {
-                        if (e.key === 'Enter' && goToPage) {
-                            handleGoToPage();
+                        if (e.key === "Enter" && goToPage) {
+                            handleGoToPage()
                         }
                     }}
                     className="w-40"
@@ -615,12 +676,15 @@ const ConfirmedPage = () => {
                                 <p>
                                     <strong>Amount:</strong> {selectedItem.amount?.value}
                                 </p>
-                                <p>
-                                    <strong>Products:</strong> {selectedItem.products?.value}
-                                </p>
-                                <p>
-                                    <strong>Quantity:</strong> {selectedItem.quantity}
-                                </p>
+                                <div>
+                                    <strong>Products:</strong>
+                                    {Array.isArray(selectedItem.products?.value)
+                                        ? selectedItem.products.value.map((product, index) => (
+                                            <div key={index}>{`${product.product} : ${product.quantity}`}</div>
+                                        ))
+                                        : "No products"}
+                                </div>
+
                             </div>
                         </div>
                     )}

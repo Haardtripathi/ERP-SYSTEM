@@ -1099,37 +1099,81 @@ const LeadPage = () => {
         setIsReviewDialogOpen(true)
     }
 
+    // const validateForm = (formData) => {
+    //     console.log(formData)
+    //     let isValid = true
+    //     const phoneRegex = /^\d{10}$/
+
+    //     Object.entries(formData).forEach(([key, value]) => {
+
+    //         console.log(key, value, typeof value)
+    //         if (typeof value === null) {
+    //             console.log("1")
+    //             toast.error(`${key.replace(/_/g, " ")} is required`)
+    //             isValid = false
+    //         } else if (typeof value === "string" && (value.trim() === "" || value === null || value === "")) {
+    //             console.log("2")
+    //             toast.error(`${key.replace(/_/g, " ")} is required`)
+    //             isValid = false
+    //         }
+    //         else if (typeof value === "object" && (value.value === null || value.value === "" || value === null)) {
+    //             console.log("3")
+    //             toast.error(`${key.replace(/_/g, " ")} is required`)
+    //             isValid = false
+    //         }
+    //     })
+
+    //     console.log(isValid)
+    //     if (!phoneRegex.test(formData.cm_phone)) {
+    //         toast.error("Phone number must be 10 digits")
+    //         isValid = false
+    //     }
+    //     console.log(isValid)
+
+    //     if (formData.alternate_phone && !phoneRegex.test(formData.alternate_phone)) {
+    //         toast.error("Alternate phone number must be 10 digits")
+    //         isValid = false
+    //     }
+    //     console.log(isValid)
+
+    //     return isValid
+    // }
+
+
     const validateForm = (formData) => {
-        console.log(formData)
-        let isValid = true
-        const phoneRegex = /^\d{10}$/
+        console.log(formData);
+        let isValid = true;
+        const phoneRegex = /^\d{10}$/;
 
-        Object.entries(formData).forEach(([key, value]) => {
-            console.log(key, value, typeof value)
-            if (key !== "alternate_phone" && typeof value === "object" && value.value === null) {
-                toast.error(`${key.replace(/_/g, " ")} is required`)
-                isValid = false
-            } else if (key !== "alternate_phone" && typeof value === "string" && value.trim() === "") {
-                toast.error(`${key.replace(/_/g, " ")} is required`)
-                isValid = false
-            }
-        })
+        // Check if any field is empty or invalid
+        const hasEmptyField = Object.entries(formData).some(([key, value]) => {
+            if (value === null || value === undefined) return true;
+            if (typeof value === "string" && value.trim() === "") return true;
+            if (typeof value === "object" && value !== null && "value" in value && (value.value === null || value.value === "")) return true;
+            return false;
+        });
 
-        console.log(isValid)
-        if (!phoneRegex.test(formData.cm_phone)) {
-            toast.error("Phone number must be 10 digits")
-            isValid = false
+        if (hasEmptyField) {
+            toast.error("Please fill all the fields");
+            return false;
         }
-        console.log(isValid)
 
-        if (formData.alternate_phone && !phoneRegex.test(formData.alternate_phone)) {
-            toast.error("Alternate phone number must be 10 digits")
-            isValid = false
+        // Validate primary phone number
+        if (!phoneRegex.test(String(formData.cm_phone || ""))) {
+            toast.error("Phone number must be 10 digits");
+            return false;
         }
-        console.log(isValid)
 
-        return isValid
-    }
+        // Validate alternate phone number if provided
+        if (formData.alternate_phone && formData.alternate_phone !== "" && !phoneRegex.test(String(formData.alternate_phone))) {
+            toast.error("Alternate phone number must be 10 digits");
+            return false;
+        }
+
+        return true;
+    };
+
+
 
     const confirmSendToPending = async () => {
         if (selectedItem) {

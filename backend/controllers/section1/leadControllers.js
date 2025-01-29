@@ -60,7 +60,7 @@ exports.postAddLeadData = async (req, res) => {
                 if (formattedData[key]) {
                     return {
                         dropdown_data: new mongoose.Types.ObjectId(formattedData[key].id),
-                        value: row[key] || null,
+                        value: row[key] || "",
                     };
                 }
                 return { dropdown_data: null, value: row[key] || null };
