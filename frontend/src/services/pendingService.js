@@ -18,19 +18,19 @@ export const getDropdownData = async (id) => {
 
 
 export const updateEditPending = async (id, data) => {
-    console.log(id, data)
+    //console.log(id, data)
     const response = await axiosInstance.put(`/pending/edit-pending-data/${id}`, data);
     return response;
 };
 
 export const deletePending = async (id, dataId, data) => {
-    console.log(id, data, dataId)
+    //console.log(id, data, dataId)
     const response = await axiosInstance.post(`/pending/delete-pending-data/${id}`, { dataId, data });
     return response;
 };
 
 export const issuePending = async (id, dataId, data) => {
-    console.log(id, data, dataId)
+    //console.log(id, data, dataId)
     const response = await axiosInstance.post(`/pending/issue-pending-data/${id}`, { dataId, data });
     return response;
 };

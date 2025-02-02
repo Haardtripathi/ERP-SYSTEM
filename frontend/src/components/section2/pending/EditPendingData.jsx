@@ -1113,6 +1113,7 @@ export default function EditPendingData() {
         // }
         setLoading(true)
         try {
+            console.log(formData)
             const response = await updateEditPending(id, formData)
             toast.success("Data updated successfully!")
             navigate("/pending")

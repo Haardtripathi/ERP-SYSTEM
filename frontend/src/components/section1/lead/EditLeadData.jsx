@@ -136,21 +136,57 @@ const EditLeadData = () => {
     // };
 
 
-    const validateForm = (formData) => {
-        console.log(formData);
+    // const validateForm = () => {
+    //     let isValid = true;
+    //     const phoneRegex = /^\d{10}$/;
+    //     //console.log(formData)
+    //     // Check if any field is empty or invalid
+    //     const hasEmptyField = Object.entries(formData).some(([key, value]) => {
+    //         if (value === null || value === undefined) return true;
+    //         if (typeof value === "string" && value.trim() === "") return true;
+    //         if (typeof value === "object" && value !== null && "value" in value && (value.value === null || value.value === "")) return true;
+    //         return false;
+    //     });
+
+    //     if (hasEmptyField) {
+    //         toast.error("Please fill all the fields");
+    //         return false;
+    //     }
+
+    //     // Validate primary phone number
+    //     if (!phoneRegex.test(String(formData.cm_phone || ""))) {
+    //         toast.error("Phone number must be 10 digits");
+    //         return false;
+    //     }
+
+    //     // Validate alternate phone number if provided
+    //     if (formData.alternate_phone && formData.alternate_phone !== "" && !phoneRegex.test(String(formData.alternate_phone))) {
+    //         toast.error("Alternate phone number must be 10 digits");
+    //         return false;
+    //     }
+
+    //     return true;
+    // };
+
+
+    const validateForm = () => {
         let isValid = true;
         const phoneRegex = /^\d{10}$/;
 
-        // Check if any field is empty or invalid
-        const hasEmptyField = Object.entries(formData).some(([key, value]) => {
+        // Separate check for alternate_phone since it's optional
+        const requiredFields = Object.entries(formData).filter(([key]) => key !== 'alternate_phone');
+
+        // Check required fields
+        const hasEmptyField = requiredFields.some(([key, value]) => {
             if (value === null || value === undefined) return true;
             if (typeof value === "string" && value.trim() === "") return true;
-            if (typeof value === "object" && value !== null && "value" in value && (value.value === null || value.value === "")) return true;
+            if (typeof value === "object" && value !== null && "value" in value &&
+                (value.value === null || value.value === "")) return true;
             return false;
         });
 
         if (hasEmptyField) {
-            toast.error("Please fill all the fields");
+            toast.error("Please fill all the required fields");
             return false;
         }
 
@@ -160,10 +196,12 @@ const EditLeadData = () => {
             return false;
         }
 
-        // Validate alternate phone number if provided
-        if (formData.alternate_phone && formData.alternate_phone !== "" && !phoneRegex.test(String(formData.alternate_phone))) {
-            toast.error("Alternate phone number must be 10 digits");
-            return false;
+        // Validate alternate phone only if it's provided
+        if (formData.alternate_phone && formData.alternate_phone !== "") {
+            if (!phoneRegex.test(String(formData.alternate_phone))) {
+                toast.error("Alternate phone number must be 10 digits");
+                return false;
+            }
         }
 
         return true;
@@ -177,6 +215,7 @@ const EditLeadData = () => {
         }
         setLoading(true);
         try {
+            console.log(formData)
             const response = await updateEditLead(id, formData)
             toast.success("Data updated successfully!");
             navigate('/lead');

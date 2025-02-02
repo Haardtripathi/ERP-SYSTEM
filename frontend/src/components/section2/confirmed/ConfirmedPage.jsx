@@ -86,7 +86,7 @@ const ConfirmedPage = () => {
         try {
             setIsLoading(true)
             const response = await getAllConfirmed()
-            // console.log(response)
+            // //console.log(response)
             setConfirmedData(response.data.data)
             setFilteredData(response.data.data)
             setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
@@ -157,7 +157,7 @@ const ConfirmedPage = () => {
 
     const handleSendToConfirmed = async (id, dataId, data) => {
         const item = confirmedData.find((item) => item._id === id)
-        console.log(item)
+        //console.log(item)
         setSelectedItem(item)
         setIsReviewDialogOpen(true)
     }

@@ -8,7 +8,13 @@ export const register = async (userData) => {
 };
 
 export const login = async (userData) => {
-    console.log(userData)
+    //console.log(userData)
     const response = await axiosInstance.post(`/auth/login`, userData);
     return response.data;
 };
+
+
+export const getAgentList = async () => {
+    const response = await axiosInstance.get('/auth/agentList');
+    return response.data;
+}

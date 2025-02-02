@@ -18,7 +18,7 @@ const useAuthStore = create((set) => ({
             const { data } = await axiosInstance.get('/auth/checkAuth', {
                 headers: { Authorization: token },
             });
-            set({ user: data.user, token, loading: false });
+            set({ user: data, token, loading: false });
         } catch {
             localStorage.removeItem('token');
             set({ user: null, token: null, loading: false });

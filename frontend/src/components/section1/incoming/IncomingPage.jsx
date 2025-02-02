@@ -163,7 +163,7 @@
 //         const phoneRegex = /^\d{10}$/;
 
 //         Object.entries(formData).forEach(([key, value]) => {
-//             console.log(key, value, typeof value)
+//             //console.log(key, value, typeof value)
 //             if (key !== "alternate_phone" && typeof value === "object" && (value.value === null || value.value === "")) {
 //                 toast.error(`${key.replace(/_/g, " ")} is required`)
 //                 isValid = false
@@ -202,7 +202,7 @@
 //         if (selectedItem) {
 //             try {
 //                 const isValid = validateForm(selectedItem)
-//                 console.log(isValid)
+//                 //console.log(isValid)
 //                 if (!isValid) {
 //                     navigate("/incoming")
 //                     return
@@ -630,7 +630,7 @@
 //         const phoneRegex = /^\d{10}$/
 
 //         Object.entries(formData).forEach(([key, value]) => {
-//             console.log(key, value, typeof value)
+//             //console.log(key, value, typeof value)
 //             if (key !== "alternate_phone" && typeof value === "object" && (value.value === null || value.value === "")) {
 //                 toast.error(`${key.replace(/_/g, " ")} is required`)
 //                 isValid = false
@@ -657,7 +657,7 @@
 //         if (selectedItem) {
 //             try {
 //                 const isValid = validateForm(selectedItem)
-//                 console.log(isValid)
+//                 //console.log(isValid)
 //                 if (!isValid) {
 //                     return
 //                 }
@@ -1141,7 +1141,7 @@
 //         const phoneRegex = /^\d{10}$/
 
 //         Object.entries(formData).forEach(([key, value]) => {
-//             console.log(key, value, typeof value)
+//             //console.log(key, value, typeof value)
 //             if (key !== "alternate_phone" && typeof value === "object" && (value.value === null || value.value === "")) {
 //                 toast.error(`${key.replace(/_/g, " ")} is required`)
 //                 isValid = false
@@ -1168,7 +1168,7 @@
 //         if (selectedItem) {
 //             try {
 //                 const isValid = validateForm(selectedItem)
-//                 console.log(isValid)
+//                 //console.log(isValid)
 //                 if (!isValid) {
 //                     return
 //                 }
@@ -1658,12 +1658,12 @@ const IncomingPage = () => {
     }
 
     // const validateForm = (formData) => {
-    //     console.log(formData)
+    //     //console.log(formData)
     //     let isValid = true
     //     const phoneRegex = /^\d{10}$/
 
     //     Object.entries(formData).forEach(([key, value]) => {
-    //         console.log(key, value, typeof value)
+    //         //console.log(key, value, typeof value)
     //         if (key !== "alternate_phone" && typeof value === "object" && value.value === null) {
     //             toast.error(`${key.replace(/_/g, " ")} is required`)
     //             isValid = false
@@ -1673,24 +1673,24 @@ const IncomingPage = () => {
     //         }
     //     })
 
-    //     console.log(isValid)
+    //     //console.log(isValid)
     //     if (!phoneRegex.test(formData.cm_phone)) {
     //         toast.error("Phone number must be 10 digits")
     //         isValid = false
     //     }
-    //     console.log(isValid)
+    //     //console.log(isValid)
 
     //     if (formData.alternate_phone && !phoneRegex.test(formData.alternate_phone)) {
     //         toast.error("Alternate phone number must be 10 digits")
     //         isValid = false
     //     }
-    //     console.log(isValid)
+    //     //console.log(isValid)
 
     //     return isValid
     // }
 
     const validateForm = (formData) => {
-        console.log(formData);
+        //console.log(formData);
         let isValid = true;
         const phoneRegex = /^\d{10}$/;
 
@@ -1727,7 +1727,7 @@ const IncomingPage = () => {
         if (selectedItem) {
             try {
                 const isValid = validateForm(selectedItem)
-                console.log(isValid)
+                //console.log(isValid)
                 if (!isValid) {
                     return
                 }

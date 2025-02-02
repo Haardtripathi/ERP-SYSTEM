@@ -85,7 +85,7 @@ const PendingPage = () => {
         try {
             setIsLoading(true)
             const response = await getAllPending()
-            // console.log(response)
+            console.log(response)
             setPendingData(response.data.data)
             setFilteredData(response.data.data)
             setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
@@ -156,13 +156,13 @@ const PendingPage = () => {
 
     const handleSendToConfirmed = async (id, dataId, data) => {
         const item = pendingData.find((item) => item._id === id)
-        console.log(item)
+        //console.log(item)
         setSelectedItem(item)
         setIsReviewDialogOpen(true)
     }
 
     // const validateForm = (formData) => {
-    //     // console.log(formData)
+    //     // //console.log(formData)
     //     let isValid = true
     //     const phoneRegex = /^\d{10}$/
 
