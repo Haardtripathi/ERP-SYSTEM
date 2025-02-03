@@ -26,6 +26,11 @@ const UserSchema = new Schema({
         required: true,
         unique: true,
     },
+    agent_name: {
+        type: String,
+        required: true,
+        unique: true,
+    },
     password: {
         type: String,
         required: true,

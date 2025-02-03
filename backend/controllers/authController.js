@@ -1,18 +1,27 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Dropdoen = require("../models/Dropdown")
 
 require("dotenv").config()
 
+exports.getAgentList = async (req, res) => {
+    try {
+        const agentList = await Dropdoen.find({ name: "Agent Name" })
+        res.status(200).json({ agentList })
+    } catch (error) {
+        res.status(500).json({ error: error.message })
+    }
+}
+
 exports.register = async (req, res) => {
-    const { email, password } = req.body;
+    const { email, agentName, password } = req.body;
     const user = await User.findOne({ email: email });
     if (user) return res.status(404).json({ message: 'User already exists' });
     try {
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ email: email, password: hashedPassword });
-        console.l
+        const user = new User({ email: email, agent_name: agentName, password: hashedPassword });
         await user.save();
         res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
@@ -28,7 +37,7 @@ exports.login = async (req, res) => {
         if (!user) return res.status(404).json({ message: 'User not found' });
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
-        const token = jwt.sign({ _id: user._id.toString(), email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ _id: user._id.toString(), email: user.email, agent_name: user.agent_name }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         res.json({ token });
     } catch (error) {

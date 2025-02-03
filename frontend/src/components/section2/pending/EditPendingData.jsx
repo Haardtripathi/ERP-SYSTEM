@@ -8,18 +8,7 @@
 // import { Label } from "@/components/ui/label"
 // import { Button } from "@/components/ui/button"
 // import { Link, useNavigate } from "react-router-dom"
-// import {
-//     Loader2,
-//     UserCircle,
-//     Phone,
-//     MapPin,
-//     MessageSquare,
-//     Package2,
-//     Building2,
-//     CreditCard,
-//     Trash2,
-//     Plus,
-// } from "lucide-react"
+// import { Loader2, UserCircle, Phone, MapPin, MessageSquare, Package2, Building2, CreditCard, Trash2, Plus } from 'lucide-react'
 // import { useParams } from "react-router-dom"
 // import { getEditPending, getDropdownData, updateEditPending } from "@/services/pendingService"
 
@@ -38,7 +27,11 @@
 //         address: "",
 //         agent_name: { dropdown_data: "", value: "" },
 //         alternate_phone: "",
-//         amount: { dropdown_data: "", value: "" },
+//         amount: {
+//             dropdown_data: "",
+//             value: "",
+//             isManual: false, // Add flag to track input method
+//         },
 //         city: "",
 //         state: { dropdown_data: "", value: "" },
 
@@ -52,8 +45,7 @@
 //         pincode: "",
 //         post: "",
 //         post_type: { dropdown_data: "", value: "" },
-//         products: { dropdown_data: "", value: [{ key: "", value: "" }] },
-//         quantity: "",
+//         products: { dropdown_data: "", value: [{ product: "", quantity: "" }] },
 //         ref: "",
 //         remark: { dropdown_data: "", value: "" },
 //         sale_type: { dropdown_data: "", value: "" },
@@ -97,8 +89,7 @@
 //                     pincode: editData.pincode || "",
 //                     post: editData.post || "",
 //                     post_type: editData.post_type || { dropdown_data: "", value: "" },
-//                     products: editData.products || { dropdown_data: "", value: [{ key: "", value: "" }] },
-//                     quantity: editData.quantity || "",
+//                     products: editData.products || { dropdown_data: "", value: [{ product: "", quantity: "" }] },
 //                     ref: editData.ref || "",
 //                     remark: editData.remark || { dropdown_data: "", value: "" },
 //                     sale_type: editData.sale_type || { dropdown_data: "", value: "" },
@@ -107,7 +98,7 @@
 //                     status: editData.status || { dropdown_data: "", value: "" },
 //                     sub_district_taluka: editData.sub_district_taluka || "",
 //                 }
-
+//                 console.log(mappedFormData)
 //                 setFormData(mappedFormData)
 //             } catch (error) {
 //                 toast.error("Failed to load data")
@@ -127,54 +118,46 @@
 //         }))
 //     }
 
-//     // const handleDropdownChange = (e, key) => {
-//     //     const value = e.target.value
+//     const handleDropdownChange = (e, field) => {
+//         const value = e.target.value
 
-//     //     setFormData((prev) => ({
-//     //         ...prev,
-//     //         [key]: {
-//     //             dropdown_data: dropdowns[key]?.id || "",
-//     //             value,
+//         setFormData((prevData) => {
+//             const updatedData = {
+//                 ...prevData,
+//                 [field]: {
+//                     dropdown_data: dropdowns[field]?.id || "",
+//                     value,
+//                 },
+//             }
+
+//             // Reset post_type and post if shipment_type is not "Indian Post"
+//             if (field === "shipment_type" && value !== "Indian Post") {
+//                 updatedData.post_type = null
+//                 updatedData.post = null
+//             }
+
+//             return updatedData
+//         })
+//     }
+
+//     // const handleProductChange = (index, field, value) => {
+//     //     const updatedProducts = [...formData.products.value]
+//     //     updatedProducts[index] = { ...updatedProducts[index], [field]: value }
+//     //     setFormData((prevState) => ({
+//     //         ...prevState,
+//     //         products: {
+//     //             ...prevState.products,
+//     //             value: updatedProducts,
 //     //         },
 //     //     }))
 //     // }
-//     const handleDropdownChange = (e, field) => {
-//         const { value } = e.target;
-
-//         setFormData((prevData) => {
-//             let updatedData = {
-//                 ...prevData,
-//                 [field]: { ...prevData[field], value },
-//             };
-
-//             // Reset `post_type` and `post` if `shipment_type` is NOT "Indian Post"
-//             if (field === "shipment_type" && value !== "Indian Post") {
-//                 updatedData.post_type = { ...prevData.post_type, value: "" };
-//                 updatedData.post = "";
-//             }
-
-//             return updatedData;
-//         });
-//     };
-
-//     const handleProductChange = (index, field, value) => {
-//         const updatedProducts = [...formData.products.value]
-//         updatedProducts[index] = { ...updatedProducts[index], [field]: value }
-//         setFormData((prevState) => ({
-//             ...prevState,
-//             products: {
-//                 ...prevState.products,
-//                 value: updatedProducts,
-//             },
-//         }))
-//     }
 
 //     const addProduct = () => {
 //         setFormData((prevState) => ({
 //             ...prevState,
 //             products: {
 //                 ...prevState.products,
-//                 value: [...prevState.products.value, { key: "", value: "" }],
+//                 value: [...prevState.products.value, { product: "", quantity: "" }],
 //             },
 //         }))
 //     }
@@ -212,7 +195,7 @@
 
 //         if (
 //             formData.products.value.length === 0 ||
-//             formData.products.value.some((product) => !product.key || !product.value)
+//             formData.products.value.some((product) => !product.product || !product.quantity)
 //         ) {
 //             toast.error("Please fill in all product details")
 //             isValid = false
@@ -236,6 +219,58 @@
 //         return isValid
 //     }
 
+//     const handleAmountChange = (e) => {
+//         const value = e.target.value
+
+//         if (e.target.type === "select-one") {
+//             if (value === "manual") {
+//                 setFormData((prev) => ({
+//                     ...prev,
+//                     amount: {
+//                         dropdown_data: "",
+//                         value: "",
+//                         isManual: true,
+//                     },
+//                 }))
+//             } else {
+//                 setFormData((prev) => ({
+//                     ...prev,
+//                     amount: {
+//                         dropdown_data: dropdowns.amount?.id || "",
+//                         value: value,
+//                         isManual: false,
+//                     },
+//                 }))
+//             }
+//         } else {
+//             // Handle manual input
+//             setFormData((prev) => ({
+//                 ...prev,
+//                 amount: {
+//                     dropdown_data: dropdowns.amount?.id || "",
+//                     value: value,
+//                     isManual: true,
+//                 },
+//             }))
+//         }
+//     }
+
+//     const handleProductChange = (index, field, value) => {
+//         const updatedProducts = [...formData.products.value]
+//         updatedProducts[index] = {
+//             ...updatedProducts[index],
+//             [field]: value,
+//         }
+
+//         setFormData((prev) => ({
+//             ...prev,
+//             products: {
+//                 dropdown_data: dropdowns.products?.id || "",
+//                 value: updatedProducts,
+//             },
+//         }))
+//     }
+
 //     const handleSubmit = async (e) => {
 //         e.preventDefault()
 //         // if (!validateForm()) {
@@ -243,6 +278,7 @@
 //         // }
 //         setLoading(true)
 //         try {
+//             console.log(formData)
 //             const response = await updateEditPending(id, formData)
 //             toast.success("Data updated successfully!")
 //             navigate("/pending")
@@ -454,13 +490,11 @@
 //                                     {formData.products.value.map((product, index) => (
 //                                         <div key={index} className="grid sm:grid-cols-3 gap-6 items-end">
 //                                             <div>
-//                                                 <Label htmlFor={`product-${index}`} className="text-stone-600">
-//                                                     Product *
-//                                                 </Label>
+//                                                 <Label htmlFor={`product-${index}`}>Product *</Label>
 //                                                 <select
 //                                                     id={`product-${index}`}
-//                                                     value={product.key}
-//                                                     onChange={(e) => handleProductChange(index, "key", e.target.value)}
+//                                                     value={product.product}
+//                                                     onChange={(e) => handleProductChange(index, "product", e.target.value)}
 //                                                     className="w-full mt-1.5 px-3 py-2 bg-stone-50 border border-stone-300 rounded-md"
 //                                                     required
 //                                                 >
@@ -478,8 +512,8 @@
 //                                                 </Label>
 //                                                 <Input
 //                                                     id={`quantity-${index}`}
-//                                                     value={product.value}
-//                                                     onChange={(e) => handleProductChange(index, "value", e.target.value)}
+//                                                     value={product.quantity}
+//                                                     onChange={(e) => handleProductChange(index, "quantity", e.target.value)}
 //                                                     className="mt-1.5 bg-stone-50 border-stone-300"
 //                                                     required
 //                                                 />
@@ -549,44 +583,14 @@
 //                                         </select>
 //                                     </div>
 //                                     <div>
-//                                         <Label htmlFor="amount" className="text-stone-600">
-//                                             Amount *
-//                                         </Label>
-//                                         {/* <select
-//                                             id="amount"
-//                                             value={formData.amount.value}
-//                                             onChange={(e) => handleDropdownChange(e, "amount")}
-//                                             className="w-full mt-1.5 px-3 py-2 bg-stone-50 border border-stone-300 rounded-md"
-//                                             required
-//                                         >
-//                                             <option value="">Select amount</option>
-//                                             {dropdowns.amount?.values?.map((item) => (
-//                                                 <option key={item} value={item}>
-//                                                     {item}
-//                                                 </option>
-//                                             ))}
-//                                         </select> */}
-
-//                                         <div className="w-full mt-1.5">
-//                                             {/* Dropdown appears only if predefined options exist */}
-//                                             {dropdowns.amount?.values?.length > 0 && (
+//                                         <Label htmlFor="amount">Amount *</Label>
+//                                         <div
+//                                             className="w-full mt-1.5">
+//                                             {dropdowns.amount?.values?.length > 0 && !formData.amount.isManual ? (
 //                                                 <select
 //                                                     id="amount"
-//                                                     value={formData.amount?.dropdown ? formData.amount.value : "manual"}
-//                                                     onChange={(e) => {
-//                                                         const selectedValue = e.target.value;
-//                                                         if (selectedValue === "manual") {
-//                                                             setFormData((prev) => ({
-//                                                                 ...prev,
-//                                                                 amount: { value: "", dropdown: false, required: true } // Switch to manual input
-//                                                             }));
-//                                                         } else {
-//                                                             setFormData((prev) => ({
-//                                                                 ...prev,
-//                                                                 amount: { value: selectedValue, dropdown: true, required: true } // Use dropdown value
-//                                                             }));
-//                                                         }
-//                                                     }}
+//                                                     value={formData.amount.value}
+//                                                     onChange={handleAmountChange}
 //                                                     className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-md"
 //                                                     required
 //                                                 >
@@ -598,28 +602,18 @@
 //                                                     ))}
 //                                                     <option value="manual">Enter manually</option>
 //                                                 </select>
-//                                             )}
-
-//                                             {/* Show input field for manual entry */}
-//                                             {(!dropdowns.amount?.values?.length || !formData.amount?.dropdown) && (
-//                                                 <input
+//                                             ) : (
+//                                                 <Input
 //                                                     type="number"
 //                                                     id="amount"
-//                                                     value={formData.amount?.value || ""}
-//                                                     onChange={(e) => {
-//                                                         setFormData((prev) => ({
-//                                                             ...prev,
-//                                                             amount: { value: e.target.value, dropdown: false, required: true } // Ensure manual input is required
-//                                                         }));
-//                                                     }}
-//                                                     className="w-full mt-2 px-3 py-2 bg-stone-50 border border-stone-300 rounded-md"
+//                                                     value={formData.amount.value}
+//                                                     onChange={handleAmountChange}
+//                                                     className="w-full mt-2 px-3 py-2 bg-stone-50 border border-stone-300"
 //                                                     placeholder="Enter amount"
 //                                                     required
 //                                                 />
 //                                             )}
 //                                         </div>
-
-
 //                                     </div>
 //                                 </div>
 //                             </div>
@@ -630,62 +624,7 @@
 //                                     <CreditCard className="w-5 h-5 mr-2 text-stone-500" />
 //                                     Shipping Details
 //                                 </h2>
-//                                 {/* <div className="grid sm:grid-cols-3 gap-6">
-//                                     <div>
-//                                         <Label htmlFor="shipment_type" className="text-stone-600">
-//                                             Shipment Type *
-//                                         </Label>
-//                                         <select
-//                                             id="shipment_type"
-//                                             value={formData.shipment_type.value}
-//                                             onChange={(e) => handleDropdownChange(e, "shipment_type")}
-//                                             className="w-full mt-1.5 px-3 py-2 bg-stone-50 border border-stone-300 rounded-md"
-//                                             required
-//                                         >
-//                                             <option value="">Select shipment type</option>
-//                                             {dropdowns.shipment_type?.values?.map((item) => (
-//                                                 <option key={item} value={item}>
-//                                                     {item}
-//                                                 </option>
-//                                             ))}
-//                                         </select>
-//                                     </div>
-//                                     <div>
-//                                         <Label htmlFor="post_type" className="text-stone-600">
-//                                             Post Type *
-//                                         </Label>
-//                                         <select
-//                                             id="post_type"
-//                                             value={formData.post_type.value}
-//                                             onChange={(e) => handleDropdownChange(e, "post_type")}
-//                                             className="w-full mt-1.5 px-3 py-2 bg-stone-50 border border-stone-300 rounded-md"
-//                                             required
-//                                         >
-//                                             <option value="">Select Post Type</option>
-//                                             {dropdowns.post_type?.values?.map((item) => (
-//                                                 <option key={item} value={item}>
-//                                                     {item}
-//                                                 </option>
-//                                             ))}
-//                                         </select>
-//                                     </div>
-//                                     <div>
-//                                         <Label htmlFor="post" className="text-stone-600">
-//                                             Post *
-//                                         </Label>
-//                                         <Input
-//                                             id="post"
-//                                             name="post"
-//                                             value={formData.post}
-//                                             onChange={handleChange}
-//                                             className="mt-1.5 bg-stone-50 border-stone-300"
-//                                             required
-//                                         />
-//                                     </div>
-//                                 </div> */}
-
 //                                 <div className="grid sm:grid-cols-3 gap-6">
-//                                     {/* Shipment Type Dropdown */}
 //                                     <div>
 //                                         <Label htmlFor="shipment_type" className="text-stone-600">
 //                                             Shipment Type *
@@ -705,11 +644,8 @@
 //                                             ))}
 //                                         </select>
 //                                     </div>
-
-//                                     {/* Conditional Rendering for "Indian Post" */}
 //                                     {formData.shipment_type.value === "Indian Post" && (
 //                                         <>
-//                                             {/* Post Type Dropdown */}
 //                                             <div>
 //                                                 <Label htmlFor="post_type" className="text-stone-600">
 //                                                     Post Type *
@@ -729,8 +665,6 @@
 //                                                     ))}
 //                                                 </select>
 //                                             </div>
-
-//                                             {/* Post Input */}
 //                                             <div>
 //                                                 <Label htmlFor="post" className="text-stone-600">
 //                                                     Post *
@@ -747,7 +681,6 @@
 //                                         </>
 //                                     )}
 //                                 </div>
-
 //                             </div>
 
 //                             {/* Additional Information */}
@@ -892,15 +825,27 @@
 // }
 
 
-import React, { useState, useEffect } from "react"
-import { toast, Toaster } from "react-hot-toast"
+
+import { useState, useEffect } from "react"
+import { toast } from "react-hot-toast"
 import { create } from "zustand"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Link, useNavigate } from "react-router-dom"
-import { Loader2, UserCircle, Phone, MapPin, MessageSquare, Package2, Building2, CreditCard, Trash2, Plus } from 'lucide-react'
+import { useNavigate } from "react-router-dom"
+import {
+    Loader2,
+    UserCircle,
+    Phone,
+    MapPin,
+    MessageSquare,
+    Package2,
+    Building2,
+    CreditCard,
+    Trash2,
+    Plus,
+} from "lucide-react"
 import { useParams } from "react-router-dom"
 import { getEditPending, getDropdownData, updateEditPending } from "@/services/pendingService"
 
@@ -919,7 +864,11 @@ export default function EditPendingData() {
         address: "",
         agent_name: { dropdown_data: "", value: "" },
         alternate_phone: "",
-        amount: { dropdown_data: "", value: "" },
+        amount: {
+            dropdown_data: "",
+            value: "",
+            isManual: false, // Add flag to track input method
+        },
         city: "",
         state: { dropdown_data: "", value: "" },
 
@@ -934,7 +883,6 @@ export default function EditPendingData() {
         post: "",
         post_type: { dropdown_data: "", value: "" },
         products: { dropdown_data: "", value: [{ product: "", quantity: "" }] },
-        quantity: "",
         ref: "",
         remark: { dropdown_data: "", value: "" },
         sale_type: { dropdown_data: "", value: "" },
@@ -979,7 +927,6 @@ export default function EditPendingData() {
                     post: editData.post || "",
                     post_type: editData.post_type || { dropdown_data: "", value: "" },
                     products: editData.products || { dropdown_data: "", value: [{ product: "", quantity: "" }] },
-                    quantity: editData.quantity || "",
                     ref: editData.ref || "",
                     remark: editData.remark || { dropdown_data: "", value: "" },
                     sale_type: editData.sale_type || { dropdown_data: "", value: "" },
@@ -988,7 +935,7 @@ export default function EditPendingData() {
                     status: editData.status || { dropdown_data: "", value: "" },
                     sub_district_taluka: editData.sub_district_taluka || "",
                 }
-
+                // console.log(mappedFormData)
                 setFormData(mappedFormData)
             } catch (error) {
                 toast.error("Failed to load data")
@@ -1009,34 +956,25 @@ export default function EditPendingData() {
     }
 
     const handleDropdownChange = (e, field) => {
-        const { value } = e.target;
+        const value = e.target.value
 
         setFormData((prevData) => {
-            let updatedData = {
+            const updatedData = {
                 ...prevData,
-                [field]: { ...prevData[field], value },
-            };
-
-            // Reset `post_type` and `post` if `shipment_type` is NOT "Indian Post"
-            if (field === "shipment_type" && value !== "Indian Post") {
-                updatedData.post_type = { ...prevData.post_type, value: "" };
-                updatedData.post = "";
+                [field]: {
+                    dropdown_data: dropdowns[field]?.id || "",
+                    value,
+                },
             }
 
-            return updatedData;
-        });
-    };
+            // Reset post_type and post if shipment_type is not "Indian Post"
+            if (field === "shipment_type" && value !== "Indian Post") {
+                updatedData.post_type = null
+                updatedData.post = null
+            }
 
-    const handleProductChange = (index, field, value) => {
-        const updatedProducts = [...formData.products.value]
-        updatedProducts[index] = { ...updatedProducts[index], [field]: value }
-        setFormData((prevState) => ({
-            ...prevState,
-            products: {
-                ...prevState.products,
-                value: updatedProducts,
-            },
-        }))
+            return updatedData
+        })
     }
 
     const addProduct = () => {
@@ -1104,6 +1042,58 @@ export default function EditPendingData() {
         }
 
         return isValid
+    }
+
+    const handleAmountChange = (e) => {
+        const value = e.target.value
+
+        if (e.target.type === "select-one") {
+            if (value === "manual") {
+                setFormData((prev) => ({
+                    ...prev,
+                    amount: {
+                        dropdown_data: "",
+                        value: "",
+                        isManual: true,
+                    },
+                }))
+            } else {
+                setFormData((prev) => ({
+                    ...prev,
+                    amount: {
+                        dropdown_data: dropdowns.amount?.id || "",
+                        value: value,
+                        isManual: false,
+                    },
+                }))
+            }
+        } else {
+            // Handle manual input
+            setFormData((prev) => ({
+                ...prev,
+                amount: {
+                    dropdown_data: dropdowns.amount?.id || "",
+                    value: value,
+                    isManual: true,
+                },
+            }))
+        }
+    }
+
+    const handleProductChange = (index, field, value) => {
+        const updatedProducts = [...formData.products.value]
+        updatedProducts[index] = {
+            ...updatedProducts[index],
+            [field]: value,
+        }
+
+        setFormData((prev) => ({
+            ...prev,
+            products: {
+                dropdown_data: dropdowns.products?.id || "",
+                value: updatedProducts,
+            },
+        }))
     }
 
     const handleSubmit = async (e) => {
@@ -1325,9 +1315,7 @@ export default function EditPendingData() {
                                     {formData.products.value.map((product, index) => (
                                         <div key={index} className="grid sm:grid-cols-3 gap-6 items-end">
                                             <div>
-                                                <Label htmlFor={`product-${index}`} className="text-stone-600">
-                                                    Product *
-                                                </Label>
+                                                <Label htmlFor={`product-${index}`}>Product *</Label>
                                                 <select
                                                     id={`product-${index}`}
                                                     value={product.product}
@@ -1420,28 +1408,13 @@ export default function EditPendingData() {
                                         </select>
                                     </div>
                                     <div>
-                                        <Label htmlFor="amount" className="text-stone-600">
-                                            Amount *
-                                        </Label>
+                                        <Label htmlFor="amount">Amount *</Label>
                                         <div className="w-full mt-1.5">
-                                            {dropdowns.amount?.values?.length > 0 && (
+                                            {dropdowns.amount?.values?.length > 0 && !formData.amount.isManual ? (
                                                 <select
                                                     id="amount"
-                                                    value={formData.amount?.dropdown ? formData.amount.value : "manual"}
-                                                    onChange={(e) => {
-                                                        const selectedValue = e.target.value;
-                                                        if (selectedValue === "manual") {
-                                                            setFormData((prev) => ({
-                                                                ...prev,
-                                                                amount: { value: "", dropdown: false, required: true }
-                                                            }));
-                                                        } else {
-                                                            setFormData((prev) => ({
-                                                                ...prev,
-                                                                amount: { value: selectedValue, dropdown: true, required: true }
-                                                            }));
-                                                        }
-                                                    }}
+                                                    value={formData.amount.value}
+                                                    onChange={handleAmountChange}
                                                     className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-md"
                                                     required
                                                 >
@@ -1453,19 +1426,13 @@ export default function EditPendingData() {
                                                     ))}
                                                     <option value="manual">Enter manually</option>
                                                 </select>
-                                            )}
-                                            {(!dropdowns.amount?.values?.length || !formData.amount?.dropdown) && (
-                                                <input
+                                            ) : (
+                                                <Input
                                                     type="number"
                                                     id="amount"
-                                                    value={formData.amount?.value || ""}
-                                                    onChange={(e) => {
-                                                        setFormData((prev) => ({
-                                                            ...prev,
-                                                            amount: { value: e.target.value, dropdown: false, required: true }
-                                                        }));
-                                                    }}
-                                                    className="w-full mt-2 px-3 py-2 bg-stone-50 border border-stone-300 rounded-md"
+                                                    value={formData.amount.value}
+                                                    onChange={handleAmountChange}
+                                                    className="w-full mt-2 px-3 py-2 bg-stone-50 border border-stone-300"
                                                     placeholder="Enter amount"
                                                     required
                                                 />
@@ -1509,7 +1476,7 @@ export default function EditPendingData() {
                                                 </Label>
                                                 <select
                                                     id="post_type"
-                                                    value={formData.post_type.value}
+                                                    value={formData.post_type?.value || ""}
                                                     onChange={(e) => handleDropdownChange(e, "post_type")}
                                                     className="w-full mt-1.5 px-3 py-2 bg-stone-50 border border-stone-300 rounded-md"
                                                     required
@@ -1529,7 +1496,7 @@ export default function EditPendingData() {
                                                 <Input
                                                     id="post"
                                                     name="post"
-                                                    value={formData.post}
+                                                    value={formData.post || ""}
                                                     onChange={handleChange}
                                                     className="mt-1.5 bg-stone-50 border-stone-300"
                                                     required
@@ -1680,3 +1647,4 @@ export default function EditPendingData() {
         </div>
     )
 }
+

@@ -85,7 +85,7 @@ const PendingPage = () => {
         try {
             setIsLoading(true)
             const response = await getAllPending()
-            console.log(response)
+            // console.log(response)
             setPendingData(response.data.data)
             setFilteredData(response.data.data)
             setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
@@ -332,11 +332,12 @@ const PendingPage = () => {
 
     const confirmSendToConfirmed = async () => {
         if (selectedItem) {
-            const isValid = validateForm(selectedItem)
-            if (!isValid) {
-                setIsReviewDialogOpen(false)
-                return
-            }
+            console.log(selectedItem)
+            // const isValid = validateForm(selectedItem)
+            // if (!isValid) {
+            //     setIsReviewDialogOpen(false)
+            //     return
+            // }
             try {
                 await sendToConfirmed(selectedItem._id)
                 toast.success("Data sent to confirmed successfully")

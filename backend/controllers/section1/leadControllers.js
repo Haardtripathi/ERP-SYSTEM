@@ -278,28 +278,28 @@ const transformLeadToPending = (leadData) => {
         dataId: leadData._id,
         payment_type: null, // No equivalent in leadData
         sale_type: null, // No equivalent in leadData
-        source: leadData.source || { dropdown_data: null, value: "" },
-        agent_name: leadData.agent_name || { dropdown_data: null, value: "" },
-        cm_first_name: leadData.cm_first_name || "",
-        cm_last_name: leadData.cm_last_name || "",
+        source: leadData.source || { dropdown_data: null, value: null },
+        agent_name: leadData.agent_name || { dropdown_data: null, value: null },
+        cm_first_name: leadData.cm_first_name || null,
+        cm_last_name: leadData.cm_last_name || null,
         cm_phone: leadData.cm_phone || null,
         alternate_phone: leadData.alternate_phone || null,
-        email: "", // No equivalent in leadData
+        email: null, // No equivalent in leadData
         status: null,
-        remark: leadData.remark || { dropdown_data: null, value: "" },
-        comment: leadData.comment || "",
+        remark: leadData.remark || { dropdown_data: null, value: null },
+        comment: leadData.comment || null,
         shipment_type: null, // No equivalent in leadData
-        address: "", // No equivalent in leadData
+        address: null, // No equivalent in leadData
         post_type: null, // No equivalent in leadData
-        post: "", // No equivalent in leadData
-        sub_district_taluka: "", // No equivalent in leadData
-        city: leadData.city || "",
-        pincode: "", // No equivalent in leadData
-        state: leadData.state || { dropdown_data: null, value: "" },
-        disease: leadData.disease || { dropdown_data: null, value: "" },
+        post: null, // No equivalent in leadData
+        sub_district_taluka: null, // No equivalent in leadData
+        city: leadData.city || null,
+        pincode: null, // No equivalent in leadData
+        state: leadData.state || { dropdown_data: null, value: null },
+        disease: leadData.disease || { dropdown_data: null, value: null },
         amount: null, // No equivalent in leadData
         products: null, // No equivalent in leadData
-        quantity: "", // No equivalent in leadData
+        quantity: null, // No equivalent in leadData
         isDeleted: leadData.isDeleted || false,
     };
 };
@@ -315,6 +315,7 @@ exports.sendLeadDataToPending = async (req, res) => {
         await Lead.updateOne({ _id: id }, { is_sent_to_pending: true })
 
         const pendingData = transformLeadToPending(leadData);
+        console.log(pendingData)
         // Save to the Pending collection
         const newPending = new Pending(pendingData);
         await newPending.save();

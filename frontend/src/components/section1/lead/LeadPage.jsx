@@ -1201,12 +1201,12 @@ const LeadPage = () => {
         }
 
         // Validate alternate phone only if it's provided
-        // if (formData.alternate_phone && formData.alternate_phone.trim() !== "") {
-        //     if (!phoneRegex.test(String(formData.alternate_phone))) {
-        //         toast.error("Alternate phone number must be 10 digits");
-        //         return false;
-        //     }
-        // }
+        if (formData.alternate_phone && formData.alternate_phone !== "") {
+            if (!phoneRegex.test(String(formData.alternate_phone))) {
+                toast.error("Alternate phone number must be 10 digits");
+                return false;
+            }
+        }
 
         return true;
     };
@@ -1216,7 +1216,7 @@ const LeadPage = () => {
         if (selectedItem) {
             try {
                 const isValid = validateForm(selectedItem)
-                //console.log(selectedItem)
+                console.log(selectedItem)
                 if (!isValid) {
                     return
                 }

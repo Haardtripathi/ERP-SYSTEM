@@ -22,6 +22,7 @@ import WorkbookPage from "./components/section1/workbook/WorkbookPage";
 import PendingPage from "./components/section2/pending/PendingPage";
 import EditPendingData from "./components/section2/pending/EditPendingData";
 import ConfirmedPage from "./components/section2/confirmed/ConfirmedPage";
+import SheetGenerator from "./components/section3/sheetGenerator/SheetGenerator";
 
 
 
@@ -152,6 +153,14 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <ConfirmedPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/sheet-generator"
+                  element={
+                    <ProtectedRoute>
+                      <SheetGenerator />
                     </ProtectedRoute>
                   }
                 />

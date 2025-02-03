@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const Schema = mongoose.Schema;
-
+    
 const confirmedSchema = new Schema(
     {
         dataId: {
@@ -18,8 +18,8 @@ const confirmedSchema = new Schema(
             type: String,
             default: () => {
                 const now = new Date();
-                const options = { timeZone: 'Asia/Kolkata' };
-                const istDate = new Intl.DateTimeFormat('en-GB', options).format(now);
+                const options = { timeZone: "Asia/Kolkata" };
+                const istDate = new Intl.DateTimeFormat("en-GB", options).format(now);
                 return istDate; // Returns in DD/MM/YYYY format
             },
             immutable: true, // Prevents the date from being modified
@@ -107,6 +107,16 @@ const confirmedSchema = new Schema(
         email: {
             type: String,
         },
+        status: {
+            type: Object,
+            dropdown_data: {
+                type: Schema.Types.ObjectId,
+                ref: "Dropdown",
+            },
+            value: {
+                type: String,
+            },
+        },
         remark: {
             type: Object,
             dropdown_data: {
@@ -144,9 +154,6 @@ const confirmedSchema = new Schema(
             },
         },
         post: {
-            type: String,
-        },
-        awb_number: {
             type: String,
         },
         sub_district_taluka: {
@@ -195,12 +202,12 @@ const confirmedSchema = new Schema(
                 ref: "Dropdown",
             },
             value: {
-                type: String,
+                type: [Object],
             },
         },
-        quantity: {
-            type: String,
-        },
+        // quantity: {
+        //     type: [String],
+        // },
         isDeleted: {
             type: Boolean,
             default: 0, // Set default to 0 (closed)

@@ -90,36 +90,10 @@ exports.getDropdownData = async (req, res) => {
 }
 
 exports.putEditPendingData = async (req, res) => {
-    // const { id } = req.params; // Extract the ID from the route parameter
-    // const updateData = req.body; // Extract the data to update from the request body
-    // console.log(updateData)
-    // try {
-    //     // Find and update the document by ID
-    //     const updatedPending = await Pending.findByIdAndUpdate(
-    //         id,
-    //         { $set: updateData }, // Set only the fields passed in the request
-    //         { new: true, runValidators: true } // Return the updated document, validate data
-    //     );
-
-    //     // Check if the document exists
-    //     if (!updatedPending) {
-    //         return res.status(404).json({ message: "Pending data not found" });
-    //     }
-
-    //     // Respond with the updated document
-    //     return res.status(200).json({
-    //         message: "Pending data updated successfully",
-    //         data: updatedPending,
-    //     });
-    // } catch (error) {
-    //     console.error("Error updating pending data:", error);
-    //     return res.status(500).json({ message: "Server error", error: error.message });
-    // }
-
     const { id } = req.params; // Extract Pending ID
     const updateData = req.body; // Extract update data from request body
     const { dataId, data } = updateData; // Extract dataId and data type
-
+    
     try {
         // Validate `dataId` and `data`
         if (!dataId || !data || (data !== "Lead" && data !== "Incoming")) {
@@ -135,6 +109,7 @@ exports.putEditPendingData = async (req, res) => {
             { new: true, runValidators: true }
         );
 
+        console.log(updatedPending)
         if (!updatedPending) {
             return res.status(404).json({ message: "Pending document not found." });
         }
