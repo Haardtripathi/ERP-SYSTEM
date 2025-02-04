@@ -214,7 +214,7 @@ const SheetGenerator = () => {
                     "",
                     item.email || "",
                     item.cm_phone,
-                    item.alternate_phone || "9825624002",
+                    "9825624002",
                     "160",
                     item.amount?.value || "",
                     "",
@@ -226,6 +226,7 @@ const SheetGenerator = () => {
             const header = [
                 "SrNo",
                 "Barcode",
+
                 "Reference",
                 "Date",
                 "City",

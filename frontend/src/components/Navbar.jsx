@@ -72,7 +72,7 @@ const Navbar = () => {
                                 <span>Dashboard</span>
                             </NavLink>
                         </li>
-                        <li className="text-sm font-medium text-gray-700">{user.email}</li>
+                        <li className="text-sm font-medium text-gray-700">{user.user.email}</li>
                         <li
                             className="flex items-center text-gray-700 cursor-pointer hover:text-red-500 transition-colors"
                             onClick={handleLogout}

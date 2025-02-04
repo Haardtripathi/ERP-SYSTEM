@@ -1021,7 +1021,7 @@ const ConfirmedPage = () => {
                         </TableHeader>
                         <TableBody>
                             {paginatedData.map((item, index) => (
-                                <TableRow key={item._id} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+                                <TableRow key={item._id} className={item.awb_number ? "bg-green-100" : index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
                                     <TableCell>{item.ref}</TableCell>
                                     <TableCell>{item.date}</TableCell>
                                     <TableCell>{item.time}</TableCell>

@@ -38,7 +38,7 @@ const App = () => {
     <Router>
       <div className="flex flex-col h-screen">
 
-        <Navbar />
+        {!loading && <Navbar />}
         <div className="flex flex-1 overflow-hidden">
           {user && <Sidenav isCollapsed={isSidenavCollapsed} setIsCollapsed={setIsSidenavCollapsed} />}
           <div
