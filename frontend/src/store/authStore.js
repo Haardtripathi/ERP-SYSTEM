@@ -24,6 +24,9 @@ const useAuthStore = create((set, get) => ({
             localStorage.removeItem('token');
             set({ user: null, token: null, loading: false });
         }
+        finally {
+            set({ loading: false })
+        }
     },
 
     // checkAuth: async () => {

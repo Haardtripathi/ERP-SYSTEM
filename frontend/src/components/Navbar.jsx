@@ -9,6 +9,7 @@ import useNavStore from '../store/navStore';
 
 const Navbar = () => {
     const { user, logout } = useAuthStore();
+    console.log("In navbar", user)
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -72,7 +73,17 @@ const Navbar = () => {
                                 <span>Dashboard</span>
                             </NavLink>
                         </li>
-                        <li className="text-sm font-medium text-gray-700">{user.user.email}</li>
+                        {/* <li className="text-sm font-medium text-gray-700"> */}
+                        {user && user.user ? (
+                            <li className="text-sm font-medium text-gray-700">
+                                {user.user.email}
+                            </li>
+                        ) : (
+                            <li className="text-sm font-medium text-gray-700">Loading...</li>
+                        )}
+
+                        {/* </li> */}
+
                         <li
                             className="flex items-center text-gray-700 cursor-pointer hover:text-red-500 transition-colors"
                             onClick={handleLogout}
