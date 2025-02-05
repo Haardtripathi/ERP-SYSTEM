@@ -154,7 +154,6 @@ const WorkbookPage = () => {
     // }
 
     const validateForm = (formData) => {
-        //console.log(formData);
         let isValid = true;
         const phoneRegex = /^\d{10}$/;
 

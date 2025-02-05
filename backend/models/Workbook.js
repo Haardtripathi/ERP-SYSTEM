@@ -26,6 +26,6 @@ const workbookSchema = new Schema(
     { timestamps: true }
 );
 
-workbookSchema.index({ isDeleted: 1, createdAt: -1 });
+// workbookSchema.index({ isDeleted: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Workbook', workbookSchema);

@@ -19,7 +19,6 @@ const useAuthStore = create((set, get) => ({
                 headers: { Authorization: token },
             });
             set({ user: data, token, loading: false });
-            console.log(useAuthStore.getState().user);
         } catch {
             localStorage.removeItem('token');
             set({ user: null, token: null, loading: false });
@@ -65,7 +64,6 @@ const useAuthStore = create((set, get) => ({
     setUser: (token) => {
         try {
             const decodedUser = jwtDecode(token);
-            console.log("Decoded User:", decodedUser);
 
             localStorage.setItem("token", token); // ✅ Save the token
             set({ user: decodedUser, token, loading: false });
@@ -79,7 +77,6 @@ const useAuthStore = create((set, get) => ({
     // setUser: (token) => {
     //     try {
     //         const decodedUser = jwtDecode(token);
-    //         console.log("Decoded User:", decodedUser);
 
     //         localStorage.setItem("token", token);
     //         set({ user: decodedUser, token, loading: false });

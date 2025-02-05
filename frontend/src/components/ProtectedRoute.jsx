@@ -40,7 +40,6 @@ export default ProtectedRoute;
 //         }
 //     }, [authChecked, checkAuth]); // ✅ No infinite loop
 
-//     console.log("ProtectedRoute user:", user);
 
 //     if (loading || !authChecked) {
 //         return (

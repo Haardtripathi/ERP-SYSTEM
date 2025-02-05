@@ -139,7 +139,6 @@ const EditLeadData = () => {
     // const validateForm = () => {
     //     let isValid = true;
     //     const phoneRegex = /^\d{10}$/;
-    //     //console.log(formData)
     //     // Check if any field is empty or invalid
     //     const hasEmptyField = Object.entries(formData).some(([key, value]) => {
     //         if (value === null || value === undefined) return true;
@@ -215,7 +214,6 @@ const EditLeadData = () => {
         }
         setLoading(true);
         try {
-            console.log(formData)
             const response = await updateEditLead(id, formData)
             toast.success("Data updated successfully!");
             navigate('/lead');

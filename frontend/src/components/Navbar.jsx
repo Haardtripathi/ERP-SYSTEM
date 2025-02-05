@@ -9,7 +9,6 @@ import useNavStore from '../store/navStore';
 
 const Navbar = () => {
     const { user, logout } = useAuthStore();
-    console.log("In navbar", user)
     const navigate = useNavigate();
     const location = useLocation();
 

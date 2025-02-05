@@ -78,10 +78,14 @@ exports.getDropdownData = async (req, res) => {
                 acc[formattedName] = {
                     values: item.values,
                     id: item._id,
+                    ...(item.name === "Products" && { productExtra: item.productExtra }), // Conditional property
+                    ...(item.name === "Shipment Type" && { shipmentExtra: item.shipmentExtra }) // Conditional property
+
                 };
             }
             return acc;
         }, {});
+
 
         res.json({ dropdowns: formattedData });
     } catch (err) {
@@ -93,7 +97,7 @@ exports.putEditPendingData = async (req, res) => {
     const { id } = req.params; // Extract Pending ID
     const updateData = req.body; // Extract update data from request body
     const { dataId, data } = updateData; // Extract dataId and data type
-    
+
     try {
         // Validate `dataId` and `data`
         if (!dataId || !data || (data !== "Lead" && data !== "Incoming")) {

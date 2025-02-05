@@ -384,6 +384,9 @@ const pendingSchema = new Schema(
             value: {
                 type: String,
             },
+            hub_id: {
+                type: String
+            }
         },
         address: {
             type: String,
@@ -449,6 +452,9 @@ const pendingSchema = new Schema(
             value: {
                 type: [Object],
             },
+            total: {
+                type: Number
+            }
         },
         // quantity: {
         //     type: [String],

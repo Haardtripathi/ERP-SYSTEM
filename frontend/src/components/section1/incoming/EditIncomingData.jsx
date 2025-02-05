@@ -114,7 +114,6 @@ const EditIncomingData = () => {
         const phoneRegex = /^\d{10}$/;
 
         Object.entries(formData).forEach(([key, value]) => {
-            //console.log(key, value, typeof value)
             if (key !== "alternate_phone" && typeof value === "object" && (value.value === null || value.value === "")) {
                 toast.error(`${key.replace(/_/g, " ")} is required`)
                 isValid = false

@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { ItemIndicator } from "@radix-ui/react-select"
 
 // Table components remain the same
 const Table = ({ children }) => (
@@ -197,6 +198,13 @@ const SheetGenerator = () => {
         }
     }
 
+    const today_date = () => {
+        const now = new Date();
+        const options = { timeZone: "Asia/Kolkata" };
+        const istDate = new Intl.DateTimeFormat("en-GB", options).format(now);
+        return istDate;
+    }
+
     // CSV conversion logic remains the same
     const convertToCSV = (data, type) => {
         if (type === "indian_post") {
@@ -251,45 +259,52 @@ const SheetGenerator = () => {
             const smartShipData = data.filter((item) => ["Bluedart", "Delhivery"].includes(item.shipment_type?.value))
             const rows = smartShipData.map((item, index) => {
                 const values = [
-                    index + 1,
-                    "",
-                    item.ref,
-                    item.date,
-                    item.city,
-                    item.pincode,
                     `${item.cm_first_name} ${item.cm_last_name}`.trim(),
-                    item.address,
-                    "",
-                    "",
-                    item.email || "",
                     item.cm_phone,
-                    item.alternate_phone || "9825624002",
-                    "160",
-                    item.amount?.value || "",
-                    "",
-                    "",
+                    item.address,
+                    item.pincode,
+                    "OTC",
+                    "",//to be done total value
+                    item.amount,
+                    500,
+                    13,
+                    13,
+                    13,
+                    30049011,
+                    12,
+                    1,
+                    item.ref,
+                    item.ref,
+                    today_date,
+                    "171228"
                 ]
                 return values.join(",")
             })
 
             const header = [
-                "SrNo",
-                "Barcode",
-                "Reference",
-                "Date",
-                "City",
-                "Pincode",
-                "Name",
-                "Addr1",
-                "Addr2",
-                "Addr3",
-                "AddrEmail",
-                "AddrMobile",
-                "SenderMobile",
+                "Consignee Name",
+                "Consignee Phone",
+                "Consignee Address",
+                "Consignee Pincode",
+                "Product Name",
+                "Product Invoice Value",
+                "Collectable Amount",
                 "Weight",
-                "COD",
-                "InsVal",
-                "VPP",
+                "Height",
+                "Width",
+                "Lendth",
+                "HSN Code",
+                "GST Rate",
+                "Quantity",
+                "Reference Order ID",
+                "Invoice No.",
+                "Invoice Date(DD-MM-YYYY)",
+                "HUB",
+
+
+
+
+
             ].join(",")
 
             return [header, ...rows].join("\n")

@@ -145,11 +145,9 @@ const Signup = () => {
         const fetchAgentList = async () => {
             try {
                 const data = await getAgentList();
-                // //console.log(data.agentList[0].values);
                 // Assuming the data structure matches what we saw in the image
                 // where values array contains the agent names
                 if (data && data.agentList[0].values) {
-                    // //console.log(data.agentList[0].values)
                     setAgentList(data.agentList[0].values);
                 }
             } catch (error) {
@@ -165,7 +163,6 @@ const Signup = () => {
         setLoading(true);
 
         try {
-            //console.log({ email, password, agentName })
             await register({ email, password, agentName });
             toast.success('Signup successful');
             navigate('/login');

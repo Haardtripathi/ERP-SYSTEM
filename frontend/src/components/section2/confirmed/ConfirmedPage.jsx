@@ -86,7 +86,6 @@
 //         try {
 //             setIsLoading(true)
 //             const response = await getAllConfirmed()
-//             // console.log(response)
 //             setPendingData(response.data.data)
 //             setFilteredData(response.data.data)
 //             setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
@@ -157,13 +156,11 @@
 
 //     const handleSendToConfirmed = async (id, dataId, data) => {
 //         const item = pendingData.find((item) => item._id === id)
-//         //console.log(item)
 //         setSelectedItem(item)
 //         setIsReviewDialogOpen(true)
 //     }
 
 //     // const validateForm = (formData) => {
-//     //     // //console.log(formData)
 //     //     let isValid = true
 //     //     const phoneRegex = /^\d{10}$/
 
@@ -333,7 +330,6 @@
 
 //     const confirmSendToConfirmed = async () => {
 //         if (selectedItem) {
-//             console.log(selectedItem)
 //             // const isValid = validateForm(selectedItem)
 //             // if (!isValid) {
 //             //     setIsReviewDialogOpen(false)
