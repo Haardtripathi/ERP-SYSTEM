@@ -112,7 +112,7 @@ exports.postAddLeadData = async (req, res) => {
 };
 
 exports.getAllLeadData = async (req, res) => {
-    const token = req.header('Authorization').split(" ")[1];;
+    const token = req.header('Authorization').split(" ")[1];
 
     try {
         // Get page and limit from query parameters (default values are 1 and 10)
