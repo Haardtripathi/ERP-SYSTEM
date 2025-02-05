@@ -4,6 +4,8 @@ const Dropdown = require('../../models/Dropdown')
 const Pending = require('../../models/Pending')
 const mongoose = require("mongoose")
 const fs = require("fs");
+const jwt = require('jsonwebtoken');
+
 const csv = require('csv-parser')
 
 
@@ -110,8 +112,13 @@ exports.postAddLeadData = async (req, res) => {
 };
 
 exports.getAllLeadData = async (req, res) => {
+    const token = req.header('Authorization').split(" ")[1];;
+
     try {
         // Get page and limit from query parameters (default values are 1 and 10)
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = decoded.agent_name
+        console.log(user)
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
 
@@ -119,14 +126,31 @@ exports.getAllLeadData = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // Fetch data with pagination
+        let data
+        let totalCount
         // const data = await Lead.find({ is_sent_to_pending: false, isDeleted: false })
-        const data = await Lead.find({ isDeleted: false })
+        if (user == "Panchved") {
+            data = await Lead.find({ isDeleted: false })
+
+        }
+        else {
+            data = await Lead.find({ isDeleted: false, "agent_name.value": user });
+
+        }
 
         // (data);
 
         // Get total count of documents
-        const totalCount = await Lead.countDocuments({ isDeleted: false });
-        // const totalCount = await Lead.countDocuments({ isDeleted: false });
+        if (user == "Panchved") {
+            totalCount = await Lead.countDocuments({ isDeleted: false });
+
+
+        }
+        else {
+            totalCount = await Lead.countDocuments({ isDeleted: false, "agent_name.value": user });
+
+
+        }
 
         return res.status(200).json({
             message: "Lead data fetched successfully.",

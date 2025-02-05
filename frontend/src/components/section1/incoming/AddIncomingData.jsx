@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Loader2, UserCircle, Phone, MapPin, MessageSquare, Languages, Activity, User2, Building2 } from 'lucide-react';
+import useAuthStore from "@/store/authStore";
 
 
 const useStore = create((set) => ({
@@ -36,6 +37,8 @@ const AddIncomingData = () => {
         comment: "",
     });
     const navigate = useNavigate();
+
+    const { user } = useAuthStore()
 
 
     useEffect(() => {
@@ -103,6 +106,7 @@ const AddIncomingData = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        console.log(formData)
         if (!validateForm()) {
             return;
         }
@@ -301,11 +305,11 @@ const AddIncomingData = () => {
                                         <Label htmlFor="agent_name" className="text-stone-600">Agent Name *</Label>
                                         <select
                                             id="agent_name"
-                                            value={formData.agent_name.value}
+                                            value={formData.agent_name?.value}
                                             onChange={(e) => handleDropdownChange(e, 'agent_name')}
                                             className="w-full mt-1.5 px-3 py-2 bg-stone-50 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-stone-400/50 text-stone-700"
-                                            required
                                         >
+
                                             <option value="">Select agent</option>
                                             {dropdowns["agent_name"]?.values?.map((item) => (
                                                 <option key={item} value={item}>
@@ -313,6 +317,21 @@ const AddIncomingData = () => {
                                                 </option>
                                             ))}
                                         </select>
+                                        {/* <select
+                                            id="agent_name"
+                                            value={user.user.agent_name !== "Panchved" ? user.user.agent_name || "" : formData.agent_name?.value || ""}
+                                            onChange={(e) => handleDropdownChange(e, 'agent_name')}
+                                            className="w-full mt-1.5 px-3 py-2 bg-stone-50 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-stone-400/50 text-stone-700"
+                                            disabled={user.user.agent_name !== "Panchved"}
+                                        >
+                                            <option value="">Select agent</option>
+                                            {dropdowns["agent_name"]?.values?.map((item) => (
+                                                <option key={item} value={item}>
+                                                    {item}
+                                                </option>
+                                            ))}
+                                        </select> */}
+
                                     </div>
                                     <div>
                                         <Label htmlFor="language" className="text-stone-600">Language *</Label>

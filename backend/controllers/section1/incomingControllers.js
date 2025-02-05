@@ -3,6 +3,8 @@ const Incoming = require('../../models/Incoming')
 const Dropdown = require('../../models/Dropdown')
 const Workbook = require('../../models/Workbook')
 const Pending = require('../../models/Pending')
+const jwt = require('jsonwebtoken');
+
 const mongoose = require("mongoose")
 
 require("dotenv").config()
@@ -201,7 +203,11 @@ exports.postAddIncomingData = async (req, res) => {
 
 
 exports.getAllIncomingData = async (req, res) => {
+    const token = req.header('Authorization').split(" ")[1];
+
     try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = decoded.agent_name
         // Get page and limit from query parameters (default values are 1 and 10)
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
@@ -209,14 +215,31 @@ exports.getAllIncomingData = async (req, res) => {
         // Calculate the number of items to skip
         const skip = (page - 1) * limit;
 
-        // Fetch data with pagination
-        // const data = await Incoming.find({ is_sent_to_pending: false, isDeleted: false })
-        const data = await Incoming.find({ isDeleted: false })
+        let data
+        let totalCount
+        // const data = await Lead.find({ is_sent_to_pending: false, isDeleted: false })
+        if (user == "Panchved") {
+            data = await Incoming.find({ isDeleted: false })
+
+        }
+        else {
+            data = await Incoming.find({ isDeleted: false, "agent_name.value": user });
+
+        }
+
+        // (data);
 
         // Get total count of documents
-        const totalCount = await Incoming.countDocuments({ isDeleted: false });
-        // const totalCount = await Incoming.countDocuments({ isDeleted: false });
+        if (user == "Panchved") {
+            totalCount = await Incoming.countDocuments({ isDeleted: false });
 
+
+        }
+        else {
+            totalCount = await Incoming.countDocuments({ isDeleted: false, "agent_name.value": user });
+
+
+        }
 
         return res.status(200).json({
             message: "Incoming data fetched successfully.",
