@@ -10,4 +10,6 @@ const upload = multer();
 
 
 router.get('/get-confirmed-data', isAuthenticated, confirmedController.getAllConfirmedData);
+
+router.put("/edit-awbnumber", isAuthenticated, confirmedController.editAwbNumber)
 module.exports = router;

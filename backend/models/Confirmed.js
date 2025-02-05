@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const Schema = mongoose.Schema;
-    
+
 const confirmedSchema = new Schema(
     {
         dataId: {
@@ -139,6 +139,9 @@ const confirmedSchema = new Schema(
             value: {
                 type: String,
             },
+            hub_id: {
+                type: String
+            }
         },
         address: {
             type: String,
@@ -152,6 +155,9 @@ const confirmedSchema = new Schema(
             value: {
                 type: String,
             },
+        },
+        awb_number: {
+            type: String
         },
         post: {
             type: String,
@@ -204,6 +210,9 @@ const confirmedSchema = new Schema(
             value: {
                 type: [Object],
             },
+            total: {
+                type: Number
+            }
         },
         // quantity: {
         //     type: [String],

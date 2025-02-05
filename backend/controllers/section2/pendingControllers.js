@@ -244,7 +244,14 @@ exports.sendPendingDataToConfirmed = async (req, res) => {
 
         // Exclude the `status` and `date` fields from the document
         const { status, date, ...confirmedData } = pendingData.toObject();
-        confirmedData.awb_number = "";
+        console.log(confirmedData)
+        if (confirmedData.shipment_type.value == "F2F") {
+            confirmedData.awb_number = confirmedData.ref;
+        }
+        else {
+            confirmedData.awb_number = "";
+
+        }
         // Insert the data into the Confirmed collection
         const newConfirmed = new Confirmed(confirmedData);
         await newConfirmed.save();
