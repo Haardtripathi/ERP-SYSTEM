@@ -471,7 +471,7 @@ pendingSchema.pre("validate", async function (next) {
     if (!this.ref) {
         const currentDate = new Date();
         const year = currentDate.getFullYear();
-        const month = (currentDate.getMonth() + 1).toString().padStart(3, "0");
+        const month = (currentDate.getMonth() + 1).toString().padStart(2, "0");
 
         const Pending = mongoose.model("Pending", pendingSchema);
         const Confirmed = mongoose.model("Confirmed"); // Assuming "Confirmed" schema is already defined
@@ -488,7 +488,7 @@ pendingSchema.pre("validate", async function (next) {
         const totalCount = pendingCount + confirmedCount;
 
         // Generate new ID based on count (incremented by 1)
-        const newId = (totalCount + 1).toString().padStart(3, "0");
+        const newId = (totalCount + 1).toString().padStart(4, "0");
 
         this.ref = `${year}${month}${newId}`;
     }
