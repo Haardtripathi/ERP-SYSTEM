@@ -471,7 +471,7 @@ pendingSchema.pre("validate", async function (next) {
     if (!this.ref) {
         const currentDate = new Date();
         const year = currentDate.getFullYear();
-        const month = (currentDate.getMonth() + 1).toString().padStart(2, "0");
+        const month = (currentDate.getMonth() + 1).toString().padStart(3, "0");
 
         const Pending = mongoose.model("Pending", pendingSchema);
         const Confirmed = mongoose.model("Confirmed"); // Assuming "Confirmed" schema is already defined

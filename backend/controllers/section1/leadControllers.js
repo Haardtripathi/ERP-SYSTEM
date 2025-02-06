@@ -43,7 +43,6 @@ exports.postAddLeadData = async (req, res) => {
                     const cleanHeader = col.trim().toLowerCase().replace(/[^a-z0-9]/g, "_");
                     headerMapping[i] = cleanHeader;
                 });
-                // console.log(columns)
             } else {
                 // Map data to headers
                 const rowData = {};
@@ -118,7 +117,6 @@ exports.getAllLeadData = async (req, res) => {
         // Get page and limit from query parameters (default values are 1 and 10)
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = decoded.agent_name
-        console.log(user)
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
 
@@ -339,7 +337,6 @@ exports.sendLeadDataToPending = async (req, res) => {
         await Lead.updateOne({ _id: id }, { is_sent_to_pending: true })
 
         const pendingData = transformLeadToPending(leadData);
-        console.log(pendingData)
         // Save to the Pending collection
         const newPending = new Pending(pendingData);
         await newPending.save();

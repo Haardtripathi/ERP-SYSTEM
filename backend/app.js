@@ -13,6 +13,9 @@ const leadRoutes = require('./routes/leadRoutes')
 const workbookRoutes = require('./routes/workbookRoutes')
 const pendingRoutes = require('./routes/pendingRoutes')
 const confirmedRoutes = require('./routes/confirmedRoutes')
+const sheetRoutes = require("./routes/sheetRoutes")
+const labelRoutes = require("./routes/labelRoutes")
+
 
 
 
@@ -35,6 +38,10 @@ app.use('/api/lead', leadRoutes)
 app.use('/api/workbook', workbookRoutes)
 app.use('/api/pending', pendingRoutes)
 app.use('/api/confirmed', confirmedRoutes)
+app.use('/api/sheets', sheetRoutes)
+app.use('/api/label', labelRoutes)
+
+
 
 // Sync Database and Start Server
 mongoose

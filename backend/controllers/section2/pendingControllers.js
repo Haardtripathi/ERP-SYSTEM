@@ -21,7 +21,6 @@ exports.getAllPendingData = async (req, res) => {
 
         // Get total count of documents
         const totalCount = await Pending.countDocuments({ isDeleted: false });
-        console.log(totalCount)
 
         return res.status(200).json({
             message: "Pending data fetched successfully.",
@@ -39,7 +38,6 @@ exports.getAllPendingData = async (req, res) => {
 exports.getEditPendingData = async (req, res) => {
     const id = req.params.id
     // (id)
-    console.log(id)
     try {
         // const data = await Lead.findOne({ _id: id }, { isDeleted: false });
         const data = await Pending.findOne({ _id: id, isDeleted: false });
@@ -113,7 +111,6 @@ exports.putEditPendingData = async (req, res) => {
             { new: true, runValidators: true }
         );
 
-        console.log(updatedPending)
         if (!updatedPending) {
             return res.status(404).json({ message: "Pending document not found." });
         }
@@ -244,7 +241,6 @@ exports.sendPendingDataToConfirmed = async (req, res) => {
 
         // Exclude the `status` and `date` fields from the document
         const { status, date, ...confirmedData } = pendingData.toObject();
-        console.log(confirmedData)
         if (confirmedData.shipment_type.value == "F2F") {
             confirmedData.awb_number = confirmedData.ref;
         }

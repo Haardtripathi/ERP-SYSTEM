@@ -4,9 +4,6 @@ module.exports.isAuthenticated = (req, res, next) => {
     try {
         // Get the token from the Authorization header
         const authHeader = req.headers.authorization;
-        // (authHeader);
-        // console.log(authHeader)
-
         if (!authHeader) {
             return res.status(401).json({ message: "Authorization header is missing" });
         }

@@ -214,6 +214,10 @@ const confirmedSchema = new Schema(
                 type: Number
             }
         },
+        isDispatched: {
+            type: Boolean,
+            default: 0, // Set default to 0 (closed)
+        },
         // quantity: {
         //     type: [String],
         // },

@@ -5,7 +5,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { getAllConfirmed } from "@/services/confirmedService"
+// import { getAllConfirmed } from "@/services/confirmedService"
+import { getAllSheetsGenerator } from "@/services/sheetService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
@@ -71,7 +72,7 @@ const SheetGenerator = () => {
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true)
-            const response = await getAllConfirmed()
+            const response = await getAllSheetsGenerator()
             setConfirmedData(response.data.data)
             setFilteredData(response.data.data)
             setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
@@ -217,7 +218,7 @@ const SheetGenerator = () => {
                     item.city,
                     item.pincode,
                     `${item.cm_first_name} ${item.cm_last_name}`.trim(),
-                    item.address,
+                    item.address.includes(",") ? `"${item.address}"` : item.address, // Fix here
                     "",
                     "",
                     item.email || "",
@@ -227,14 +228,13 @@ const SheetGenerator = () => {
                     item.amount?.value || "",
                     "",
                     "",
-                ]
-                return values.join(",")
-            })
+                ];
+                return values.join(",");
+            });
 
             const header = [
                 "SrNo",
                 "Barcode",
-
                 "Reference",
                 "Date",
                 "City",
@@ -250,22 +250,22 @@ const SheetGenerator = () => {
                 "COD",
                 "InsVal",
                 "VPP",
-            ].join(",")
+            ].join(",");
 
-            return [header, ...rows].join("\n")
+            return [header, ...rows].join("\n");
         }
 
         if (type === "smart_ship") {
-            const smartShipData = data.filter((item) => ["Bluedart", "Delhivery"].includes(item.shipment_type?.value))
+            const smartShipData = data.filter((item) => ["Bluedart", "Delhivery"].includes(item.shipment_type?.value));
             const rows = smartShipData.map((item, index) => {
                 const values = [
                     `${item.cm_first_name} ${item.cm_last_name}`.trim(),
                     item.cm_phone,
-                    item.address,
+                    item.address.includes(",") ? `"${item.address}"` : item.address, // Fix here
                     item.pincode,
                     "OTC",
-                    "",//to be done total value
-                    item.amount,
+                    item.products.total, //to be done total value
+                    item.amount?.value || "",
                     500,
                     13,
                     13,
@@ -275,11 +275,11 @@ const SheetGenerator = () => {
                     1,
                     item.ref,
                     item.ref,
-                    today_date,
-                    "171228"
-                ]
-                return values.join(",")
-            })
+                    today_date(),
+                    "171228",
+                ];
+                return values.join(",");
+            });
 
             const header = [
                 "Consignee Name",
@@ -300,16 +300,12 @@ const SheetGenerator = () => {
                 "Invoice No.",
                 "Invoice Date(DD-MM-YYYY)",
                 "HUB",
+            ].join(",");
 
-
-
-
-
-            ].join(",")
-
-            return [header, ...rows].join("\n")
+            return [header, ...rows].join("\n");
         }
-    }
+    };
+
 
     const handleSearch = (e) => {
         setSearchTerm(e.target.value)

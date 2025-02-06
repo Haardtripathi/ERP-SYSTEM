@@ -21,7 +21,6 @@ exports.getAllConfirmedData = async (req, res) => {
 
         // Get total count of documents
         const totalCount = await Confirmed.countDocuments({ isDeleted: false });
-        console.log(totalCount)
 
         return res.status(200).json({
             message: "Confirmed data fetched successfully.",
@@ -41,15 +40,14 @@ exports.getAllConfirmedData = async (req, res) => {
 exports.editAwbNumber = async (req, res) => {
     try {
         const { id, ref, newAwbNumber } = req.body;
-
-        if (!id || !ref || !newAwbNumber) {
+        if (!id || !ref) {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
         // Find and update the awb_number for the given _id and ref
         const updatedEntry = await Confirmed.findOneAndUpdate(
             { _id: id, ref: ref },
-            { $set: { awb_number: newAwbNumber } },
+            { $set: { awb_number: newAwbNumber || "" } },
             { new: true } // Return the updated document
         );
 

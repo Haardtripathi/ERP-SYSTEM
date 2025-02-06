@@ -23,7 +23,7 @@ import PendingPage from "./components/section2/pending/PendingPage";
 import EditPendingData from "./components/section2/pending/EditPendingData";
 import ConfirmedPage from "./components/section2/confirmed/ConfirmedPage";
 import SheetGenerator from "./components/section3/sheetGenerator/SheetGenerator";
-
+import LabelGenerator from "./components/section3/labelGenerator/LabelGenerator";
 
 
 const App = () => {
@@ -161,6 +161,14 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <SheetGenerator />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/labels-generator"
+                  element={
+                    <ProtectedRoute>
+                      <LabelGenerator />
                     </ProtectedRoute>
                   }
                 />
