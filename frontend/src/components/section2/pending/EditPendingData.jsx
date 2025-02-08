@@ -148,6 +148,10 @@ export default function EditPendingData() {
                     updatedData.shipment_type.hub_id = "171228"
 
                 }
+                if (value == "F2F" || value == "Delhivery") {
+                    updatedData.shipment_type.hub_id = "-"
+
+                }
             }
 
             // Reset post_type and post if shipment_type is not "Indian Post"
