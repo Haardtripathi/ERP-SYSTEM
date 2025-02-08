@@ -179,7 +179,7 @@
 //                         <SelectItem value="address">Address</SelectItem>
 //                         <SelectItem value="post_type">Post Type</SelectItem>
 //                         <SelectItem value="post">Post</SelectItem>
-//                         <SelectItem value="sub_district_taluka">Sub District / Taluka</SelectItem>
+//                         <SelectItem value="district">Sub District / Taluka</SelectItem>
 //                         <SelectItem value="city">City / District</SelectItem>
 //                         <SelectItem value="pincode">Pincode</SelectItem>
 //                         <SelectItem value="state">State</SelectItem>
@@ -256,7 +256,7 @@
 //                                     <TableCell>{item.address}</TableCell>
 //                                     <TableCell>{item.post_type?.value}</TableCell>
 //                                     <TableCell>{item.post}</TableCell>
-//                                     <TableCell>{item.sub_district_taluka}</TableCell>
+//                                     <TableCell>{item.district}</TableCell>
 //                                     <TableCell>{item.city}</TableCell>
 //                                     <TableCell>{item.pincode}</TableCell>
 
@@ -514,35 +514,43 @@ const LabelGenerator = () => {
     };
 
     const isAllSelected = paginatedData.length > 0 && paginatedData.every(row => selectedRows.has(row._id));
+    const today_date = () => {
+        const now = new Date();
+        const options = { timeZone: "Asia/Kolkata" };
+        const istDate = new Intl.DateTimeFormat("en-GB", options).format(now);
+        return istDate;
+    }
 
     const formatShipmentData = (data) => ({
-        awb_number: data.awb_number || 'N/A',
-        payment_type: data.payment_type?.value || 'N/A',
-        amount: String(data.amount?.value) || 'N/A',
-        shipment_type: data.shipment_type?.value || 'N/A',
-        hub_id: data.shipment_type?.hub_id || 'N/A',
-        date: data.date || new Date().toLocaleDateString(), // Auto-fill today’s date
-        ref: data.ref || 'N/A',
-        first_name: data.cm_first_name || 'N/A',
-        last_name: data.cm_last_name || 'N/A',
-        cm_phone: String(data.cm_phone) || 'N/A',
-        address: data.address || 'N/A',
-        city: data.city || 'N/A',
-        sub_district: data.sub_district_taluka || 'N/A',
-        post_type: data.post_type?.value || 'N/A',
-        post: data.post || 'N/A',
-        state: data.state?.value || 'N/A',
-        pincode: data.pincode || 'N/A',
-        quantity: data.products?.value?.reduce((sum, product) => sum + parseInt(product.quantity || 0), 0).toString() || 'N/A',
-        product_id: data.products?.value?.map(p => p.product).join(', ') || 'N/A'
+        awb_number: data.awb_number || '',
+        payment_type: data.payment_type?.value || '',
+        amount: String(data.amount?.value) || '',
+        shipment_type: data.shipment_type?.value || '',
+        hub_id: data.shipment_type?.hub_id || '',
+        date: today_date(), // Auto-fill today’s date
+        ref: data.ref || '',
+        first_name: data.cm_first_name || '',
+        last_name: data.cm_last_name || '',
+        cm_phone: String(data.cm_phone) || '',
+        alternate_phone: data.alternate_phone ? String(data.alternate_phone) : '',
+        address: data.address || '',
+        city: data.city || '',
+        sub_district: data.district || '',
+        post_type: data.post_type?.value || '',
+        post: data.post || '',
+        state: data.state?.value || '',
+        pincode: data.pincode || '',
+        quantity: data.products?.value?.reduce((sum, product) => sum + parseInt(product.quantity || 0), 0).toString() || '',
+        product_id: data.products?.value?.map(p => p.product).join(', ') || '',
+        product_details: formatProductData(data.products?.value)
     });
 
     const createBarcode = (text) => {
         const canvas = document.createElement("canvas")
         JsBarcode(canvas, String(text), {
             format: "CODE128",
-            width: 3, // Further increased width for larger barcode
-            height: 60, // Further increased height for larger barcode
+            width: 4, // Further increased width for larger barcode
+            height: 300, // Further increased height for larger barcode
             displayValue: true,
             fontSize: 16, // Larger font size for barcode text
             textMargin: 5, // Increased margin for better spacing
@@ -550,7 +558,9 @@ const LabelGenerator = () => {
         })
         return canvas.toDataURL("image/png")
     }
-
+    function formatProductData(products) {
+        return products.map(product => `${product.quantity}${product.product_id}`).join('_');
+    }
 
 
     const handleLabelGeneration = () => {
@@ -573,14 +583,13 @@ const LabelGenerator = () => {
             const barcodeAWBNumber = createBarcode(shipmentData.awb_number);
             const barcodeRef = createBarcode(shipmentData.ref);
 
-
             if (index !== 0) doc.addPage();
 
             let yOffset = 10;
 
             // Barcode and Box 1 (COD content)
-            const barcodeWidth = 70; // Width for the barcode
-            const barcodeHeight = 25; // Height for the barcode
+            const barcodeWidth = 60; // Width for the barcode
+            const barcodeHeight = 30; // Height for the barcode
             const boxWidth = contentWidth - barcodeWidth - 5; // Remaining width for the box
             const boxHeight = 30; // Height for the box
 
@@ -595,7 +604,7 @@ const LabelGenerator = () => {
             // Content for Box 1 (COD content)
             doc.setFontSize(18);
             doc.setFont("helvetica", "bold");
-            const box1Line1 = "COD";
+            const box1Line1 = `${shipmentData.payment_type}`;
             const box1Line1X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
             const box1Line1Height = doc.getTextDimensions(box1Line1).h;
             const box1Line1Y = yOffset + (boxHeight / 2) - (box1Line1Height / 2); // Exact vertical centering
@@ -609,13 +618,23 @@ const LabelGenerator = () => {
             const box1Line2Y = box1Line1Y + box1Line1Height; // No gap between rows
             doc.text(box1Line2, box1Line2X, box1Line2Y, { align: "center" });
 
-            const box1Line3 = `Rs. ${shipmentData.amount}`;
-            const box1Line3X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
-            const box1Line3Height = doc.getTextDimensions(box1Line3).h;
-            const box1Line3Y = box1Line2Y + box1Line2Height; // No gap between rows
-            doc.text(box1Line3, box1Line3X, box1Line3Y, { align: "center" });
+            if (shipmentData.payment_type == "Online") {
+                const box1Line3 = `Rs. 0`;
+                const box1Line3X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
+                const box1Line3Height = doc.getTextDimensions(box1Line3).h;
+                const box1Line3Y = box1Line2Y + box1Line2Height; // No gap between rows
+                doc.text(box1Line3, box1Line3X, box1Line3Y, { align: "center" });
+            }
+            else {
+                const box1Line3 = `Rs. ${shipmentData.amount}`;
+                const box1Line3X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
+                const box1Line3Height = doc.getTextDimensions(box1Line3).h;
+                const box1Line3Y = box1Line2Y + box1Line2Height; // No gap between rows
+                doc.text(box1Line3, box1Line3X, box1Line3Y, { align: "center" });
+            }
 
-            yOffset += boxHeight + 5; // Gap after the box
+
+            yOffset += boxHeight + 4; // Increased gap after the box
 
             // Box 2 (INDIAN POST content) and Barcode
             const secondBoxWidth = contentWidth - barcodeWidth - 5;
@@ -625,8 +644,8 @@ const LabelGenerator = () => {
 
             // Content for Box 2 (INDIAN POST content)
             doc.setFontSize(18);
-            doc.setFont("helvetica", "bold");
-            const box2Line1 = "INDIAN POST";
+            doc.setFont("helvetica");
+            const box2Line1 = `${shipmentData.shipment_type.toUpperCase()}`;
             const box2Line1X = marginLeft + secondBoxWidth / 2;
             const box2Line1Height = doc.getTextDimensions(box2Line1).h;
             const box2Line1Y = yOffset + (boxHeight / 2) - (box2Line1Height / 2); // Exact vertical centering
@@ -649,46 +668,55 @@ const LabelGenerator = () => {
             // Barcode on the right
             doc.addImage(barcodeRef, "PNG", marginLeft + secondBoxWidth + 5, yOffset, barcodeWidth, barcodeHeight);
 
-            yOffset += boxHeight + 10; // Gap before "Ship To:"
+            yOffset += boxHeight + 15; // Increased gap before "Ship To:"
 
             // Shipping Details
-            doc.setFontSize(12);
+            doc.setFontSize(20);
             doc.setFont("helvetica", "bold");
             doc.text("Ship To :", marginLeft, yOffset);
-            yOffset += 5; // Small gap after "Ship To:"
+            yOffset += 7; // Increased gap after "Ship To:"
 
+            doc.setFontSize(10);
             doc.setFont("helvetica", "normal");
             doc.text(`${shipmentData.first_name} ${shipmentData.last_name}`, marginLeft, yOffset);
-            yOffset += 5; // Small gap
+            yOffset += 7; // Increased gap
 
-            doc.text(String(shipmentData.cm_phone), marginLeft, yOffset);
-            yOffset += 5; // Small gap
+            const phoneNumbers = [shipmentData.cm_phone, shipmentData.alternate_phone].filter(Boolean).join(", ");
+            doc.text(phoneNumbers, marginLeft, yOffset);
+
+            yOffset += 7; // Increased gap
 
             // Address with proper wrapping
             const addressLines = doc.splitTextToSize(String(shipmentData.address), contentWidth);
             addressLines.forEach((line) => {
                 doc.text(line, marginLeft, yOffset);
-                yOffset += 5; // Small gap
+                yOffset += 4; // Increased gap
             });
+            doc.text(`${shipmentData.city}, ${shipmentData.city}`, marginLeft, yOffset);
+            yOffset += 7; // Increased gap
 
             doc.text(`${shipmentData.city}, ${shipmentData.sub_district}`, marginLeft, yOffset);
-            yOffset += 5; // Small gap
+            yOffset += 7; // Increased gap
 
-            doc.text(`${shipmentData.post}, ${shipmentData.state}`, marginLeft, yOffset);
-            yOffset += 5; // Small gap
+            if (shipmentData.post !== '' || shipmentData.post_type !== '') {
+                doc.setFontSize(12);
+                doc.text(`${shipmentData.post}, ${shipmentData.post_type}`, marginLeft, yOffset);
+            }
+            yOffset += 7; // Increased gap
 
+            doc.setFontSize(10);
             // State and Pincode in blue
             doc.setTextColor(0, 0, 255);
             doc.text(`${shipmentData.state}.`, marginLeft, yOffset);
-            yOffset += 5; // Small gap
+            yOffset += 7; // Increased gap
             doc.text(`India - ${shipmentData.pincode}`, marginLeft, yOffset);
-            yOffset += 10; // Small gap
+            yOffset += 40; // Small gap
 
             // Bottom code
             doc.setTextColor(0);
-            doc.setFontSize(12);
+            doc.setFontSize(25);
             doc.setFont("helvetica", "bold");
-            doc.text("MB/2MG/PEC/3HL", marginLeft, yOffset);
+            doc.text(`${shipmentData.product_details}`, marginLeft, yOffset);
         });
 
         doc.save("shipping_labels.pdf");
@@ -741,7 +769,7 @@ const LabelGenerator = () => {
                         <SelectItem value="address">Address</SelectItem>
                         <SelectItem value="post_type">Post Type</SelectItem>
                         <SelectItem value="post">Post</SelectItem>
-                        <SelectItem value="sub_district_taluka">Sub District / Taluka</SelectItem>
+                        <SelectItem value="district">Sub District / Taluka</SelectItem>
                         <SelectItem value="city">City / District</SelectItem>
                         <SelectItem value="pincode">Pincode</SelectItem>
                         <SelectItem value="state">State</SelectItem>
@@ -827,7 +855,7 @@ const LabelGenerator = () => {
                                     <TableCell>{item.address}</TableCell>
                                     <TableCell>{item.post_type?.value}</TableCell>
                                     <TableCell>{item.post}</TableCell>
-                                    <TableCell>{item.sub_district_taluka}</TableCell>
+                                    <TableCell>{item.district}</TableCell>
                                     <TableCell>{item.city}</TableCell>
                                     <TableCell>{item.pincode}</TableCell>
                                     <TableCell>{item.state?.value}</TableCell>

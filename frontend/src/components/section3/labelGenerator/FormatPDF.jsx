@@ -16,7 +16,7 @@ const formatShipmentData = (data) => {
         cm_phone: data.cm_phone || 'N/A',
         address: data.address || 'N/A',
         city: data.city || 'N/A',
-        sub_district: data.sub_district_taluka || 'N/A',
+        sub_district: data.district || 'N/A',
         post_type: data.post_type?.value || 'N/A',
         post: data.post || 'N/A',
         state: data.state?.value || 'N/A',

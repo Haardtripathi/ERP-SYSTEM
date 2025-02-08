@@ -162,7 +162,7 @@ const confirmedSchema = new Schema(
         post: {
             type: String,
         },
-        sub_district_taluka: {
+        district: {
             type: String,
         },
         city: {

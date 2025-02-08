@@ -367,7 +367,7 @@ const transformIncomingToPending = (incomingData) => {
         address: "", // No equivalent in incomingData
         post_type: null, // No equivalent in incomingData
         post: "", // No equivalent in incomingData
-        sub_district_taluka: "", // No equivalent in incomingData
+        district: "", // No equivalent in incomingData
         city: incomingData.city || "",
         pincode: "", // No equivalent in incomingData
         state: incomingData.state || { dropdown_data: null, value: "" },

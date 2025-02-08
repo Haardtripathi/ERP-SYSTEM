@@ -464,8 +464,8 @@ const PendingPage = () => {
                         <SelectItem value="address">Address</SelectItem>
                         <SelectItem value="post_type">Post Type</SelectItem>
                         <SelectItem value="post">Post</SelectItem>
-                        <SelectItem value="sub_district_taluka">Sub District / Taluka</SelectItem>
-                        <SelectItem value="city">City / District</SelectItem>
+                        <SelectItem value="district">District</SelectItem>
+                        <SelectItem value="city">City/Town/Village</SelectItem>
                         <SelectItem value="pincode">Pincode</SelectItem>
                         <SelectItem value="state">State</SelectItem>
                         <SelectItem value="disease">Disease</SelectItem>
@@ -505,8 +505,8 @@ const PendingPage = () => {
                                 <TableHead>Post Type</TableHead>
                                 <TableHead>Post</TableHead>
 
-                                <TableHead>Sub District / Taluka</TableHead>
-                                <TableHead>City / District</TableHead>
+                                <TableHead>District</TableHead>
+                                <TableHead>City/Town/Village</TableHead>
                                 <TableHead>Pincode</TableHead>
 
                                 <TableHead>State</TableHead>
@@ -561,7 +561,7 @@ const PendingPage = () => {
                                     <TableCell>{item.address}</TableCell>
                                     <TableCell>{item.post_type?.value}</TableCell>
                                     <TableCell>{item.post}</TableCell>
-                                    <TableCell>{item.sub_district_taluka}</TableCell>
+                                    <TableCell>{item.district}</TableCell>
                                     <TableCell>{item.city}</TableCell>
                                     <TableCell>{item.pincode}</TableCell>
 
@@ -732,7 +732,7 @@ const PendingPage = () => {
                                     <strong>Post:</strong> {selectedItem.post}
                                 </p>
                                 <p>
-                                    <strong>Sub District/Taluka:</strong> {selectedItem.sub_district_taluka}
+                                    <strong>Sub District/Taluka:</strong> {selectedItem.district}
                                 </p>
                                 <p>
                                     <strong>City:</strong> {selectedItem.city}

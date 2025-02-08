@@ -61,7 +61,7 @@ export default function EditPendingData() {
         shipment_type: { dropdown_data: "", value: "", hub_id: "" },
         source: { dropdown_data: "", value: "" },
         status: { dropdown_data: "", value: "" },
-        sub_district_taluka: "",
+        district: "",
     })
     const navigate = useNavigate()
 
@@ -105,7 +105,7 @@ export default function EditPendingData() {
                     shipment_type: editData.shipment_type || { dropdown_data: "", value: "", hub_id: "" },
                     source: editData.source || { dropdown_data: "", value: "" },
                     status: editData.status || { dropdown_data: "", value: "" },
-                    sub_district_taluka: editData.sub_district_taluka || "",
+                    district: editData.district || "",
                 }
                 // console.log(mappedFormData)
                 setFormData(mappedFormData)
@@ -440,19 +440,7 @@ export default function EditPendingData() {
                                             pattern="\d{10}"
                                         />
                                     </div>
-                                    <div>
-                                        <Label htmlFor="pincode" className="text-stone-600">
-                                            Pincode *
-                                        </Label>
-                                        <Input
-                                            id="pincode"
-                                            name="pincode"
-                                            value={formData.pincode}
-                                            onChange={handleChange}
-                                            className="mt-1.5 bg-stone-50 border-stone-300"
-                                            required
-                                        />
-                                    </div>
+
                                 </div>
                             </div>
 
@@ -479,7 +467,7 @@ export default function EditPendingData() {
                                     </div>
                                     <div>
                                         <Label htmlFor="city" className="text-stone-600">
-                                            City *
+                                            City/Town/Village *
                                         </Label>
                                         <Input
                                             id="city"
@@ -491,13 +479,13 @@ export default function EditPendingData() {
                                         />
                                     </div>
                                     <div>
-                                        <Label htmlFor="sub_district_taluka" className="text-stone-600">
-                                            Sub District/Taluka *
+                                        <Label htmlFor="district" className="text-stone-600">
+                                            District *
                                         </Label>
                                         <Input
-                                            id="sub_district_taluka"
-                                            name="sub_district_taluka"
-                                            value={formData.sub_district_taluka}
+                                            id="district"
+                                            name="district"
+                                            value={formData.district}
                                             onChange={handleChange}
                                             className="mt-1.5 bg-stone-50 border-stone-300"
                                             required
@@ -521,6 +509,19 @@ export default function EditPendingData() {
                                                 </option>
                                             ))}
                                         </select>
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="pincode" className="text-stone-600">
+                                            Pincode *
+                                        </Label>
+                                        <Input
+                                            id="pincode"
+                                            name="pincode"
+                                            value={formData.pincode}
+                                            onChange={handleChange}
+                                            className="mt-1.5 bg-stone-50 border-stone-300"
+                                            required
+                                        />
                                     </div>
                                 </div>
                             </div>

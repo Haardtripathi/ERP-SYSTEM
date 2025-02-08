@@ -388,7 +388,7 @@ const WorkbookPage = () => {
                                 <TableHead>Language</TableHead>
                                 <TableHead>Disease</TableHead>
                                 <TableHead>State</TableHead>
-                                <TableHead>City</TableHead>
+                                <TableHead>City/Town/Village</TableHead>
                                 <TableHead>Remark</TableHead>
                                 <TableHead>Comment</TableHead>
                                 <TableHead>Date</TableHead>

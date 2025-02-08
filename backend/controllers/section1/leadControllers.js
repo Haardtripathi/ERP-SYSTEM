@@ -314,7 +314,7 @@ const transformLeadToPending = (leadData) => {
         address: null, // No equivalent in leadData
         post_type: null, // No equivalent in leadData
         post: null, // No equivalent in leadData
-        sub_district_taluka: null, // No equivalent in leadData
+        district: null, // No equivalent in leadData
         city: leadData.city || null,
         pincode: null, // No equivalent in leadData
         state: leadData.state || { dropdown_data: null, value: null },

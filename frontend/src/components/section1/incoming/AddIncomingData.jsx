@@ -262,7 +262,7 @@ const AddIncomingData = () => {
                                         </select>
                                     </div>
                                     <div>
-                                        <Label htmlFor="city" className="text-stone-600">City/District *</Label>
+                                        <Label htmlFor="city" className="text-stone-600">City/Town/Village *</Label>
                                         <Input
                                             id="city"
                                             name="city"

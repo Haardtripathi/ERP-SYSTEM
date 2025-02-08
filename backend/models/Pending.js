@@ -156,7 +156,7 @@
 //         post: {
 //             type: String,
 //         },
-//         sub_district_taluka: {
+//         district: {
 //             type: String,
 //         },
 //         city: {
@@ -404,7 +404,7 @@ const pendingSchema = new Schema(
         post: {
             type: String,
         },
-        sub_district_taluka: {
+        district: {
             type: String,
         },
         city: {
