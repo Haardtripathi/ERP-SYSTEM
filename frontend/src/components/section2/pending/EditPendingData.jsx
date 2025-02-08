@@ -148,7 +148,7 @@ export default function EditPendingData() {
                     updatedData.shipment_type.hub_id = "171228"
 
                 }
-                if (value == "F2F" || value == "Delhivery") {
+                if (value == "F2F") {
                     updatedData.shipment_type.hub_id = "-"
 
                 }
