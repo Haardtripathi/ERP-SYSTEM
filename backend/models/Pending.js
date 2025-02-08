@@ -468,6 +468,7 @@ const pendingSchema = new Schema(
 );
 
 pendingSchema.pre("validate", async function (next) {
+
     if (!this.ref) {
         const currentDate = new Date();
         const year = currentDate.getFullYear();

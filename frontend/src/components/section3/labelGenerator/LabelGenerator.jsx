@@ -32,7 +32,7 @@
 
 // const TableHead = ({ children, className }) => (
 //     <th
-//         className={`${className} p-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-300 bg-gray-200 sticky top-0 z-10`}
+//         className={`${className} p-3 text-left text-sm font-semiRoman text-gray-700 border-b-2 border-gray-300 bg-gray-200 sticky top-0 z-10`}
 //     >
 //         {children}
 //     </th>
@@ -153,7 +153,7 @@
 
 //     return (
 //         <div className="container mx-auto p-4 bg-gray-50 min-h-screen max-w-[95vw]">
-//             <h1 className="text-3xl font-semibold mb-6 text-gray-800">Label Data</h1>
+//             <h1 className="text-3xl font-semiRoman mb-6 text-gray-800">Label Data</h1>
 
 //             <div className="mb-4 flex items-center space-x-2">
 //                 <Select onValueChange={handleColumnSelect} defaultValue="all">
@@ -382,7 +382,7 @@ const TableRow = ({ children, className }) => <tr className={`${className} hover
 
 const TableHead = ({ children, className }) => (
     <th
-        className={`${className} p-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-300 bg-gray-200 sticky top-0 z-10`}
+        className={`${className} p-3 text-left text-sm font-semiRoman text-gray-700 border-b-2 border-gray-300 bg-gray-200 sticky top-0 z-10`}
     >
         {children}
     </th>
@@ -535,7 +535,7 @@ const LabelGenerator = () => {
         alternate_phone: data.alternate_phone ? String(data.alternate_phone) : '',
         address: data.address || '',
         city: data.city || '',
-        sub_district: data.district || '',
+        district: data.district || '',
         post_type: data.post_type?.value || '',
         post: data.post || '',
         state: data.state?.value || '',
@@ -545,19 +545,46 @@ const LabelGenerator = () => {
         product_details: formatProductData(data.products?.value)
     });
 
-    const createBarcode = (text) => {
-        const canvas = document.createElement("canvas")
+    // const createBarcode = (text) => {
+    //     const canvas = document.createElement("canvas")
+    //     JsBarcode(canvas, String(text), {
+    //         format: "CODE128",
+    //         width: 4, // Further increased width for larger barcode
+    //         height: 300, // Further increased height for larger barcode
+    //         displayValue: true,
+    //         fontSize: 16, // Larger font size for barcode text
+    //         textMargin: 5, // Increased margin for better spacing
+    //         margin: 0,
+    //     })
+    //     return canvas.toDataURL("image/png")
+    // }
+
+    const createBarcode = (text, fontSize, position, height) => {
+        const canvas = document.createElement("canvas");
+
+        // Get full width of the container or fallback to window width
+        const fullWidth = document.body.clientWidth || window.innerWidth;
+        console.log(fullWidth)
+
         JsBarcode(canvas, String(text), {
             format: "CODE128",
-            width: 4, // Further increased width for larger barcode
-            height: 300, // Further increased height for larger barcode
+            width: fullWidth / 200, // Dynamically adjust barcode width
+
+            height: height, // Keep barcode height large
             displayValue: true,
-            fontSize: 16, // Larger font size for barcode text
-            textMargin: 5, // Increased margin for better spacing
+            font: "helvetica",
+            fontSize: fontSize, // Increase font size dynamically
+            fontOptions: "bold", // Make the text bold for better visibility
+            textAlign: "center", // Center the text
+            textMargin: 10, // Space between barcode and text
+            textPosition: position,
             margin: 0,
-        })
-        return canvas.toDataURL("image/png")
-    }
+        });
+
+        return canvas.toDataURL("image/png");
+    };
+
+
     function formatProductData(products) {
         return products.map(product => `${product.quantity}${product.product_id}`).join('_');
     }
@@ -571,156 +598,569 @@ const LabelGenerator = () => {
             orientation: "portrait",
             unit: "mm",
             format: "a5",
+            compress: true
         });
 
         const pageWidth = doc.internal.pageSize.width;
+        const pageHeight = doc.internal.pageSize.height;
         const marginLeft = 10;
         const marginRight = 10;
         const contentWidth = pageWidth - marginLeft - marginRight;
 
         selectedData.forEach((data, index) => {
             const shipmentData = formatShipmentData(data);
-            const barcodeAWBNumber = createBarcode(shipmentData.awb_number);
-            const barcodeRef = createBarcode(shipmentData.ref);
+            const barcodeAWBNumber = createBarcode(
+                shipmentData.awb_number,
+                shipmentData.shipment_type === "Indian Post" ? 100 : ((shipmentData.ref === "F2F" || shipmentData.shipment_type === "F2F") ? 80 : 90),
+                "top",
+                400
+            );
+
+
+
+            const barcodeRef = createBarcode(shipmentData.ref, 70, "bottom", 300);
+
 
             if (index !== 0) doc.addPage();
 
             let yOffset = 10;
 
-            // Barcode and Box 1 (COD content)
-            const barcodeWidth = 60; // Width for the barcode
-            const barcodeHeight = 30; // Height for the barcode
-            const boxWidth = contentWidth - barcodeWidth - 5; // Remaining width for the box
-            const boxHeight = 30; // Height for the box
+            // Box 1 (COD content) width and height
+            const boxWidth = 45;
+            const boxHeight = 30;
+
+            // Calculate the barcode width based on the remaining space
+            const barcodeWidth = contentWidth - boxWidth - 5;
 
             // Barcode on the left
-            doc.addImage(barcodeAWBNumber, "PNG", marginLeft, yOffset, barcodeWidth, barcodeHeight);
+            doc.addImage(barcodeAWBNumber, "PNG", marginLeft, yOffset, barcodeWidth, boxHeight);
 
             // Box 1 on the right (COD content)
             doc.setDrawColor(0);
-            doc.setLineWidth(0.5);
+            doc.setLineWidth(1);
             doc.rect(marginLeft + barcodeWidth + 5, yOffset, boxWidth, boxHeight);
 
             // Content for Box 1 (COD content)
-            doc.setFontSize(18);
-            doc.setFont("helvetica", "bold");
-            const box1Line1 = `${shipmentData.payment_type}`;
-            const box1Line1X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
+            doc.setFontSize(15);
+            doc.setFont("Times", "Bold");
+
+            // Calculate the total height of all lines and gaps
+            const gap = 1;
+            const box1Line1 = shipmentData.payment_type === "Online" ? `Pre-Paid` : `${shipmentData.payment_type}`;
             const box1Line1Height = doc.getTextDimensions(box1Line1).h;
-            const box1Line1Y = yOffset + (boxHeight / 2) - (box1Line1Height / 2); // Exact vertical centering
+            const box1Line2 = "Please Collect";
+            const box1Line2Height = doc.getTextDimensions(box1Line2).h;
+            const box1Line3 = shipmentData.payment_type === "Online" ? `Rs. 0.00` : `Rs. ${shipmentData.amount}.00`;
+            const box1Line3Height = doc.getTextDimensions(box1Line3).h;
+
+            // Total height of all lines and gaps
+            const totalContentHeight = box1Line1Height + box1Line2Height + box1Line3Height + 2 * gap;
+
+            // Starting Y position to center all lines vertically in the box
+            const startY = yOffset + (boxHeight - totalContentHeight) / 2;
+
+            // Draw each line with proper centering and 1mm gap
+            const box1Line1X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
+            const box1Line1Y = startY + box1Line1Height / 2 + gap;
+            doc.setFont("Times", "Bold");
             doc.text(box1Line1, box1Line1X, box1Line1Y, { align: "center" });
 
-            doc.setFontSize(14);
-            doc.setFont("helvetica", "normal");
-            const box1Line2 = "Please Collect";
+            doc.setFont("Times", "Roman");
             const box1Line2X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
-            const box1Line2Height = doc.getTextDimensions(box1Line2).h;
-            const box1Line2Y = box1Line1Y + box1Line1Height; // No gap between rows
+            const box1Line2Y = box1Line1Y + box1Line1Height / 2 + gap + box1Line2Height / 2 + 1;
             doc.text(box1Line2, box1Line2X, box1Line2Y, { align: "center" });
 
-            if (shipmentData.payment_type == "Online") {
-                const box1Line3 = `Rs. 0`;
-                const box1Line3X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
-                const box1Line3Height = doc.getTextDimensions(box1Line3).h;
-                const box1Line3Y = box1Line2Y + box1Line2Height; // No gap between rows
-                doc.text(box1Line3, box1Line3X, box1Line3Y, { align: "center" });
-            }
-            else {
-                const box1Line3 = `Rs. ${shipmentData.amount}`;
-                const box1Line3X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
-                const box1Line3Height = doc.getTextDimensions(box1Line3).h;
-                const box1Line3Y = box1Line2Y + box1Line2Height; // No gap between rows
-                doc.text(box1Line3, box1Line3X, box1Line3Y, { align: "center" });
-            }
+            const box1Line3X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
+            const box1Line3Y = box1Line2Y + box1Line2Height / 2 + gap + box1Line3Height / 2 + 1;
+            doc.text(box1Line3, box1Line3X, box1Line3Y, { align: "center" });
 
-
-            yOffset += boxHeight + 4; // Increased gap after the box
+            yOffset += boxHeight + 4;
 
             // Box 2 (INDIAN POST content) and Barcode
-            const secondBoxWidth = contentWidth - barcodeWidth - 5;
+            const secondBoxWidth = 45;
 
             // Box 2 on the left (INDIAN POST content)
+            doc.setDrawColor(0);
+            doc.setLineWidth(0.5);
             doc.rect(marginLeft, yOffset, secondBoxWidth, boxHeight);
 
-            // Content for Box 2 (INDIAN POST content)
-            doc.setFontSize(18);
-            doc.setFont("helvetica");
+            // Content for Box 2
+            doc.setFontSize(14);
+            doc.setFont("Times", "Roman");
+
             const box2Line1 = `${shipmentData.shipment_type.toUpperCase()}`;
-            const box2Line1X = marginLeft + secondBoxWidth / 2;
             const box2Line1Height = doc.getTextDimensions(box2Line1).h;
-            const box2Line1Y = yOffset + (boxHeight / 2) - (box2Line1Height / 2); // Exact vertical centering
+            const box2Line2 = shipmentData.hub_id;
+            const box2Line2Height = doc.getTextDimensions(box2Line2).h;
+            const box2Line3 = `Date : ${shipmentData.date}`;
+            const box2Line3Height = doc.getTextDimensions(box2Line3).h;
+
+            const totalContentHeightBox2 = box2Line1Height + box2Line2Height + box2Line3Height + 2 * gap;
+            const startYBox2 = yOffset + (boxHeight - totalContentHeightBox2) / 2;
+
+            const box2Line1X = marginLeft + secondBoxWidth / 2;
+            const box2Line1Y = startYBox2 + box2Line1Height / 2 + gap;
             doc.text(box2Line1, box2Line1X, box2Line1Y, { align: "center" });
 
-            doc.setFontSize(14);
-            doc.setFont("helvetica", "normal");
-            const box2Line2 = shipmentData.hub_id;
             const box2Line2X = marginLeft + secondBoxWidth / 2;
-            const box2Line2Height = doc.getTextDimensions(box2Line2).h;
-            const box2Line2Y = box2Line1Y + box2Line1Height; // No gap between rows
+            const box2Line2Y = box2Line1Y + box2Line1Height / 2 + gap + box2Line2Height / 2 + 1;
             doc.text(box2Line2, box2Line2X, box2Line2Y, { align: "center" });
 
-            const box2Line3 = `Date: ${shipmentData.date}`;
+            doc.setFont("Times", "Roman");
             const box2Line3X = marginLeft + secondBoxWidth / 2;
-            const box2Line3Height = doc.getTextDimensions(box2Line3).h;
-            const box2Line3Y = box2Line2Y + box2Line2Height; // No gap between rows
+            const box2Line3Y = box2Line2Y + box2Line2Height / 2 + gap + box2Line3Height / 2 + 1;
             doc.text(box2Line3, box2Line3X, box2Line3Y, { align: "center" });
 
-            // Barcode on the right
-            doc.addImage(barcodeRef, "PNG", marginLeft + secondBoxWidth + 5, yOffset, barcodeWidth, barcodeHeight);
+            doc.setFont("Times", "Roman");
 
-            yOffset += boxHeight + 15; // Increased gap before "Ship To:"
+            // Barcode on the right
+            doc.addImage(barcodeRef, "PNG", marginLeft + secondBoxWidth + 5, yOffset, barcodeWidth, boxHeight);
+
+            yOffset += boxHeight + 10;
 
             // Shipping Details
-            doc.setFontSize(20);
-            doc.setFont("helvetica", "bold");
+            doc.setFontSize(21);
+            doc.setFont("Times", "Bold");
             doc.text("Ship To :", marginLeft, yOffset);
-            yOffset += 7; // Increased gap after "Ship To:"
+            yOffset += 10;
 
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "normal");
+            doc.setFontSize(17);
+            doc.setFont("Times", "normal");
             doc.text(`${shipmentData.first_name} ${shipmentData.last_name}`, marginLeft, yOffset);
-            yOffset += 7; // Increased gap
+            yOffset += 8;
 
             const phoneNumbers = [shipmentData.cm_phone, shipmentData.alternate_phone].filter(Boolean).join(", ");
             doc.text(phoneNumbers, marginLeft, yOffset);
+            yOffset += 8;
 
-            yOffset += 7; // Increased gap
+            // Address handling
+            const addressParts = shipmentData.address.split(',');
+            const addressLines = [];
+            addressParts.forEach(part => {
+                if (part.trim()) {
+                    const lines = doc.splitTextToSize(part.trim(), contentWidth);
+                    addressLines.push(...lines);
+                }
+            });
 
-            // Address with proper wrapping
-            const addressLines = doc.splitTextToSize(String(shipmentData.address), contentWidth);
+            // Print address lines
             addressLines.forEach((line) => {
                 doc.text(line, marginLeft, yOffset);
-                yOffset += 4; // Increased gap
+                yOffset += 6;
             });
-            doc.text(`${shipmentData.city}, ${shipmentData.city}`, marginLeft, yOffset);
-            yOffset += 7; // Increased gap
 
-            doc.text(`${shipmentData.city}, ${shipmentData.sub_district}`, marginLeft, yOffset);
-            yOffset += 7; // Increased gap
+            // Calculate positions from bottom up
+            const bottomMargin = 10;
+            let currentY = pageHeight - bottomMargin;
 
-            if (shipmentData.post !== '' || shipmentData.post_type !== '') {
-                doc.setFontSize(12);
-                doc.text(`${shipmentData.post}, ${shipmentData.post_type}`, marginLeft, yOffset);
-            }
-            yOffset += 7; // Increased gap
-
-            doc.setFontSize(10);
-            // State and Pincode in blue
-            doc.setTextColor(0, 0, 255);
-            doc.text(`${shipmentData.state}.`, marginLeft, yOffset);
-            yOffset += 7; // Increased gap
-            doc.text(`India - ${shipmentData.pincode}`, marginLeft, yOffset);
-            yOffset += 40; // Small gap
-
-            // Bottom code
+            // Product details at the very bottom
             doc.setTextColor(0);
             doc.setFontSize(25);
-            doc.setFont("helvetica", "bold");
-            doc.text(`${shipmentData.product_details}`, marginLeft, yOffset);
+            doc.setFont("Times", "bold");
+            doc.text(`${shipmentData.product_details}`, marginLeft, currentY);
+            currentY -= 20;
+
+            // State and Pincode
+            doc.setFontSize(19);
+            doc.setFont("Times", "normal");
+            doc.text(`India - ${shipmentData.pincode}`, marginLeft, currentY);
+            currentY -= 8;
+            doc.text(`${shipmentData.state}.`, marginLeft, currentY);
+            currentY -= 8;
+
+            // District
+            doc.setFontSize(17);
+            doc.text(`${shipmentData.district}`, marginLeft, currentY);
+            currentY -= 8;
+
+            // Post and Post Type
+            if (shipmentData.post !== '' || shipmentData.post_type !== '') {
+                doc.text(`P.O.${shipmentData.post}, ${shipmentData.post_type}`, marginLeft, currentY);
+                currentY -= 8;
+            }
+
+            // City
+            doc.text(`${shipmentData.city}`, marginLeft, currentY);
         });
 
         doc.save("shipping_labels.pdf");
     };
+
+    // const handleLabelGeneration = () => {
+    //     const selectedData = Array.from(selectedRows.values());
+    //     if (!selectedData.length) return;
+
+    //     const doc = new jsPDF({
+    //         orientation: "portrait",
+    //         unit: "mm",
+    //         format: "a5",
+    //     });
+
+    //     console.log(doc.getFontList())
+    //     const pageWidth = doc.internal.pageSize.width;
+    //     const marginLeft = 10;
+    //     const marginRight = 10;
+    //     const contentWidth = pageWidth - marginLeft - marginRight;
+
+    //     selectedData.forEach((data, index) => {
+    //         const shipmentData = formatShipmentData(data);
+    //         const barcodeAWBNumber = createBarcode(shipmentData.awb_number);
+    //         const barcodeRef = createBarcode(shipmentData.ref);
+
+    //         if (index !== 0) doc.addPage();
+
+    //         let yOffset = 10;
+
+    //         // Box 1 (COD content) width and height
+    //         const boxWidth = 45; // Width for the box
+    //         const boxHeight = 30; // Height for the box
+
+    //         // Calculate the barcode width based on the remaining space
+    //         const barcodeWidth = contentWidth - boxWidth - 5; // 5 is the gap between barcode and box
+
+    //         // Barcode on the left
+    //         doc.addImage(barcodeAWBNumber, "PNG", marginLeft, yOffset, barcodeWidth, boxHeight);
+
+    //         // Box 1 on the right (COD content)
+    //         doc.setDrawColor(0);
+    //         doc.setLineWidth(0.5);
+    //         doc.rect(marginLeft + barcodeWidth + 5, yOffset, boxWidth, boxHeight);
+
+    //         // Content for Box 1 (COD content)
+    //         doc.setFontSize(15);
+    //         doc.setFont("Times", "Bold");
+
+    //         // Calculate the total height of all lines and gaps
+    //         const gap = 1; // 1mm gap
+    //         const box1Line1 = shipmentData.payment_type === "Online" ? `Pre-Paid` : `${shipmentData.payment_type}`;
+    //         const box1Line1Height = doc.getTextDimensions(box1Line1).h;
+    //         const box1Line2 = "Please Collect";
+    //         const box1Line2Height = doc.getTextDimensions(box1Line2).h;
+    //         const box1Line3 = shipmentData.payment_type === "Online" ? `Rs. 0` : `Rs. ${shipmentData.amount}`;
+    //         const box1Line3Height = doc.getTextDimensions(box1Line3).h;
+
+    //         // Total height of all lines and gaps
+    //         const totalContentHeight = box1Line1Height + box1Line2Height + box1Line3Height + 2 * gap;
+
+    //         // Starting Y position to center all lines vertically in the box
+    //         const startY = yOffset + (boxHeight - totalContentHeight) / 2;
+
+    //         // Draw each line with proper centering and 1mm gap
+    //         const box1Line1X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
+    //         const box1Line1Y = startY + box1Line1Height / 2 + gap; // Adjust for baseline
+    //         doc.setFont("Times", "Bold");
+
+    //         doc.text(box1Line1, box1Line1X, box1Line1Y, { align: "center" });
+    //         doc.setFont("Times", "Roman");
+
+    //         const box1Line2X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
+    //         const box1Line2Y = box1Line1Y + box1Line1Height / 2 + gap + box1Line2Height / 2 + 1; // Add gap and adjust for baseline
+    //         doc.text(box1Line2, box1Line2X, box1Line2Y, { align: "center" });
+
+    //         const box1Line3X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
+    //         const box1Line3Y = box1Line2Y + box1Line2Height / 2 + gap + box1Line3Height / 2 + 1; // Add gap and adjust for baseline
+    //         doc.text(box1Line3, box1Line3X, box1Line3Y, { align: "center" });
+
+    //         yOffset += boxHeight + 4; // Increased gap after the box
+
+    //         // Box 2 (INDIAN POST content) and Barcode
+    //         const secondBoxWidth = 45;
+
+    //         // Box 2 on the left (INDIAN POST content)
+    //         doc.setDrawColor(0);
+    //         doc.setLineWidth(0.5);
+    //         doc.rect(marginLeft, yOffset, secondBoxWidth, boxHeight);
+
+    //         // Content for Box 2 (INDIAN POST content)
+    //         doc.setFontSize(14);
+    //         doc.setFont("Times", "Roman");
+
+    //         // Calculate the total height of all lines and gaps
+    //         const box2Line1 = `${shipmentData.shipment_type.toUpperCase()}`;
+    //         const box2Line1Height = doc.getTextDimensions(box2Line1).h;
+    //         const box2Line2 = shipmentData.hub_id;
+    //         const box2Line2Height = doc.getTextDimensions(box2Line2).h;
+    //         const box2Line3 = `Date : ${shipmentData.date}`;
+    //         const box2Line3Height = doc.getTextDimensions(box2Line3).h;
+
+    //         // Total height of all lines and gaps
+    //         const totalContentHeightBox2 = box2Line1Height + box2Line2Height + box2Line3Height + 2 * gap;
+
+    //         // Starting Y position to center all lines vertically in the box
+    //         const startYBox2 = yOffset + (boxHeight - totalContentHeightBox2) / 2;
+
+    //         // Draw each line with proper centering and 1mm gap
+    //         const box2Line1X = marginLeft + secondBoxWidth / 2;
+    //         const box2Line1Y = startYBox2 + box2Line1Height / 2 + gap; // Adjust for baseline
+    //         doc.text(box2Line1, box2Line1X, box2Line1Y, { align: "center" });
+
+    //         const box2Line2X = marginLeft + secondBoxWidth / 2;
+    //         const box2Line2Y = box2Line1Y + box2Line1Height / 2 + gap + box2Line2Height / 2 + 1; // Add gap and adjust for baseline
+    //         doc.text(box2Line2, box2Line2X, box2Line2Y, { align: "center" });
+    //         doc.setFont("Times", "Bold");
+
+    //         const box2Line3X = marginLeft + secondBoxWidth / 2;
+    //         const box2Line3Y = box2Line2Y + box2Line2Height / 2 + gap + box2Line3Height / 2 + 1; // Add gap and adjust for baseline
+    //         doc.text(box2Line3, box2Line3X, box2Line3Y, { align: "center" });
+    //         doc.setFont("Times", "Roman");
+
+    //         // Barcode on the right
+    //         doc.addImage(barcodeRef, "PNG", marginLeft + secondBoxWidth + 5, yOffset, barcodeWidth, boxHeight);
+
+    //         yOffset += boxHeight + 15; // Increased gap before "Ship To:"
+
+    //         // Shipping Details
+    //         doc.setFontSize(21);
+    //         doc.setFont("Times", "Roman");
+    //         doc.text("Ship To :", marginLeft, yOffset);
+    //         yOffset += 10; // Increased gap after "Ship To:"
+
+    //         doc.setFontSize(17);
+    //         doc.setFont("Times", "normal");
+    //         doc.text(`${shipmentData.first_name} ${shipmentData.last_name}`, marginLeft, yOffset);
+    //         yOffset += 8; // Increased gap
+
+    //         const phoneNumbers = [shipmentData.cm_phone, shipmentData.alternate_phone].filter(Boolean).join(", ");
+    //         doc.text(phoneNumbers, marginLeft, yOffset);
+    //         yOffset += 8; // Increased gap
+
+    //         // Address handling with better spacing
+    //         const addressParts = shipmentData.address.split(',');
+    //         const addressLines = [];
+
+    //         // Process each address part
+    //         addressParts.forEach(part => {
+    //             if (part.trim()) { // Only process non-empty parts
+    //                 const lines = doc.splitTextToSize(part.trim(), contentWidth);
+    //                 addressLines.push(...lines);
+    //             }
+    //         });
+
+    //         // Print address lines with increased spacing
+    //         addressLines.forEach((line) => {
+    //             doc.text(line, marginLeft, yOffset);
+    //             yOffset += 8; // Increased gap between address lines
+    //         });
+
+
+    //         doc.text(`${shipmentData.city}`, marginLeft, yOffset);
+    //         yOffset += 8; // Increased gap
+
+    //         if (shipmentData.post !== '' || shipmentData.post_type !== '') {
+    //             doc.setFontSize(17); // Maintain consistent font size
+    //             doc.text(`${shipmentData.post}, ${shipmentData.post_type}`, marginLeft, yOffset);
+    //             yOffset += 8; // Increased gap
+    //         }
+    //         doc.text(`${shipmentData.district}`, marginLeft, yOffset);
+    //         yOffset += 8; // Increased gap
+    //         // Calculate positions for bottom elements
+    //         const productDetailsY = doc.internal.pageSize.height - 10; // Bottom margin
+    //         const statePincodeY = productDetailsY - 20; // Position for state/pincode block
+
+    //         // State and Pincode with consistent spacing
+    //         doc.setFontSize(19);
+    //         doc.text(`${shipmentData.state}.`, marginLeft, statePincodeY);
+    //         doc.text(`India - ${shipmentData.pincode}`, marginLeft, statePincodeY + 8);
+
+    //         // Product details at the bottom
+    //         doc.setTextColor(0);
+    //         doc.setFontSize(25);
+    //         doc.setFont("Times", "bold");
+    //         doc.text(`${shipmentData.product_details}`, marginLeft, productDetailsY, { align: "left" });
+    //     });
+
+    //     doc.save("shipping_labels.pdf");
+    // };
+
+    // const handleLabelGeneration = () => {
+    //     const selectedData = Array.from(selectedRows.values());
+    //     if (!selectedData.length) return;
+
+    //     const doc = new jsPDF({
+    //         orientation: "portrait",
+    //         unit: "mm",
+    //         format: "a5",
+    //     });
+
+    //     const pageWidth = doc.internal.pageSize.width;
+    //     const marginLeft = 10;
+    //     const marginRight = 10;
+    //     const contentWidth = pageWidth - marginLeft - marginRight;
+
+    //     selectedData.forEach((data, index) => {
+    //         const shipmentData = formatShipmentData(data);
+    //         const barcodeAWBNumber = createBarcode(shipmentData.awb_number);
+    //         const barcodeRef = createBarcode(shipmentData.ref);
+
+    //         if (index !== 0) doc.addPage();
+
+    //         let yOffset = 10;
+
+    //         // Box 1 (COD content) width and height
+    //         const boxWidth = 45; // Width for the box
+    //         const boxHeight = 30; // Height for the box
+
+    //         // Calculate the barcode width based on the remaining space
+    //         const barcodeWidth = contentWidth - boxWidth - 5; // 5 is the gap between barcode and box
+
+    //         // Barcode on the left
+    //         doc.addImage(barcodeAWBNumber, "PNG", marginLeft, yOffset, barcodeWidth, boxHeight);
+
+    //         // Box 1 on the right (COD content)
+    //         doc.setDrawColor(0);
+    //         doc.setLineWidth(0.5);
+    //         doc.rect(marginLeft + barcodeWidth + 5, yOffset, boxWidth, boxHeight);
+
+    //         // Content for Box 1 (COD content)
+    //         doc.setFontSize(15);
+    //         doc.setFont("Times", "Bold");
+
+    //         // Calculate the total height of all lines and gaps
+    //         const gap = 1; // 1mm gap
+    //         const box1Line1 = shipmentData.payment_type === "Online" ? `Pre-Paid` : `${shipmentData.payment_type}`;
+    //         const box1Line1Height = doc.getTextDimensions(box1Line1).h;
+    //         const box1Line2 = "Please Collect";
+    //         const box1Line2Height = doc.getTextDimensions(box1Line2).h;
+    //         const box1Line3 = shipmentData.payment_type === "Online" ? `Rs. 0` : `Rs. ${shipmentData.amount}`;
+    //         const box1Line3Height = doc.getTextDimensions(box1Line3).h;
+
+    //         // Total height of all lines and gaps
+    //         const totalContentHeight = box1Line1Height + box1Line2Height + box1Line3Height + 2 * gap;
+
+    //         // Starting Y position to center all lines vertically in the box
+    //         const startY = yOffset + (boxHeight - totalContentHeight) / 2;
+
+    //         // Draw each line with proper centering and 1mm gap
+    //         const box1Line1X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
+    //         const box1Line1Y = startY + box1Line1Height / 2 + gap; // Adjust for baseline
+    //         doc.setFont("Times", "Bold");
+
+    //         doc.text(box1Line1, box1Line1X, box1Line1Y, { align: "center" });
+    //         doc.setFont("Times", "Roman");
+
+    //         const box1Line2X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
+    //         const box1Line2Y = box1Line1Y + box1Line1Height / 2 + gap + box1Line2Height / 2 + 1; // Add gap and adjust for baseline
+    //         doc.text(box1Line2, box1Line2X, box1Line2Y, { align: "center" });
+
+    //         const box1Line3X = marginLeft + barcodeWidth + 5 + boxWidth / 2;
+    //         const box1Line3Y = box1Line2Y + box1Line2Height / 2 + gap + box1Line3Height / 2 + 1; // Add gap and adjust for baseline
+    //         doc.text(box1Line3, box1Line3X, box1Line3Y, { align: "center" });
+
+    //         yOffset += boxHeight + 4; // Increased gap after the box
+
+    //         // Box 2 (INDIAN POST content) and Barcode
+    //         const secondBoxWidth = 45;
+
+    //         // Box 2 on the left (INDIAN POST content)
+    //         doc.setDrawColor(0);
+    //         doc.setLineWidth(0.5);
+    //         doc.rect(marginLeft, yOffset, secondBoxWidth, boxHeight);
+
+    //         // Content for Box 2 (INDIAN POST content)
+    //         doc.setFontSize(14);
+    //         doc.setFont("Times", "Roman");
+
+    //         // Calculate the total height of all lines and gaps
+    //         const box2Line1 = `${shipmentData.shipment_type.toUpperCase()}`;
+    //         const box2Line1Height = doc.getTextDimensions(box2Line1).h;
+    //         const box2Line2 = shipmentData.hub_id;
+    //         const box2Line2Height = doc.getTextDimensions(box2Line2).h;
+    //         const box2Line3 = `Date : ${shipmentData.date}`;
+    //         const box2Line3Height = doc.getTextDimensions(box2Line3).h;
+
+    //         // Total height of all lines and gaps
+    //         const totalContentHeightBox2 = box2Line1Height + box2Line2Height + box2Line3Height + 2 * gap;
+
+    //         // Starting Y position to center all lines vertically in the box
+    //         const startYBox2 = yOffset + (boxHeight - totalContentHeightBox2) / 2;
+
+    //         // Draw each line with proper centering and 1mm gap
+    //         const box2Line1X = marginLeft + secondBoxWidth / 2;
+    //         const box2Line1Y = startYBox2 + box2Line1Height / 2 + gap; // Adjust for baseline
+    //         doc.text(box2Line1, box2Line1X, box2Line1Y, { align: "center" });
+
+    //         const box2Line2X = marginLeft + secondBoxWidth / 2;
+    //         const box2Line2Y = box2Line1Y + box2Line1Height / 2 + gap + box2Line2Height / 2 + 1; // Add gap and adjust for baseline
+    //         doc.text(box2Line2, box2Line2X, box2Line2Y, { align: "center" });
+    //         doc.setFont("Times", "Bold");
+
+    //         const box2Line3X = marginLeft + secondBoxWidth / 2;
+    //         const box2Line3Y = box2Line2Y + box2Line2Height / 2 + gap + box2Line3Height / 2 + 1; // Add gap and adjust for baseline
+    //         doc.text(box2Line3, box2Line3X, box2Line3Y, { align: "center" });
+    //         doc.setFont("Times", "Roman");
+
+    //         // Barcode on the right
+    //         doc.addImage(barcodeRef, "PNG", marginLeft + secondBoxWidth + 5, yOffset, barcodeWidth, boxHeight);
+
+    //         yOffset += boxHeight + 15; // Increased gap before "Ship To:"
+
+    //         // Shipping Details
+    //         doc.setFontSize(21);
+    //         doc.setFont("Times", "Roman");
+    //         doc.text("Ship To :", marginLeft, yOffset);
+    //         yOffset += 10; // Increased gap after "Ship To:"
+
+    //         doc.setFontSize(17);
+    //         doc.setFont("Times", "normal");
+    //         doc.text(`${shipmentData.first_name} ${shipmentData.last_name}`, marginLeft, yOffset);
+    //         yOffset += 8; // Increased gap
+
+    //         const phoneNumbers = [shipmentData.cm_phone, shipmentData.alternate_phone].filter(Boolean).join(", ");
+    //         doc.text(phoneNumbers, marginLeft, yOffset);
+    //         yOffset += 8; // Increased gap
+
+    //         // Address handling with better spacing
+    //         const addressParts = shipmentData.address.split(',');
+    //         const addressLines = [];
+
+    //         // Process each address part
+    //         addressParts.forEach(part => {
+    //             if (part.trim()) { // Only process non-empty parts
+    //                 const lines = doc.splitTextToSize(part.trim(), contentWidth);
+    //                 addressLines.push(...lines);
+    //             }
+    //         });
+
+    //         // Print address lines with increased spacing
+    //         addressLines.forEach((line) => {
+    //             doc.text(line, marginLeft, yOffset);
+    //             yOffset += 8; // Increased gap between address lines
+    //         });
+
+    //         // Calculate remaining space after address
+    //         const remainingSpace = doc.internal.pageSize.height - yOffset - 30; // 30mm for bottom elements
+
+    //         // Position city, post, post type, district, etc. at the bottom
+    //         let bottomY = doc.internal.pageSize.height - 55; // Start position for bottom elements
+
+    //         doc.text(`${shipmentData.city}`, marginLeft, bottomY);
+    //         bottomY += 8; // Increased gap
+
+    //         if (shipmentData.post !== '' || shipmentData.post_type !== '') {
+    //             doc.setFontSize(17); // Maintain consistent font size
+    //             doc.text(`${shipmentData.post}, ${shipmentData.post_type}`, marginLeft, bottomY);
+    //             bottomY += 8; // Increased gap
+    //         }
+    //         doc.text(`${shipmentData.district}`, marginLeft, bottomY);
+    //         bottomY += 8; // Increased gap
+
+    //         // State and Pincode with consistent spacing
+    //         doc.setFontSize(19);
+    //         doc.text(`${shipmentData.state}.`, marginLeft, bottomY);
+    //         doc.text(`India - ${shipmentData.pincode}`, marginLeft, bottomY + 8);
+
+    //         // Product details at the bottom
+    //         doc.setTextColor(0);
+    //         doc.setFontSize(25);
+    //         doc.setFont("Times", "bold");
+    //         doc.text(`${shipmentData.product_details}`, marginLeft, doc.internal.pageSize.height - 10, { align: "left" });
+    //     });
+
+    //     doc.save("shipping_labels.pdf");
+    // };
+
+
+
 
 
     if (isLoading) {
@@ -743,7 +1183,7 @@ const LabelGenerator = () => {
 
     return (
         <div className="container mx-auto p-4 bg-gray-50 min-h-screen max-w-[95vw]">
-            <h1 className="text-3xl font-semibold mb-6 text-gray-800">Label Data</h1>
+            <h1 className="text-3xl font-semiRoman mb-6 text-gray-800">Label Data</h1>
 
             <div className="mb-4 flex items-center space-x-2">
                 <Select onValueChange={handleColumnSelect} defaultValue="all">
