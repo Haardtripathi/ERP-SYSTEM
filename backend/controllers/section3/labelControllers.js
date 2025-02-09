@@ -11,13 +11,16 @@ module.exports.getAllLabelData = async (req, res) => {
         // Fetch data with pagination, filtering out awb_number that is "" or null
         const data = await Confirmed.find({
             isDeleted: false,
-            awb_number: { $nin: ["", null] }
+            awb_number: { $nin: ["", null] },
+            isDispatched: false
         })
 
         // Get total count of filtered documents
         const totalCount = await Confirmed.countDocuments({
             isDeleted: false,
-            awb_number: { $nin: ["", null] }
+            awb_number: { $nin: ["", null] },
+            isDispatched: false
+
         });
 
         return res.status(200).json({

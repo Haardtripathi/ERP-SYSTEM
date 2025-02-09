@@ -24,7 +24,7 @@ import EditPendingData from "./components/section2/pending/EditPendingData";
 import ConfirmedPage from "./components/section2/confirmed/ConfirmedPage";
 import SheetGenerator from "./components/section3/sheetGenerator/SheetGenerator";
 import LabelGenerator from "./components/section3/labelGenerator/LabelGenerator";
-
+import DispatchPage from "./components/section4/DispatchPage";
 
 const App = () => {
   const { checkAuth, loading, user } = useAuthStore();
@@ -169,6 +169,14 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <LabelGenerator />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dispatched"
+                  element={
+                    <ProtectedRoute>
+                      <DispatchPage />
                     </ProtectedRoute>
                   }
                 />

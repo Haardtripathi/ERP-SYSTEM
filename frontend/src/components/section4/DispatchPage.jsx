@@ -2,8 +2,8 @@
 
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { getAllConfirmed, updateAwbNumber } from "@/services/confirmedService"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { getAllDispatched, dispatchDataFunction } from "@/services/dispatchedService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
@@ -16,8 +16,10 @@ import {
     PaginationPrevious,
     PaginationEllipsis,
 } from "@/components/ui/pagination"
-import { Loader2 } from "lucide-react"
+import { Loader2, Scan, KeyboardIcon, AlertCircle } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+
 
 const Table = ({ children }) => (
     <div className="overflow-x-auto">
@@ -27,20 +29,14 @@ const Table = ({ children }) => (
 
 const TableHeader = ({ children }) => <thead className="bg-gray-200">{children}</thead>
 
-const TableRow = ({ children, className, item }) => {
-    return (
-        <tr
-            className={`
-                ${className} 
-                ${item?.awb_number && !item?.isDispatched ? "bg-blue-100 hover:bg-blue-100" : ""}
-                ${item?.isDispatched ? "bg-green-100 hover:bg-green-100" : ""}
-                ${!item?.awb_number && !item?.isDispatched ? "hover:bg-gray-100" : ""}
-            `}
-        >
-            {children}
-        </tr>
-    )
-}
+const TableRow = ({ children, className, item }) => (
+    <tr
+        className={`bg-green-100 hover:bg-green-100 ${className}`}
+
+    >
+        {children}
+    </tr>
+)
 
 const TableHead = ({ children, className }) => (
     <th
@@ -56,8 +52,8 @@ const TableCell = ({ children, className }) => (
     <td className={`${className} p-3 text-sm text-gray-700 break-words max-w-[200px]`}>{children}</td>
 )
 
-const ConfirmedPage = () => {
-    const [confirmedData, setConfirmedData] = useState([])
+const DispatchPage = () => {
+    const [dispatchData, setDispatchData] = useState([])
     const [filteredData, setFilteredData] = useState([])
     const [currentPage, setCurrentPage] = useState(1)
     const [itemsPerPage] = useState(10)
@@ -69,18 +65,21 @@ const ConfirmedPage = () => {
     const [searchColumn, setSearchColumn] = useState("all")
     const [goToPage, setGoToPage] = useState("")
 
-    const [editingAwb, setEditingAwb] = useState(null)
-    const [newAwbNumber, setNewAwbNumber] = useState("")
+    // New state variables for scanning functionality
+    const [manualInput, setManualInput] = useState("")
+    const [isScanning, setIsScanning] = useState(false)
+    const [scanInput, setScanInput] = useState("")
+    const scanInputRef = useRef(null)
 
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true)
-            const response = await getAllConfirmed()
-            setConfirmedData(response.data.data)
+            const response = await getAllDispatched()
+            setDispatchData(response.data.data)
             setFilteredData(response.data.data)
             setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
         } catch (error) {
-            console.error("Error fetching confirmed data:", error)
+            console.error("Error fetching dispatch data:", error)
             setError("Failed to fetch data. Please try again later.")
         } finally {
             setIsLoading(false)
@@ -92,7 +91,7 @@ const ConfirmedPage = () => {
     }, [fetchData])
 
     const applyFiltersAndPaginate = useCallback(() => {
-        const results = confirmedData.filter((item) => {
+        const results = dispatchData.filter((item) => {
             if (searchColumn === "all") {
                 return Object.values(item).some(
                     (val) => typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -113,11 +112,86 @@ const ConfirmedPage = () => {
 
         const startIndex = (currentPage - 1) * itemsPerPage
         setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
-    }, [confirmedData, searchTerm, searchColumn, itemsPerPage, currentPage])
+    }, [dispatchData, searchTerm, searchColumn, itemsPerPage, currentPage])
 
     useEffect(() => {
         applyFiltersAndPaginate()
     }, [applyFiltersAndPaginate])
+
+    // Handle manual input changes
+    const handleManualInputChange = (e) => {
+        if (!isScanning) {
+            const cleanedInput = e.target.value.replace(/[^a-zA-Z0-9]/g, "")
+            setManualInput(cleanedInput)
+        }
+    }
+
+    // Handle manual send button click
+    const handleManualSend = async () => {
+        if (!manualInput) {
+            toast.error("Please enter a value")
+            return
+        }
+        try {
+            console.log("Manual input value:", manualInput)
+            await handleDispatchAction(manualInput)
+            setManualInput("") // Clear input after successful action
+        } catch (error) {
+            console.error("Error processing manual input:", error)
+            toast.error("Couldn't find required item")
+            setManualInput("") // Clear input even after error
+        }
+    }
+
+    // Handle scan input changes
+    const handleScanInput = async (e) => {
+        const value = e.target.value
+        setScanInput(value)
+
+        if (isScanning && value) {
+            try {
+                console.log("Scanned input value:", value)
+                await handleDispatchAction(value)
+                setScanInput("") // Clear scan input after successful action
+                // Refocus the scan input after processing
+                setTimeout(() => {
+                    scanInputRef.current?.focus()
+                }, 100)
+            } catch (error) {
+                console.error("Error processing scanned input:", error)
+                toast.error("Couldn't find required item")
+                setScanInput("") // Clear scan input even after error
+                setTimeout(() => {
+                    scanInputRef.current?.focus()
+                }, 100)
+            }
+        }
+    }
+    // Toggle scanning mode
+    const toggleScanning = () => {
+        setIsScanning(!isScanning)
+        if (!isScanning) {
+            // Focus the scan input when starting to scan
+            setTimeout(() => {
+                scanInputRef.current?.focus()
+            }, 100)
+        }
+    }
+
+    // Common dispatch action handler
+    const handleDispatchAction = async (value) => {
+        try {
+            // Replace this with your actual dispatch action from dispatchedService
+            console.log(value)
+            const response = await dispatchDataFunction(value)
+            console.log("Processing dispatch action for value:", value)
+            toast.success("Action completed successfully")
+            await fetchData() // Refresh the data
+            // return response
+        } catch (error) {
+            throw error
+        }
+    }
 
     const handleGoToPage = () => {
         const pageNumber = Number.parseInt(goToPage, 10)
@@ -126,23 +200,6 @@ const ConfirmedPage = () => {
             setGoToPage("")
         } else {
             toast.error(`Please enter a valid page number between 1 and ${totalPages}`)
-        }
-    }
-
-    const handleEditAwb = (id, currentAwb) => {
-        setEditingAwb(id)
-        setNewAwbNumber(currentAwb || "")
-    }
-
-    const handleAddAwb = async (id, ref) => {
-        try {
-            await updateAwbNumber(id, ref, newAwbNumber)
-            toast.success("AWB Number updated successfully")
-            setEditingAwb(null)
-            fetchData() // Refresh the data
-        } catch (error) {
-            console.error("Error updating AWB Number:", error)
-            toast.error("Failed to update AWB Number")
         }
     }
 
@@ -162,8 +219,6 @@ const ConfirmedPage = () => {
         setCurrentPage(1)
     }
 
-    const startIndex = (currentPage - 1) * itemsPerPage
-
     if (isLoading) {
         return (
             <div className="flex justify-center items-center h-screen">
@@ -182,7 +237,73 @@ const ConfirmedPage = () => {
 
     return (
         <div className="container mx-auto p-4 bg-gray-50 min-h-screen max-w-[95vw]">
-            <h1 className="text-3xl font-semibold mb-6 text-gray-800">Confirmed Data</h1>
+            <h1 className="text-3xl font-semibold mb-6 text-gray-800">Dispatch Data</h1>
+
+            {/* Improved input section */}
+            <div className="bg-white shadow-sm rounded-lg p-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Manual Input - More compact */}
+                    <div className="flex items-center gap-2">
+                        <div className="flex-grow flex items-center gap-2">
+                            <Input
+                                type="text"
+                                value={manualInput}
+                                onChange={handleManualInputChange}
+                                placeholder="Enter code manually..."
+                                className="h-9 max-w-[300px]"
+                                disabled={isScanning}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && manualInput) {
+                                        handleManualSend()
+                                    }
+                                }}
+                            />
+                            <Button
+                                onClick={handleManualSend}
+                                disabled={isScanning}
+                                size="sm"
+                                className="h-9"
+                            >
+                                Send
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Scanner Input - More compact */}
+                    <div className="flex items-center gap-2">
+                        <div className="flex-grow flex items-center gap-2">
+                            <Input
+                                ref={scanInputRef}
+                                type="text"
+                                value={scanInput}
+                                onChange={handleScanInput}
+                                placeholder="Scan barcode..."
+                                className="h-9 max-w-[300px]"
+                                disabled={!isScanning}
+                            />
+                            <Button
+                                onClick={toggleScanning}
+                                variant={isScanning ? "destructive" : "default"}
+                                size="sm"
+                                className="h-9 w-[120px]"
+                            >
+                                {isScanning ? (
+                                    <span className="flex items-center gap-2">
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        Scanning
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center gap-2">
+                                        <Scan className="h-3 w-3" />
+                                        Start Scan
+                                    </span>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
             <div className="mb-4 flex items-center space-x-2">
                 <Select onValueChange={handleColumnSelect} defaultValue="all">
@@ -229,84 +350,43 @@ const ConfirmedPage = () => {
                                 <TableHead>Date</TableHead>
                                 <TableHead>Time</TableHead>
                                 <TableHead>Source</TableHead>
-
                                 <TableHead>Payment Type</TableHead>
                                 <TableHead>Sale Type</TableHead>
                                 <TableHead>Agent</TableHead>
-
                                 <TableHead>First Name</TableHead>
                                 <TableHead>Last Name</TableHead>
                                 <TableHead>Phone</TableHead>
                                 <TableHead>Alternate Number</TableHead>
                                 <TableHead>Email</TableHead>
-                                <TableHead>AWB Number</TableHead>
-
                                 <TableHead>Comment</TableHead>
                                 <TableHead>Shipment Type</TableHead>
                                 <TableHead>Address</TableHead>
                                 <TableHead>Post Type</TableHead>
                                 <TableHead>Post</TableHead>
-
                                 <TableHead>District</TableHead>
                                 <TableHead>City/Town/Village</TableHead>
                                 <TableHead>Pincode</TableHead>
-
                                 <TableHead>State</TableHead>
-
                                 <TableHead>Disease</TableHead>
                                 <TableHead>Amount</TableHead>
                                 <TableHead>Products</TableHead>
                             </tr>
                         </TableHeader>
                         <TableBody>
-                            {paginatedData.map((item, index) => (
-                                <TableRow key={item._id} item={item} className="">
+                            {paginatedData.map((item) => (
+                                <TableRow key={item._id} item={item}>
                                     <TableCell>{item.ref}</TableCell>
                                     <TableCell>{item.date}</TableCell>
                                     <TableCell>{item.time}</TableCell>
                                     <TableCell>{item.source?.value}</TableCell>
-
                                     <TableCell>{item.payment_type?.value}</TableCell>
                                     <TableCell>{item.sale_type?.value}</TableCell>
-
                                     <TableCell>{item.agent_name?.value}</TableCell>
                                     <TableCell>{item.cm_first_name}</TableCell>
                                     <TableCell>{item.cm_last_name}</TableCell>
                                     <TableCell>{item.cm_phone}</TableCell>
                                     <TableCell>{item.alternate_phone}</TableCell>
                                     <TableCell>{item.email}</TableCell>
-                                    <TableCell>
-                                        {editingAwb === item._id ? (
-                                            <div className="flex items-center space-x-1">
-                                                <Input
-                                                    type="text"
-                                                    value={newAwbNumber}
-                                                    onChange={(e) => setNewAwbNumber(e.target.value)}
-                                                    className="w-28 h-8 text-sm"
-                                                />
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="px-2 py-1 text-xs"
-                                                    onClick={() => handleAddAwb(item._id, item.ref)}
-                                                >
-                                                    Save
-                                                </Button>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm">{item.awb_number || "N/A"}</span>
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="px-2 py-1 text-xs"
-                                                    onClick={() => handleEditAwb(item._id, item.awb_number)}
-                                                >
-                                                    Edit
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </TableCell>
                                     <TableCell>{item.comment}</TableCell>
                                     <TableCell>{item.shipment_type?.value}</TableCell>
                                     <TableCell>{item.address}</TableCell>
@@ -315,9 +395,7 @@ const ConfirmedPage = () => {
                                     <TableCell>{item.district}</TableCell>
                                     <TableCell>{item.city}</TableCell>
                                     <TableCell>{item.pincode}</TableCell>
-
                                     <TableCell>{item.state?.value}</TableCell>
-
                                     <TableCell>{item.disease?.value}</TableCell>
                                     <TableCell>{item.amount?.value}</TableCell>
                                     <TableCell>
@@ -364,7 +442,7 @@ const ConfirmedPage = () => {
                     </PaginationItem>
                 </PaginationContent>
             </Pagination>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 mt-4">
                 <Input
                     type="number"
                     placeholder="Go to page"
@@ -387,5 +465,5 @@ const ConfirmedPage = () => {
     )
 }
 
-export default ConfirmedPage
+export default DispatchPage
 

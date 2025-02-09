@@ -15,6 +15,7 @@ const pendingRoutes = require('./routes/pendingRoutes')
 const confirmedRoutes = require('./routes/confirmedRoutes')
 const sheetRoutes = require("./routes/sheetRoutes")
 const labelRoutes = require("./routes/labelRoutes")
+const dispatchedRoutes = require("./routes/dispatchedRoutes")
 
 
 
@@ -40,6 +41,10 @@ app.use('/api/pending', pendingRoutes)
 app.use('/api/confirmed', confirmedRoutes)
 app.use('/api/sheets', sheetRoutes)
 app.use('/api/label', labelRoutes)
+app.use('/api/label', labelRoutes)
+app.use('/api/dispatched', dispatchedRoutes)
+
+
 
 
 

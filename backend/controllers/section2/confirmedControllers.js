@@ -6,6 +6,7 @@ const Dropdown = require('../../models/Dropdown')
 const Pending = require('../../models/Pending')
 const mongoose = require("mongoose")
 
+
 exports.getAllConfirmedData = async (req, res) => {
     try {
         const page = parseInt(req.query.page, 10) || 1;
@@ -61,3 +62,5 @@ exports.editAwbNumber = async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
+
+
