@@ -221,6 +221,14 @@ const confirmedSchema = new Schema(
         // quantity: {
         //     type: [String],
         // },
+        isHold: {
+            type: Boolean,
+            default: 0, // Set default to 0 (closed)
+        },
+        isCancelled: {
+            type: Boolean,
+            default: 0, // Set default to 0 (closed)
+        },
         isDeleted: {
             type: Boolean,
             default: 0, // Set default to 0 (closed)

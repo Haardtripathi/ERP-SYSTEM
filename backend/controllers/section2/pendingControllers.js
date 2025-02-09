@@ -7,7 +7,12 @@ const Pending = require('../../models/Pending')
 const mongoose = require("mongoose")
 
 exports.getAllPendingData = async (req, res) => {
+    const token = req.header('Authorization').split(" ")[1];
+    console.log(token)
     try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        console.log(decoded)
+        const user = decoded.agent_name
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
 
@@ -15,13 +20,22 @@ exports.getAllPendingData = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // Fetch data with pagination
-        const data = await Pending.find({ isDeleted: false })
+        let data
+        let totalCount
+        // const data = await Lead.find({ is_sent_to_pending: false, isDeleted: false })
+        if (user == "Panchved") {
+            data = await Pending.find({ isDeleted: false })
+        }
+        else {
+            data = await Pending.find({ isDeleted: false, "agent_name.value": user });
+        }
 
-        // (data);
-
-        // Get total count of documents
-        const totalCount = await Pending.countDocuments({ isDeleted: false });
-
+        if (user == "Panchved") {
+            totalCount = await Pending.countDocuments({ isDeleted: false });
+        }
+        else {
+            totalCount = await Pending.countDocuments({ isDeleted: false, "agent_name.value": user })
+        }
         return res.status(200).json({
             message: "Pending data fetched successfully.",
             data,
