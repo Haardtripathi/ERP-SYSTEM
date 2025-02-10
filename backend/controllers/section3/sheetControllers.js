@@ -12,13 +12,18 @@ module.exports.getAllSheetData = async (req, res) => {
         // Fetch data with pagination, including only records where awb_number is "" or null
         const data = await Confirmed.find({
             isDeleted: false,
-            $or: [{ awb_number: "" }, { awb_number: null }]
+            $or: [{ awb_number: "" }, { awb_number: null }],
+            isCancelled: false,
+            isDispatched: false,
+            isHold: false
         })
 
         // Get total count of filtered documents
         const totalCount = await Confirmed.countDocuments({
             isDeleted: false,
-            $or: [{ awb_number: "" }, { awb_number: null }]
+            $or: [{ awb_number: "" }, { awb_number: null }], isCancelled: false,
+            isHold: false,
+            isDispatched: false
         });
 
         return res.status(200).json({

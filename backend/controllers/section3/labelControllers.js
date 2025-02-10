@@ -12,14 +12,18 @@ module.exports.getAllLabelData = async (req, res) => {
         const data = await Confirmed.find({
             isDeleted: false,
             awb_number: { $nin: ["", null] },
-            isDispatched: false
+            isDispatched: false,
+            isCancelled: false,
+            isHold: false
         })
 
         // Get total count of filtered documents
         const totalCount = await Confirmed.countDocuments({
             isDeleted: false,
             awb_number: { $nin: ["", null] },
-            isDispatched: false
+            isDispatched: false,
+            isCancelled: false,
+            isHold: false
 
         });
 

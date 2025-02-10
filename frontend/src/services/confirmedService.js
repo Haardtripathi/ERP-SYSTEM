@@ -18,3 +18,12 @@ export const updateAwbNumber = async (id, ref, newAwbNumber) => {
     return response;
 
 }
+
+export const updateRowState = async (id, ref, value) => {
+    const response = await axiosInstance.put(`/confirmed/handle-state-change`, {
+        id,
+        ref,
+        value
+    });
+    return response;
+}

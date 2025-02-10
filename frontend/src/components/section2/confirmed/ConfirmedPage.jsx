@@ -3,7 +3,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { getAllConfirmed, updateAwbNumber } from "@/services/confirmedService"
+import { getAllConfirmed, updateAwbNumber, updateRowState } from "@/services/confirmedService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
@@ -19,6 +19,14 @@ import {
 import { Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+const safeExtractValue = (obj, defaultValue = '') => {
+    if (!obj) return defaultValue
+    if (typeof obj === 'string') return obj
+    if (obj.value) return obj.value
+    if (obj.dropdown_data) return obj.dropdown_data
+    return defaultValue
+}
+
 const Table = ({ children }) => (
     <div className="overflow-x-auto">
         <table className="w-full border-collapse min-w-max">{children}</table>
@@ -27,16 +35,17 @@ const Table = ({ children }) => (
 
 const TableHeader = ({ children }) => <thead className="bg-gray-200">{children}</thead>
 
-const TableRow = ({ children, className, item }) => {
+const TableRow = ({ children, item }) => {
+    const getRowBackgroundClass = () => {
+        if (item?.isCancelled) return "bg-red-100 hover:bg-red-200"
+        if (item?.isHold) return "bg-yellow-100 hover:bg-yellow-200"
+        if (item?.awb_number && !item?.isDispatched) return "bg-blue-100 hover:bg-blue-200"
+        if (item?.isDispatched) return "bg-green-100 hover:bg-green-200"
+        return "hover:bg-gray-100"
+    }
+
     return (
-        <tr
-            className={`
-                ${className} 
-                ${item?.awb_number && !item?.isDispatched ? "bg-blue-100 hover:bg-blue-100" : ""}
-                ${item?.isDispatched ? "bg-green-100 hover:bg-green-100" : ""}
-                ${!item?.awb_number && !item?.isDispatched ? "hover:bg-gray-100" : ""}
-            `}
-        >
+        <tr className={getRowBackgroundClass()}>
             {children}
         </tr>
     )
@@ -129,12 +138,50 @@ const ConfirmedPage = () => {
         }
     }
 
+    const handleStateChange = async (id, ref, value) => {
+        try {
+            // If the current state is already cancelled, do nothing
+            const currentItem = confirmedData.find(item => item._id === id)
+            if (currentItem.isCancelled) return
+
+            // Determine the update payload based on the selected value
+            let updatePayload = {}
+            switch (value) {
+                case 'Hold':
+                    updatePayload = { isHold: true, isCancelled: false }
+                    break
+                case 'Cancel':
+                    updatePayload = { isCancelled: true, isHold: false }
+                    break
+                case 'Normal':
+                    updatePayload = { isHold: false, isCancelled: false }
+                    break
+                default:
+                    return
+            }
+
+            await updateRowState(id, ref, updatePayload)
+            toast.success(`Row state updated to ${value}`)
+            fetchData() // Refresh the data to reflect the changes
+        } catch (error) {
+            console.error(`Error updating row state to ${value}:`, error)
+            toast.error("Failed to update row state")
+        }
+    }
+
     const handleEditAwb = (id, currentAwb) => {
+        // Prevent editing AWB if the row is cancelled or on hold
+        const currentItem = confirmedData.find(item => item._id === id)
+        if (currentItem.isCancelled || currentItem.isHold) return
+
         setEditingAwb(id)
         setNewAwbNumber(currentAwb || "")
     }
-
     const handleAddAwb = async (id, ref) => {
+        // Prevent adding AWB if the row is cancelled or on hold
+        const currentItem = confirmedData.find(item => item._id === id)
+        if (currentItem.isCancelled || currentItem.isHold) return
+
         try {
             await updateAwbNumber(id, ref, newAwbNumber)
             toast.success("AWB Number updated successfully")
@@ -145,6 +192,103 @@ const ConfirmedPage = () => {
             toast.error("Failed to update AWB Number")
         }
     }
+
+    const renderStateColumn = (item) => {
+        if (item.isCancelled) {
+            return <span className="text-red-600 font-semibold">Cancelled</span>
+        }
+
+        if (item.isHold) {
+            return (
+                <Select
+                    onValueChange={(value) => handleStateChange(item._id, item.ref, value)}
+                >
+                    <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="On Hold">
+                            Normal
+                        </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="Normal">Normal</SelectItem>
+                        <SelectItem value="Cancel">Cancel</SelectItem>
+                    </SelectContent>
+                </Select>
+            )
+        }
+
+        return (
+            <Select
+                onValueChange={(value) => handleStateChange(item._id, item.ref, value)}
+            >
+                <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Select State">
+                        Select State
+                    </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="Hold">Hold</SelectItem>
+                    <SelectItem value="Cancel">Cancel</SelectItem>
+                </SelectContent>
+            </Select>
+        )
+    }
+
+    const renderAwbNumberColumn = (item) => {
+        // If row is cancelled, show AWB as read-only
+        if (item.isCancelled) {
+            return <span className="text-sm text-gray-500">{item.awb_number || "N/A"}</span>
+        }
+
+        // If row is on hold, limit AWB editing
+        if (item.isHold) {
+            return (
+                <div className="flex items-center justify-between">
+                    <span className="text-sm">{item.awb_number || "N/A"}</span>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="px-2 py-1 text-xs"
+                        disabled
+                    >
+                        Edit
+                    </Button>
+                </div>
+            )
+        }
+
+        // Normal state with full editing capabilities
+        return editingAwb === item._id ? (
+            <div className="flex items-center space-x-1">
+                <Input
+                    type="text"
+                    value={newAwbNumber}
+                    onChange={(e) => setNewAwbNumber(e.target.value)}
+                    className="w-28 h-8 text-sm"
+                />
+                <Button
+                    size="sm"
+                    variant="outline"
+                    className="px-2 py-1 text-xs"
+                    onClick={() => handleAddAwb(item._id, item.ref)}
+                >
+                    Save
+                </Button>
+            </div>
+        ) : (
+            <div className="flex items-center justify-between">
+                <span className="text-sm">{item.awb_number || "N/A"}</span>
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    className="px-2 py-1 text-xs"
+                    onClick={() => handleEditAwb(item._id, item.awb_number)}
+                >
+                    Edit
+                </Button>
+            </div>
+        )
+    }
+
 
     const handlePageChange = (page) => {
         if (page >= 1 && page <= totalPages) {
@@ -225,6 +369,7 @@ const ConfirmedPage = () => {
                     <Table>
                         <TableHeader>
                             <tr className="bg-gray-200">
+                                <TableHead>ACTION</TableHead>
                                 <TableHead>Ref</TableHead>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Time</TableHead>
@@ -259,78 +404,54 @@ const ConfirmedPage = () => {
                             </tr>
                         </TableHeader>
                         <TableBody>
-                            {paginatedData.map((item, index) => (
-                                <TableRow key={item._id} item={item} className="">
-                                    <TableCell>{item.ref}</TableCell>
-                                    <TableCell>{item.date}</TableCell>
-                                    <TableCell>{item.time}</TableCell>
-                                    <TableCell>{item.source?.value}</TableCell>
+                            {paginatedData.map((item, index) => {
+                                return (
+                                    <TableRow key={item._id} item={item}>
+                                        <TableCell>
+                                            {renderStateColumn(item)}
+                                        </TableCell>
+                                        <TableCell>{item.ref}</TableCell>
+                                        <TableCell>{item.date}</TableCell>
+                                        <TableCell>{item.time}</TableCell>
+                                        <TableCell>{item.source?.value}</TableCell>
 
-                                    <TableCell>{item.payment_type?.value}</TableCell>
-                                    <TableCell>{item.sale_type?.value}</TableCell>
+                                        <TableCell>{item.payment_type?.value}</TableCell>
+                                        <TableCell>{item.sale_type?.value}</TableCell>
 
-                                    <TableCell>{item.agent_name?.value}</TableCell>
-                                    <TableCell>{item.cm_first_name}</TableCell>
-                                    <TableCell>{item.cm_last_name}</TableCell>
-                                    <TableCell>{item.cm_phone}</TableCell>
-                                    <TableCell>{item.alternate_phone}</TableCell>
-                                    <TableCell>{item.email}</TableCell>
-                                    <TableCell>
-                                        {editingAwb === item._id ? (
-                                            <div className="flex items-center space-x-1">
-                                                <Input
-                                                    type="text"
-                                                    value={newAwbNumber}
-                                                    onChange={(e) => setNewAwbNumber(e.target.value)}
-                                                    className="w-28 h-8 text-sm"
-                                                />
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="px-2 py-1 text-xs"
-                                                    onClick={() => handleAddAwb(item._id, item.ref)}
-                                                >
-                                                    Save
-                                                </Button>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm">{item.awb_number || "N/A"}</span>
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="px-2 py-1 text-xs"
-                                                    onClick={() => handleEditAwb(item._id, item.awb_number)}
-                                                >
-                                                    Edit
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>{item.comment}</TableCell>
-                                    <TableCell>{item.shipment_type?.value}</TableCell>
-                                    <TableCell>{item.address}</TableCell>
-                                    <TableCell>{item.post_type?.value}</TableCell>
-                                    <TableCell>{item.post}</TableCell>
-                                    <TableCell>{item.district}</TableCell>
-                                    <TableCell>{item.city}</TableCell>
-                                    <TableCell>{item.pincode}</TableCell>
+                                        <TableCell>{item.agent_name?.value}</TableCell>
+                                        <TableCell>{item.cm_first_name}</TableCell>
+                                        <TableCell>{item.cm_last_name}</TableCell>
+                                        <TableCell>{item.cm_phone}</TableCell>
+                                        <TableCell>{item.alternate_phone}</TableCell>
+                                        <TableCell>{item.email}</TableCell>
+                                        <TableCell>
+                                            {renderAwbNumberColumn(item)}
+                                        </TableCell>
+                                        <TableCell>{item.comment}</TableCell>
+                                        <TableCell>{item.shipment_type?.value}</TableCell>
+                                        <TableCell>{item.address}</TableCell>
+                                        <TableCell>{item.post_type?.value}</TableCell>
+                                        <TableCell>{item.post}</TableCell>
+                                        <TableCell>{item.district}</TableCell>
+                                        <TableCell>{item.city}</TableCell>
+                                        <TableCell>{item.pincode}</TableCell>
 
-                                    <TableCell>{item.state?.value}</TableCell>
+                                        <TableCell>{item.state?.value}</TableCell>
 
-                                    <TableCell>{item.disease?.value}</TableCell>
-                                    <TableCell>{item.amount?.value}</TableCell>
-                                    <TableCell>
-                                        {Array.isArray(item.products?.value)
-                                            ? item.products.value.map((product, index) => (
-                                                <div key={index}>
-                                                    {product.product} : {product.quantity}
-                                                </div>
-                                            ))
-                                            : null}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                                        <TableCell>{item.disease?.value}</TableCell>
+                                        <TableCell>{item.amount?.value}</TableCell>
+                                        <TableCell>
+                                            {Array.isArray(item.products?.value)
+                                                ? item.products.value.map((product, index) => (
+                                                    <div key={index}>
+                                                        {product.product} : {product.quantity}
+                                                    </div>
+                                                ))
+                                                : null}
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
                         </TableBody>
                     </Table>
                 </div>

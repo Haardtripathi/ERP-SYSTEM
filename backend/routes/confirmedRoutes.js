@@ -12,4 +12,7 @@ const upload = multer();
 router.get('/get-confirmed-data', isAuthenticated, confirmedController.getAllConfirmedData);
 
 router.put("/edit-awbnumber", isAuthenticated, confirmedController.editAwbNumber)
+
+router.put("/handle-state-change", isAuthenticated, confirmedController.handleStateChange)
+
 module.exports = router;

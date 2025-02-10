@@ -5,6 +5,7 @@ const Confirmed = require('../../models/Confirmed')
 const Dropdown = require('../../models/Dropdown')
 const Pending = require('../../models/Pending')
 const mongoose = require("mongoose")
+const jwt = require('jsonwebtoken');
 
 
 exports.getAllConfirmedData = async (req, res) => {
@@ -64,3 +65,32 @@ exports.editAwbNumber = async (req, res) => {
 };
 
 
+
+
+
+exports.handleStateChange = async (req, res) => {
+    try {
+        const { id, ref, value } = req.body;
+
+        // Validate request
+        if (!id || !ref || !value || (typeof value !== 'object')) {
+            return res.status(400).json({ message: "Invalid request. ID, Ref, and a valid update value are required." });
+        }
+
+        // Find and update the document
+        const updatedRow = await Confirmed.findOneAndUpdate(
+            { _id: id, ref },
+            { $set: value },
+            { new: true } // Return the updated document
+        );
+
+        if (!updatedRow) {
+            return res.status(404).json({ message: "Record not found." });
+        }
+
+        res.status(200).json({ message: "Update successful", data: updatedRow });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+}
