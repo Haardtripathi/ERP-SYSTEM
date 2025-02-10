@@ -233,6 +233,10 @@ const confirmedSchema = new Schema(
             type: Boolean,
             default: 0, // Set default to 0 (closed)
         },
+        isComplain: {
+            type: Boolean,
+            default: 0,
+        },
     },
     { timestamps: true }
 );
