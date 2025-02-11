@@ -65,3 +65,29 @@ exports.dispatchedData = async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
+
+
+
+exports.updatePosition = async (req, res) => {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    try {
+        // Find the document by ID
+        let confirmedEntry = await Confirmed.findById(id);
+        if (!confirmedEntry) {
+            return res.status(404).json({ message: "Entry not found" });
+        }
+
+        // Replace location_and_date field with new data
+        confirmedEntry.location_and_date = updateData;
+
+        // Save the updated document
+        await confirmedEntry.save();
+
+        res.status(200).json({ message: "Position updated successfully", data: confirmedEntry });
+    } catch (error) {
+        console.error("Error updating position:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};

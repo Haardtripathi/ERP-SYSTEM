@@ -161,64 +161,6 @@ const IncomingPage = () => {
         setIsReviewDialogOpen(true)
     }
 
-    // const validateForm = (formData) => {
-    //     let isValid = true
-    //     const phoneRegex = /^\d{10}$/
-
-    //     Object.entries(formData).forEach(([key, value]) => {
-    //         if (key !== "alternate_phone" && typeof value === "object" && value.value === null) {
-    //             toast.error(`${key.replace(/_/g, " ")} is required`)
-    //             isValid = false
-    //         } else if (key !== "alternate_phone" && typeof value === "string" && value.trim() === "") {
-    //             toast.error(`${key.replace(/_/g, " ")} is required`)
-    //             isValid = false
-    //         }
-    //     })
-
-    //     if (!phoneRegex.test(formData.cm_phone)) {
-    //         toast.error("Phone number must be 10 digits")
-    //         isValid = false
-    //     }
-
-    //     if (formData.alternate_phone && !phoneRegex.test(formData.alternate_phone)) {
-    //         toast.error("Alternate phone number must be 10 digits")
-    //         isValid = false
-    //     }
-
-    //     return isValid
-    // }
-
-    // const validateForm = (formData) => {
-    //     let isValid = true;
-    //     const phoneRegex = /^\d{10}$/;
-
-    //     // Check if any field is empty or invalid
-    //     const hasEmptyField = Object.entries(formData).some(([key, value]) => {
-    //         if (value === null || value === undefined) return true;
-    //         if (typeof value === "string" && value.trim() === "") return true;
-    //         if (typeof value === "object" && value !== null && "value" in value && (value.value === null || value.value === "")) return true;
-    //         return false;
-    //     });
-
-    //     if (hasEmptyField) {
-    //         toast.error("Please fill all the fields");
-    //         return false;
-    //     }
-
-    //     // Validate primary phone number
-    //     if (!phoneRegex.test(String(formData.cm_phone || ""))) {
-    //         toast.error("Phone number must be 10 digits");
-    //         return false;
-    //     }
-
-    //     // Validate alternate phone number if provided
-    //     if (formData.alternate_phone && !phoneRegex.test(String(formData.alternate_phone))) {
-    //         toast.error("Alternate phone number must be 10 digits");
-    //         return false;
-    //     }
-
-    //     return true;
-    // };
 
     const validateForm = (formData) => {
         let isValid = true;

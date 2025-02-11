@@ -1,9 +1,486 @@
 
 
+// "use client"
+
+// import { useState, useEffect, useCallback, useRef } from "react"
+// import { getAllDispatched, dispatchDataFunction } from "@/services/dispatchedService"
+// import { Button } from "@/components/ui/button"
+// import { Input } from "@/components/ui/input"
+// import { toast } from "react-hot-toast"
+// import {
+//     Pagination,
+//     PaginationContent,
+//     PaginationItem,
+//     PaginationLink,
+//     PaginationNext,
+//     PaginationPrevious,
+//     PaginationEllipsis,
+// } from "@/components/ui/pagination"
+// import { Loader2, Scan, KeyboardIcon, AlertCircle } from "lucide-react"
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+// import { Alert, AlertDescription } from "@/components/ui/alert"
+// import {
+//     Popover,
+//     PopoverContent,
+//     PopoverTrigger,
+// } from "@/components/ui/popover"
+// import { Calendar } from "@/components/ui/calendar"
+
+
+// const Table = ({ children }) => (
+//     <div className="overflow-x-auto">
+//         <table className="w-full border-collapse min-w-max">{children}</table>
+//     </div>
+// )
+
+// const TableHeader = ({ children }) => <thead className="bg-gray-200">{children}</thead>
+
+// const TableRow = ({ children, className, item }) => (
+//     <tr
+//         className={`bg-green-100 hover:bg-green-100 ${className}`}
+
+//     >
+//         {children}
+//     </tr>
+// )
+
+// const TableHead = ({ children, className }) => (
+//     <th
+//         className={`${className} p-3 text-left text-sm font-semibold text-gray-700 border-b-2 border-gray-300 bg-gray-200 sticky top-0 z-10`}
+//     >
+//         {children}
+//     </th>
+// )
+
+// const TableBody = ({ children }) => <tbody className="bg-white divide-y divide-gray-200">{children}</tbody>
+
+// const TableCell = ({ children, className }) => (
+//     <td className={`${className} p-3 text-sm text-gray-700 break-words max-w-[200px]`}>{children}</td>
+// )
+
+// const DispatchPage = () => {
+//     const [dispatchData, setDispatchData] = useState([])
+//     const [filteredData, setFilteredData] = useState([])
+//     const [currentPage, setCurrentPage] = useState(1)
+//     const [itemsPerPage] = useState(10)
+//     const [totalPages, setTotalPages] = useState(1)
+//     const [isLoading, setIsLoading] = useState(true)
+//     const [error, setError] = useState(null)
+//     const [searchTerm, setSearchTerm] = useState("")
+//     const [paginatedData, setPaginatedData] = useState([])
+//     const [searchColumn, setSearchColumn] = useState("all")
+//     const [goToPage, setGoToPage] = useState("")
+
+//     // New state variables for scanning functionality
+//     const [manualInput, setManualInput] = useState("")
+//     const [isScanning, setIsScanning] = useState(false)
+//     const [scanInput, setScanInput] = useState("")
+//     const scanInputRef = useRef(null)
+
+//     const fetchData = useCallback(async () => {
+//         try {
+//             setIsLoading(true)
+//             const response = await getAllDispatched()
+//             setDispatchData(response.data.data)
+//             setFilteredData(response.data.data)
+//             setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
+//         } catch (error) {
+//             console.error("Error fetching dispatch data:", error)
+//             setError("Failed to fetch data. Please try again later.")
+//         } finally {
+//             setIsLoading(false)
+//         }
+//     }, [itemsPerPage])
+
+//     useEffect(() => {
+//         fetchData()
+//     }, [fetchData])
+
+//     const applyFiltersAndPaginate = useCallback(() => {
+//         const results = dispatchData.filter((item) => {
+//             if (searchColumn === "all") {
+//                 return Object.values(item).some(
+//                     (val) => typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase()),
+//                 )
+//             } else {
+//                 const value = item[searchColumn]
+//                 if (typeof value === "string") {
+//                     return value.toLowerCase().includes(searchTerm.toLowerCase())
+//                 } else if (typeof value === "object" && value !== null && "value" in value) {
+//                     return value.value.toLowerCase().includes(searchTerm.toLowerCase())
+//                 }
+//                 return false
+//             }
+//         })
+//         setFilteredData(results)
+//         const newTotalPages = Math.ceil(results.length / itemsPerPage)
+//         setTotalPages(newTotalPages)
+
+//         const startIndex = (currentPage - 1) * itemsPerPage
+//         setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
+//     }, [dispatchData, searchTerm, searchColumn, itemsPerPage, currentPage])
+
+//     useEffect(() => {
+//         applyFiltersAndPaginate()
+//     }, [applyFiltersAndPaginate])
+
+//     // Handle manual input changes
+//     const handleManualInputChange = (e) => {
+//         if (!isScanning) {
+//             const cleanedInput = e.target.value.replace(/[^a-zA-Z0-9]/g, "")
+//             setManualInput(cleanedInput)
+//         }
+//     }
+
+//     // Handle manual send button click
+//     const handleManualSend = async () => {
+//         if (!manualInput) {
+//             toast.error("Please enter a value")
+//             return
+//         }
+//         try {
+//             console.log("Manual input value:", manualInput)
+//             await handleDispatchAction(manualInput)
+//             setManualInput("") // Clear input after successful action
+//         } catch (error) {
+//             console.error("Error processing manual input:", error)
+//             toast.error("Couldn't find required item")
+//             setManualInput("") // Clear input even after error
+//         }
+//     }
+
+//     // Handle scan input changes
+//     const handleScanInput = async (e) => {
+//         const value = e.target.value
+//         setScanInput(value)
+
+//         if (isScanning && value) {
+//             try {
+//                 console.log("Scanned input value:", value)
+//                 await handleDispatchAction(value)
+//                 setScanInput("") // Clear scan input after successful action
+//                 // Refocus the scan input after processing
+//                 setTimeout(() => {
+//                     scanInputRef.current?.focus()
+//                 }, 100)
+//             } catch (error) {
+//                 console.error("Error processing scanned input:", error)
+//                 toast.error("Couldn't find required item")
+//                 setScanInput("") // Clear scan input even after error
+//                 setTimeout(() => {
+//                     scanInputRef.current?.focus()
+//                 }, 100)
+//             }
+//         }
+//     }
+//     // Toggle scanning mode
+//     const toggleScanning = () => {
+//         setIsScanning(!isScanning)
+//         if (!isScanning) {
+//             // Focus the scan input when starting to scan
+//             setTimeout(() => {
+//                 scanInputRef.current?.focus()
+//             }, 100)
+//         }
+//     }
+
+//     // Common dispatch action handler
+//     const handleDispatchAction = async (value) => {
+//         try {
+//             // Replace this with your actual dispatch action from dispatchedService
+//             console.log(value)
+//             const response = await dispatchDataFunction(value)
+//             console.log("Processing dispatch action for value:", value)
+//             toast.success("Action completed successfully")
+//             await fetchData() // Refresh the data
+//             // return response
+//         } catch (error) {
+//             throw error
+//         }
+//     }
+
+//     const handleGoToPage = () => {
+//         const pageNumber = Number.parseInt(goToPage, 10)
+//         if (pageNumber >= 1 && pageNumber <= totalPages) {
+//             setCurrentPage(pageNumber)
+//             setGoToPage("")
+//         } else {
+//             toast.error(`Please enter a valid page number between 1 and ${totalPages}`)
+//         }
+//     }
+
+//     const handlePageChange = (page) => {
+//         if (page >= 1 && page <= totalPages) {
+//             setCurrentPage(page)
+//         }
+//     }
+
+//     const handleSearch = (e) => {
+//         setSearchTerm(e.target.value)
+//         setCurrentPage(1)
+//     }
+
+//     const handleColumnSelect = (value) => {
+//         setSearchColumn(value)
+//         setCurrentPage(1)
+//     }
+
+//     if (isLoading) {
+//         return (
+//             <div className="flex justify-center items-center h-screen">
+//                 <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+//             </div>
+//         )
+//     }
+
+//     if (error) {
+//         return (
+//             <div className="flex justify-center items-center h-screen">
+//                 <p className="text-red-500">{error}</p>
+//             </div>
+//         )
+//     }
+
+//     return (
+//         <div className="container mx-auto p-4 bg-gray-50 min-h-screen max-w-[95vw]">
+//             <h1 className="text-3xl font-semibold mb-6 text-gray-800">Dispatch Data</h1>
+
+//             {/* Improved input section */}
+//             <div className="bg-white shadow-sm rounded-lg p-4 mb-6">
+//                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+//                     {/* Manual Input - More compact */}
+//                     <div className="flex items-center gap-2">
+//                         <div className="flex-grow flex items-center gap-2">
+//                             <Input
+//                                 type="text"
+//                                 value={manualInput}
+//                                 onChange={handleManualInputChange}
+//                                 placeholder="Enter code manually..."
+//                                 className="h-9 max-w-[300px]"
+//                                 disabled={isScanning}
+//                                 onKeyDown={(e) => {
+//                                     if (e.key === 'Enter' && manualInput) {
+//                                         handleManualSend()
+//                                     }
+//                                 }}
+//                             />
+//                             <Button
+//                                 onClick={handleManualSend}
+//                                 disabled={isScanning}
+//                                 size="sm"
+//                                 className="h-9"
+//                             >
+//                                 Send
+//                             </Button>
+//                         </div>
+//                     </div>
+
+//                     {/* Scanner Input - More compact */}
+//                     <div className="flex items-center gap-2">
+//                         <div className="flex-grow flex items-center gap-2">
+//                             <Input
+//                                 ref={scanInputRef}
+//                                 type="text"
+//                                 value={scanInput}
+//                                 onChange={handleScanInput}
+//                                 placeholder="Scan barcode..."
+//                                 className="h-9 max-w-[300px]"
+//                                 disabled={!isScanning}
+//                             />
+//                             <Button
+//                                 onClick={toggleScanning}
+//                                 variant={isScanning ? "destructive" : "default"}
+//                                 size="sm"
+//                                 className="h-9 w-[120px]"
+//                             >
+//                                 {isScanning ? (
+//                                     <span className="flex items-center gap-2">
+//                                         <Loader2 className="h-3 w-3 animate-spin" />
+//                                         Scanning
+//                                     </span>
+//                                 ) : (
+//                                     <span className="flex items-center gap-2">
+//                                         <Scan className="h-3 w-3" />
+//                                         Start Scan
+//                                     </span>
+//                                 )}
+//                             </Button>
+//                         </div>
+//                     </div>
+//                 </div>
+//             </div>
+
+
+//             <div className="mb-4 flex items-center space-x-2">
+//                 <Select onValueChange={handleColumnSelect} defaultValue="all">
+//                     <SelectTrigger className="w-[180px]">
+//                         <SelectValue placeholder="Select column" />
+//                     </SelectTrigger>
+//                     <SelectContent>
+//                         <SelectItem value="all">All Columns</SelectItem>
+//                         <SelectItem value="ref">Reference</SelectItem>
+//                         <SelectItem value="date">Date</SelectItem>
+//                         <SelectItem value="time">Time</SelectItem>
+//                         <SelectItem value="source">Source</SelectItem>
+//                         <SelectItem value="payment_type">Payment Type</SelectItem>
+//                         <SelectItem value="sale_type">Sale Type</SelectItem>
+//                         <SelectItem value="agent_name">Agent</SelectItem>
+//                         <SelectItem value="cm_first_name">First Name</SelectItem>
+//                         <SelectItem value="cm_last_name">Last Name</SelectItem>
+//                         <SelectItem value="cm_phone">Phone</SelectItem>
+//                         <SelectItem value="alternate_phone">Alternate Number</SelectItem>
+//                         <SelectItem value="email">Email</SelectItem>
+//                         <SelectItem value="status">Status</SelectItem>
+//                         <SelectItem value="shipment_type">Shipment Type</SelectItem>
+//                         <SelectItem value="address">Address</SelectItem>
+//                         <SelectItem value="post_type">Post Type</SelectItem>
+//                         <SelectItem value="post">Post</SelectItem>
+//                         <SelectItem value="district">District</SelectItem>
+//                         <SelectItem value="city">City/Town/Village</SelectItem>
+//                         <SelectItem value="pincode">Pincode</SelectItem>
+//                         <SelectItem value="state">State</SelectItem>
+//                         <SelectItem value="disease">Disease</SelectItem>
+//                         <SelectItem value="amount">Amount</SelectItem>
+//                         <SelectItem value="products">Products</SelectItem>
+//                     </SelectContent>
+//                 </Select>
+//                 <Input type="text" placeholder="Search..." value={searchTerm} onChange={handleSearch} className="max-w-sm" />
+//             </div>
+
+//             <div className="bg-white shadow-md rounded-lg overflow-hidden">
+//                 <div className="max-w-full">
+//                     <Table>
+//                         <TableHeader>
+//                             <tr className="bg-gray-200">
+//                                 <TableHead>Ref</TableHead>
+//                                 <TableHead>Date</TableHead>
+//                                 <TableHead>Time</TableHead>
+//                                 <TableHead>Source</TableHead>
+//                                 <TableHead>Payment Type</TableHead>
+//                                 <TableHead>Sale Type</TableHead>
+//                                 <TableHead>Agent</TableHead>
+//                                 <TableHead>First Name</TableHead>
+//                                 <TableHead>Last Name</TableHead>
+//                                 <TableHead>Phone</TableHead>
+//                                 <TableHead>Alternate Number</TableHead>
+//                                 <TableHead>Email</TableHead>
+//                                 <TableHead>Comment</TableHead>
+//                                 <TableHead>Shipment Type</TableHead>
+//                                 <TableHead>Address</TableHead>
+//                                 <TableHead>Post Type</TableHead>
+//                                 <TableHead>Post</TableHead>
+//                                 <TableHead>District</TableHead>
+//                                 <TableHead>City/Town/Village</TableHead>
+//                                 <TableHead>Pincode</TableHead>
+//                                 <TableHead>State</TableHead>
+//                                 <TableHead>Disease</TableHead>
+//                                 <TableHead>Amount</TableHead>
+//                                 <TableHead>Products</TableHead>
+//                             </tr>
+//                         </TableHeader>
+//                         <TableBody>
+//                             {paginatedData.map((item) => (
+//                                 <TableRow key={item._id} item={item}>
+//                                     <TableCell>{item.ref}</TableCell>
+//                                     <TableCell>{item.date}</TableCell>
+//                                     <TableCell>{item.time}</TableCell>
+//                                     <TableCell>{item.source?.value}</TableCell>
+//                                     <TableCell>{item.payment_type?.value}</TableCell>
+//                                     <TableCell>{item.sale_type?.value}</TableCell>
+//                                     <TableCell>{item.agent_name?.value}</TableCell>
+//                                     <TableCell>{item.cm_first_name}</TableCell>
+//                                     <TableCell>{item.cm_last_name}</TableCell>
+//                                     <TableCell>{item.cm_phone}</TableCell>
+//                                     <TableCell>{item.alternate_phone}</TableCell>
+//                                     <TableCell>{item.email}</TableCell>
+//                                     <TableCell>{item.comment}</TableCell>
+//                                     <TableCell>{item.shipment_type?.value}</TableCell>
+//                                     <TableCell>{item.address}</TableCell>
+//                                     <TableCell>{item.post_type?.value}</TableCell>
+//                                     <TableCell>{item.post}</TableCell>
+//                                     <TableCell>{item.district}</TableCell>
+//                                     <TableCell>{item.city}</TableCell>
+//                                     <TableCell>{item.pincode}</TableCell>
+//                                     <TableCell>{item.state?.value}</TableCell>
+//                                     <TableCell>{item.disease?.value}</TableCell>
+//                                     <TableCell>{item.amount?.value}</TableCell>
+//                                     <TableCell>
+//                                         {Array.isArray(item.products?.value)
+//                                             ? item.products.value.map((product, index) => (
+//                                                 <div key={index}>
+//                                                     {product.product} : {product.quantity}
+//                                                 </div>
+//                                             ))
+//                                             : null}
+//                                     </TableCell>
+//                                 </TableRow>
+//                             ))}
+//                         </TableBody>
+//                     </Table>
+//                 </div>
+//             </div>
+//             <Pagination className="mt-4 flex justify-center">
+//                 <PaginationContent>
+//                     <PaginationItem>
+//                         <PaginationPrevious onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
+//                     </PaginationItem>
+//                     {[...Array(totalPages)].map((_, index) => {
+//                         const pageNumber = index + 1
+//                         if (
+//                             pageNumber === 1 ||
+//                             pageNumber === totalPages ||
+//                             (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+//                         ) {
+//                             return (
+//                                 <PaginationItem key={index}>
+//                                     <PaginationLink onClick={() => handlePageChange(pageNumber)} isActive={currentPage === pageNumber}>
+//                                         {pageNumber}
+//                                     </PaginationLink>
+//                                 </PaginationItem>
+//                             )
+//                         } else if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
+//                             return <PaginationEllipsis key={index} />
+//                         }
+//                         return null
+//                     })}
+//                     <PaginationItem>
+//                         <PaginationNext onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} />
+//                     </PaginationItem>
+//                 </PaginationContent>
+//             </Pagination>
+//             <div className="flex items-center space-x-2 mt-4">
+//                 <Input
+//                     type="number"
+//                     placeholder="Go to page"
+//                     value={goToPage}
+//                     onChange={(e) => setGoToPage(e.target.value)}
+//                     onKeyDown={(e) => {
+//                         if (e.key === "Enter" && goToPage) {
+//                             handleGoToPage()
+//                         }
+//                     }}
+//                     className="w-40"
+//                     min={1}
+//                     max={totalPages}
+//                 />
+//                 <Button onClick={handleGoToPage} disabled={!goToPage}>
+//                     Go
+//                 </Button>
+//             </div>
+//         </div>
+//     )
+// }
+
+// export default DispatchPage
+
+
+
+
+
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { getAllDispatched, dispatchDataFunction } from "@/services/dispatchedService"
+import { getAllDispatched, dispatchDataFunction, updatePositionAndDate } from "@/services/dispatchedService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
@@ -16,10 +493,16 @@ import {
     PaginationPrevious,
     PaginationEllipsis,
 } from "@/components/ui/pagination"
-import { Loader2, Scan, KeyboardIcon, AlertCircle } from "lucide-react"
+import { Loader2, Scan } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { format, parse } from "date-fns"
+import { CalendarIcon } from "lucide-react"
 
+const parseIndianDate = (dateString) => {
+    return parse(dateString, "dd/MM/yyyy", new Date())
+}
 
 const Table = ({ children }) => (
     <div className="overflow-x-auto">
@@ -30,12 +513,7 @@ const Table = ({ children }) => (
 const TableHeader = ({ children }) => <thead className="bg-gray-200">{children}</thead>
 
 const TableRow = ({ children, className, item }) => (
-    <tr
-        className={`bg-green-100 hover:bg-green-100 ${className}`}
-
-    >
-        {children}
-    </tr>
+    <tr className={`bg-green-100 hover:bg-green-100 ${className}`}>{children}</tr>
 )
 
 const TableHead = ({ children, className }) => (
@@ -64,8 +542,11 @@ const DispatchPage = () => {
     const [paginatedData, setPaginatedData] = useState([])
     const [searchColumn, setSearchColumn] = useState("all")
     const [goToPage, setGoToPage] = useState("")
+    const [selectedPositions, setSelectedPositions] = useState({})
+    const [selectedDates, setSelectedDates] = useState({})
+    const [lastUpdateDates, setLastUpdateDates] = useState({})
 
-    // New state variables for scanning functionality
+    // Scanning functionality
     const [manualInput, setManualInput] = useState("")
     const [isScanning, setIsScanning] = useState(false)
     const [scanInput, setScanInput] = useState("")
@@ -78,6 +559,13 @@ const DispatchPage = () => {
             setDispatchData(response.data.data)
             setFilteredData(response.data.data)
             setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
+
+            // Initialize lastUpdateDates
+            const initialLastUpdateDates = {}
+            response.data.data.forEach((item) => {
+                initialLastUpdateDates[item._id] = item.lastUpdateDate || item.date
+            })
+            setLastUpdateDates(initialLastUpdateDates)
         } catch (error) {
             console.error("Error fetching dispatch data:", error)
             setError("Failed to fetch data. Please try again later.")
@@ -118,7 +606,52 @@ const DispatchPage = () => {
         applyFiltersAndPaginate()
     }, [applyFiltersAndPaginate])
 
-    // Handle manual input changes
+    const getAvailablePositions = (currentPosition, itemId) => {
+        const positions = ["STATE", "CITY", "DISTRICT"]
+        const currentIndex = positions.indexOf(currentPosition)
+
+        if (!selectedPositions[itemId]) return positions
+
+        const lastSelectedPosition = selectedPositions[itemId]
+        const lastIndex = positions.indexOf(lastSelectedPosition)
+
+        if (lastIndex === -1) return positions
+        return positions.slice(lastIndex + 1)
+    }
+
+    const handlePositionSelect = (value, itemId) => {
+        setSelectedPositions((prev) => ({
+            ...prev,
+            [itemId]: value,
+        }))
+    }
+
+    const handleDateSelect = (date, itemId) => {
+        setSelectedDates((prev) => ({
+            ...prev,
+            [itemId]: date,
+        }))
+    }
+
+    const handleUpdate = async (itemId) => {
+        const position = selectedPositions[itemId]
+        const date = selectedDates[itemId]
+
+        if (!position || !date) {
+            toast.error("Please select both position and date")
+            return
+        }
+
+        try {
+            console.log(itemId, position)
+            await updatePositionAndDate(itemId, position, format(date, "dd/MM/yyyy"))
+            toast.success("Position and date updated successfully")
+            fetchData()
+        } catch (error) {
+            toast.error("Failed to update position and date")
+        }
+    }
+
     const handleManualInputChange = (e) => {
         if (!isScanning) {
             const cleanedInput = e.target.value.replace(/[^a-zA-Z0-9]/g, "")
@@ -126,68 +659,58 @@ const DispatchPage = () => {
         }
     }
 
-    // Handle manual send button click
     const handleManualSend = async () => {
         if (!manualInput) {
             toast.error("Please enter a value")
             return
         }
         try {
-            console.log("Manual input value:", manualInput)
             await handleDispatchAction(manualInput)
-            setManualInput("") // Clear input after successful action
+            setManualInput("")
         } catch (error) {
             console.error("Error processing manual input:", error)
             toast.error("Couldn't find required item")
-            setManualInput("") // Clear input even after error
+            setManualInput("")
         }
     }
 
-    // Handle scan input changes
     const handleScanInput = async (e) => {
         const value = e.target.value
         setScanInput(value)
 
         if (isScanning && value) {
             try {
-                console.log("Scanned input value:", value)
                 await handleDispatchAction(value)
-                setScanInput("") // Clear scan input after successful action
-                // Refocus the scan input after processing
+                setScanInput("")
                 setTimeout(() => {
                     scanInputRef.current?.focus()
                 }, 100)
             } catch (error) {
                 console.error("Error processing scanned input:", error)
                 toast.error("Couldn't find required item")
-                setScanInput("") // Clear scan input even after error
+                setScanInput("")
                 setTimeout(() => {
                     scanInputRef.current?.focus()
                 }, 100)
             }
         }
     }
-    // Toggle scanning mode
+
     const toggleScanning = () => {
         setIsScanning(!isScanning)
         if (!isScanning) {
-            // Focus the scan input when starting to scan
             setTimeout(() => {
                 scanInputRef.current?.focus()
             }, 100)
         }
     }
 
-    // Common dispatch action handler
     const handleDispatchAction = async (value) => {
         try {
-            // Replace this with your actual dispatch action from dispatchedService
-            console.log(value)
             const response = await dispatchDataFunction(value)
             console.log("Processing dispatch action for value:", value)
             toast.success("Action completed successfully")
-            await fetchData() // Refresh the data
-            // return response
+            await fetchData()
         } catch (error) {
             throw error
         }
@@ -239,10 +762,8 @@ const DispatchPage = () => {
         <div className="container mx-auto p-4 bg-gray-50 min-h-screen max-w-[95vw]">
             <h1 className="text-3xl font-semibold mb-6 text-gray-800">Dispatch Data</h1>
 
-            {/* Improved input section */}
             <div className="bg-white shadow-sm rounded-lg p-4 mb-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Manual Input - More compact */}
                     <div className="flex items-center gap-2">
                         <div className="flex-grow flex items-center gap-2">
                             <Input
@@ -253,23 +774,17 @@ const DispatchPage = () => {
                                 className="h-9 max-w-[300px]"
                                 disabled={isScanning}
                                 onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && manualInput) {
+                                    if (e.key === "Enter" && manualInput) {
                                         handleManualSend()
                                     }
                                 }}
                             />
-                            <Button
-                                onClick={handleManualSend}
-                                disabled={isScanning}
-                                size="sm"
-                                className="h-9"
-                            >
+                            <Button onClick={handleManualSend} disabled={isScanning} size="sm" className="h-9">
                                 Send
                             </Button>
                         </div>
                     </div>
 
-                    {/* Scanner Input - More compact */}
                     <div className="flex items-center gap-2">
                         <div className="flex-grow flex items-center gap-2">
                             <Input
@@ -303,7 +818,6 @@ const DispatchPage = () => {
                     </div>
                 </div>
             </div>
-
 
             <div className="mb-4 flex items-center space-x-2">
                 <Select onValueChange={handleColumnSelect} defaultValue="all">
@@ -370,6 +884,9 @@ const DispatchPage = () => {
                                 <TableHead>Disease</TableHead>
                                 <TableHead>Amount</TableHead>
                                 <TableHead>Products</TableHead>
+                                <TableHead>Last Position</TableHead>
+                                <TableHead>Last Update Date</TableHead>
+                                <TableHead>Update</TableHead>
                             </tr>
                         </TableHeader>
                         <TableBody>
@@ -406,6 +923,64 @@ const DispatchPage = () => {
                                                 </div>
                                             ))
                                             : null}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Select
+                                            value={selectedPositions[item._id] || ""}
+                                            onValueChange={(value) => handlePositionSelect(value, item._id)}
+                                        >
+                                            <SelectTrigger className="w-[180px]">
+                                                <SelectValue placeholder="Select position">
+                                                    {selectedPositions[item._id] || item.lastPosition || "Select position"}
+                                                </SelectValue>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {getAvailablePositions(item.lastPosition, item._id).map((position) => (
+                                                    <SelectItem key={position} value={position}>
+                                                        {position}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant={"outline"}
+                                                    className={`w-[180px] justify-start text-left font-normal ${!selectedDates[item._id] && "text-muted-foreground"
+                                                        }`}
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {selectedDates[item._id]
+                                                        ? format(selectedDates[item._id], "dd/MM/yyyy")
+                                                        : item.lastUpdateDate
+                                                            ? item.lastUpdateDate
+                                                            : "Pick a date"}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={selectedDates[item._id]}
+                                                    onSelect={(date) => handleDateSelect(date, item._id)}
+                                                    disabled={(date) => {
+                                                        const itemDate = parseIndianDate(item.date)
+                                                        const lastUpdateDate = item.lastUpdateDate ? parseIndianDate(item.lastUpdateDate) : null
+                                                        return date < itemDate || (lastUpdateDate && date < lastUpdateDate)
+                                                    }}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Button
+                                            onClick={() => handleUpdate(item._id)}
+                                            disabled={!selectedPositions[item._id] || !selectedDates[item._id]}
+                                        >
+                                            Update
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

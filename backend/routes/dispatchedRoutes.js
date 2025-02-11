@@ -10,5 +10,8 @@ router.get('/get-dispatched-data', isAuthenticated, dispatchedController.getAllD
 
 router.put('/put-dispatched-data', isAuthenticated, dispatchedController.dispatchedData);
 
+router.put('/update-position/:id', isAuthenticated, dispatchedController.updatePosition);
+
+
 
 module.exports = router;

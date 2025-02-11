@@ -237,6 +237,10 @@ const confirmedSchema = new Schema(
             type: Boolean,
             default: 0,
         },
+        location_and_date: {
+            type: Object,
+
+        },
     },
     { timestamps: true }
 );
