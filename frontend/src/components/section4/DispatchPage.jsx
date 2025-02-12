@@ -473,10 +473,6 @@
 
 // export default DispatchPage
 
-
-
-
-
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
@@ -495,10 +491,7 @@ import {
 } from "@/components/ui/pagination"
 import { Loader2, Scan } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
-import { format, parse } from "date-fns"
-import { CalendarIcon } from "lucide-react"
+import { format, isAfter } from "date-fns"
 
 const parseIndianDate = (dateString) => {
     if (!dateString) return null
@@ -608,20 +601,26 @@ const DispatchPage = () => {
         applyFiltersAndPaginate()
     }, [applyFiltersAndPaginate])
 
-    const getAvailablePositions = (currentPosition, itemId) => {
+    const getAvailablePositions = (item) => {
         const positions = ["STATE", "CITY", "DISTRICT"]
-        const currentIndex = positions.indexOf(currentPosition)
+        const locationHistory = item.location_and_date || {}
 
-        if (!selectedPositions[itemId]) return positions
+        // Get all previously selected positions
+        const usedPositions = Object.keys(locationHistory)
 
-        const lastSelectedPosition = selectedPositions[itemId]
-        const lastIndex = positions.indexOf(lastSelectedPosition)
-
-        if (lastIndex === -1) return positions
-        return positions.slice(lastIndex + 1)
+        // Filter out positions that have been used
+        return positions.filter((pos) => !usedPositions.includes(pos))
     }
 
     const handlePositionSelect = (value, itemId) => {
+        const item = paginatedData.find((i) => i._id === itemId)
+
+        // Reset date when position changes
+        setSelectedDates((prev) => ({
+            ...prev,
+            [itemId]: null,
+        }))
+
         setSelectedPositions((prev) => ({
             ...prev,
             [itemId]: value,
@@ -631,15 +630,22 @@ const DispatchPage = () => {
     const handleDateSelect = (date, itemId) => {
         const item = paginatedData.find((i) => i._id === itemId)
         const itemDate = parseIndianDate(item.date)
-        const lastUpdateDate = item.lastUpdateDate ? parseIndianDate(item.lastUpdateDate) : null
 
-        if ((lastUpdateDate && date >= lastUpdateDate) || (!lastUpdateDate && date >= itemDate)) {
+        // Get the latest update date from location_and_date if it exists
+        const locationHistory = item.location_and_date || {}
+        const lastUpdateDate =
+            Object.values(locationHistory).length > 0
+                ? parseIndianDate(Object.values(locationHistory).sort().reverse()[0])
+                : null
+
+        // Check if selected date is valid
+        if ((lastUpdateDate && isAfter(date, lastUpdateDate)) || (!lastUpdateDate && isAfter(date, itemDate))) {
             setSelectedDates((prev) => ({
                 ...prev,
                 [itemId]: date,
             }))
         } else {
-            toast.error("Selected date is not valid. Please choose a later date.")
+            toast.error("Selected date must be later than the last update date or item creation date")
         }
     }
 
@@ -653,11 +659,35 @@ const DispatchPage = () => {
         }
 
         try {
-            console.log(itemId, position)
-            await updatePositionAndDate(itemId, position, format(date, "dd/MM/yyyy"))
+            const item = paginatedData.find((i) => i._id === itemId)
+            const formattedDate = format(date, "dd/MM/yyyy")
+
+            // Create/update location_and_date object
+            const locationHistory = item.location_and_date || {}
+
+            // Validate position hierarchy
+            if (
+                (position === "CITY" && !locationHistory["STATE"]) ||
+                (position === "DISTRICT" && (!locationHistory["STATE"] || !locationHistory["CITY"]))
+            ) {
+                toast.error(
+                    `You must first update ${position === "CITY" ? "STATE" : "STATE and CITY"} before updating ${position}`,
+                )
+                return
+            }
+
+            locationHistory[position] = formattedDate
+            console.log(itemId, position, formattedDate, locationHistory)
+            // await updatePositionAndDate(itemId, position, formattedDate, locationHistory)
             toast.success("Position and date updated successfully")
-            fetchData()
+
+            // Reset selection states
+            setSelectedPositions((prev) => ({ ...prev, [itemId]: null }))
+            setSelectedDates((prev) => ({ ...prev, [itemId]: null }))
+
+            await fetchData()
         } catch (error) {
+            console.error("Update error:", error)
             toast.error("Failed to update position and date")
         }
     }
@@ -894,7 +924,7 @@ const DispatchPage = () => {
                                 <TableHead>Disease</TableHead>
                                 <TableHead>Amount</TableHead>
                                 <TableHead>Products</TableHead>
-                                <TableHead>Last Position</TableHead>
+                                <TableHead>Last Position Updates</TableHead>
                                 <TableHead>Last Update Date</TableHead>
                                 <TableHead>Update</TableHead>
                             </tr>
@@ -935,54 +965,16 @@ const DispatchPage = () => {
                                             : null}
                                     </TableCell>
                                     <TableCell>
-                                        <Select
-                                            value={selectedPositions[item._id] || ""}
-                                            onValueChange={(value) => handlePositionSelect(value, item._id)}
-                                        >
-                                            <SelectTrigger className="w-[180px]">
-                                                <SelectValue placeholder="Select position">
-                                                    {selectedPositions[item._id] || item.lastPosition || "Select position"}
-                                                </SelectValue>
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {getAvailablePositions(item.lastPosition, item._id).map((position) => (
-                                                    <SelectItem key={position} value={position}>
-                                                        {position}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        {item.location_and_date
+                                            ? Object.entries(item.location_and_date).map(([position, date]) => (
+                                                <div key={position}>
+                                                    {position}: {date}
+                                                </div>
+                                            ))
+                                            : "No updates"}
                                     </TableCell>
                                     <TableCell>
-                                        <Popover>
-                                            <PopoverTrigger>
-                                                <Button
-                                                    variant={"outline"}
-                                                    className={`w-[180px] justify-start text-left font-normal ${!selectedDates[item._id] && !item.lastUpdateDate && "text-muted-foreground"
-                                                        }`}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {selectedDates[item._id]
-                                                        ? format(selectedDates[item._id], "dd/MM/yyyy")
-                                                        : item.lastUpdateDate
-                                                            ? item.lastUpdateDate
-                                                            : "Pick a date"}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent>
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={selectedDates[item._id]}
-                                                    onSelect={(date) => handleDateSelect(date, item._id)}
-                                                    disabled={(date) => {
-                                                        const itemDate = parseIndianDate(item.date)
-                                                        const lastUpdateDate = item.lastUpdateDate ? parseIndianDate(item.lastUpdateDate) : null
-                                                        return date < (lastUpdateDate || itemDate)
-                                                    }}
-                                                    initialFocus
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
+                                        {item.location_and_date ? Object.values(item.location_and_date).sort().reverse()[0] : item.date}
                                     </TableCell>
                                     <TableCell>
                                         <Button
