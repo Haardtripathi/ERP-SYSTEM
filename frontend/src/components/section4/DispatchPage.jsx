@@ -501,7 +501,9 @@ import { format, parse } from "date-fns"
 import { CalendarIcon } from "lucide-react"
 
 const parseIndianDate = (dateString) => {
-    return parse(dateString, "dd/MM/yyyy", new Date())
+    if (!dateString) return null
+    const [day, month, year] = dateString.split("/")
+    return new Date(year, month - 1, day)
 }
 
 const Table = ({ children }) => (
@@ -627,10 +629,18 @@ const DispatchPage = () => {
     }
 
     const handleDateSelect = (date, itemId) => {
-        setSelectedDates((prev) => ({
-            ...prev,
-            [itemId]: date,
-        }))
+        const item = paginatedData.find((i) => i._id === itemId)
+        const itemDate = parseIndianDate(item.date)
+        const lastUpdateDate = item.lastUpdateDate ? parseIndianDate(item.lastUpdateDate) : null
+
+        if ((lastUpdateDate && date >= lastUpdateDate) || (!lastUpdateDate && date >= itemDate)) {
+            setSelectedDates((prev) => ({
+                ...prev,
+                [itemId]: date,
+            }))
+        } else {
+            toast.error("Selected date is not valid. Please choose a later date.")
+        }
     }
 
     const handleUpdate = async (itemId) => {
@@ -945,10 +955,10 @@ const DispatchPage = () => {
                                     </TableCell>
                                     <TableCell>
                                         <Popover>
-                                            <PopoverTrigger asChild>
+                                            <PopoverTrigger>
                                                 <Button
                                                     variant={"outline"}
-                                                    className={`w-[180px] justify-start text-left font-normal ${!selectedDates[item._id] && "text-muted-foreground"
+                                                    className={`w-[180px] justify-start text-left font-normal ${!selectedDates[item._id] && !item.lastUpdateDate && "text-muted-foreground"
                                                         }`}
                                                 >
                                                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -959,7 +969,7 @@ const DispatchPage = () => {
                                                             : "Pick a date"}
                                                 </Button>
                                             </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
+                                            <PopoverContent>
                                                 <Calendar
                                                     mode="single"
                                                     selected={selectedDates[item._id]}
@@ -967,7 +977,7 @@ const DispatchPage = () => {
                                                     disabled={(date) => {
                                                         const itemDate = parseIndianDate(item.date)
                                                         const lastUpdateDate = item.lastUpdateDate ? parseIndianDate(item.lastUpdateDate) : null
-                                                        return date < itemDate || (lastUpdateDate && date < lastUpdateDate)
+                                                        return date < (lastUpdateDate || itemDate)
                                                     }}
                                                     initialFocus
                                                 />
