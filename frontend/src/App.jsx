@@ -25,6 +25,7 @@ import ConfirmedPage from "./components/section2/confirmed/ConfirmedPage";
 import SheetGenerator from "./components/section3/sheetGenerator/SheetGenerator";
 import LabelGenerator from "./components/section3/labelGenerator/LabelGenerator";
 import DispatchPage from "./components/section4/DispatchPage";
+import ReturnPage from "./components/section5/ReturnPage";
 
 const App = () => {
   const { checkAuth, loading, user } = useAuthStore();
@@ -177,6 +178,14 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <DispatchPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/return"
+                  element={
+                    <ProtectedRoute>
+                      <ReturnPage />
                     </ProtectedRoute>
                   }
                 />

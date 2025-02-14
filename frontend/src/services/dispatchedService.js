@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-catch */
 
 import axiosInstance from '../axiosInstance'
 
@@ -13,10 +14,9 @@ export const dispatchDataFunction = async (value) => {
     const response = await axiosInstance.put(`/dispatched/put-dispatched-data`, { value })
     return response
 }
-
 export const updatePositionAndDate = async (itemId, position, date, locationHistory) => {
-    console.log(itemId, position, date, locationHistory)
     try {
+        console.log(itemId, position, date, locationHistory)
         const response = await axiosInstance.put(`/dispatched/update-position/${itemId}`, { position, date, locationHistory })
         return response
     } catch (error) {
@@ -24,3 +24,11 @@ export const updatePositionAndDate = async (itemId, position, date, locationHist
     }
 }
 
+export const returnDataFunction = async (value) => {
+    const response = await axiosInstance.put(`/dispatched/return-data`, { value })
+    return response
+}
+export const raiseComplain = async (value) => {
+    const response = await axiosInstance.put(`/dispatched/put-dispatched-data`, { value })
+    return response
+}

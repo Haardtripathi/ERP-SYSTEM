@@ -41,6 +41,14 @@ const dispatchedSchema = new Schema(
             type: Boolean,
             default: 0, // Set default to 0 (closed)
         },
+        isComplain: {
+            type: Boolean,
+            default: false,
+        },
+        isReturn: {
+            type: Boolean,
+            default: false,
+        }
     },
     { timestamps: true }
 );
