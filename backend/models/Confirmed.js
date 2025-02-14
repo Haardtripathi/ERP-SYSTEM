@@ -233,10 +233,6 @@ const confirmedSchema = new Schema(
             type: Boolean,
             default: 0, // Set default to 0 (closed)
         },
-        isComplain: {
-            type: Boolean,
-            default: 0,
-        },
         location_and_date: {
             type: Object,
 
@@ -244,6 +240,8 @@ const confirmedSchema = new Schema(
     },
     { timestamps: true }
 );
+
+confirmedSchema.index({ isDeleted: 1, createdAt: -1 });
 
 
 module.exports = mongoose.model("Confirmed", confirmedSchema);

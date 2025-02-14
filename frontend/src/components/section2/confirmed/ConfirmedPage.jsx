@@ -218,7 +218,7 @@ const ConfirmedPage = () => {
 
         return (
             <Select
-                onValueChange={(value) => handleStateChange(item._id, item.ref, value)}
+                onValueChange={(value) => handleStateChange(item._id, item.ref, value)} disabled={item.isDispatched}
             >
                 <SelectTrigger className="w-[120px]">
                     <SelectValue placeholder="Select State">

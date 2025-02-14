@@ -496,6 +496,9 @@ pendingSchema.pre("validate", async function (next) {
     next();
 });
 
+pendingSchema.index({ isDeleted: 1, createdAt: -1 });
+
+
 module.exports = mongoose.model("Pending", pendingSchema);
 
 

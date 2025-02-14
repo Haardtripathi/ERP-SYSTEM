@@ -3,7 +3,9 @@ import axiosInstance from '../axiosInstance'
 
 
 export const getAllDispatched = async () => {
+    console.log('abc')
     const response = await axiosInstance.get(`/dispatched/get-dispatched-data`);
+    console.log(response)
     return response;
 };
 

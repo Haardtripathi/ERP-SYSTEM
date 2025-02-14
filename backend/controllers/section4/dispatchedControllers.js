@@ -1,4 +1,5 @@
 const Confirmed = require('../../models/Confirmed')
+const Dispatched = require('../../models/Dispatched')
 
 
 module.exports.getAllDispatchedData = async (req, res) => {
@@ -10,18 +11,17 @@ module.exports.getAllDispatchedData = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // Fetch data with pagination, including only records where awb_number is "" or null
-        const data = await Confirmed.find({
-            isDeleted: false,
-            isDispatched: true
-        })
+        let data = await Dispatched.find({ isDeleted: false }).populate('confirmedId')
+        // console.log(data);
+        // data.confirmedId.location_and_date = data.location_and_date || null
+        console.log(data);
 
+        // data.confirmedId.location_and_date = data.location_and_date || null
         // Get total count of filtered documents
-        const totalCount = await Confirmed.countDocuments({
-            isDeleted: false,
-            isDispatched: true
-
+        const totalCount = await Dispatched.countDocuments({
+            isDeleted: false
         });
-
+        console.log(totalCount);
         return res.status(200).json({
             message: "Dispatch data fetched successfully.",
             data,
@@ -57,6 +57,15 @@ exports.dispatchedData = async (req, res) => {
         // Update isDispatched to true
         confirmedRow.isDispatched = true;
         await confirmedRow.save();
+
+        // Create a new Dispatched entry
+        const dispatchedEntry = new Dispatched({
+            confirmedId: confirmedRow._id,
+
+        });
+
+        await dispatchedEntry.save();
+
 
         res.status(200).json({ message: "Dispatched status updated successfully", data: confirmedRow });
 

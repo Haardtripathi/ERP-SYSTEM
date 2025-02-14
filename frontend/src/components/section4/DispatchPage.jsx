@@ -1,9 +1,8 @@
 
-
 // "use client"
 
 // import { useState, useEffect, useCallback, useRef } from "react"
-// import { getAllDispatched, dispatchDataFunction } from "@/services/dispatchedService"
+// import { getAllDispatched, dispatchDataFunction, updatePositionAndDate } from "@/services/dispatchedService"
 // import { Button } from "@/components/ui/button"
 // import { Input } from "@/components/ui/input"
 // import { toast } from "react-hot-toast"
@@ -16,16 +15,15 @@
 //     PaginationPrevious,
 //     PaginationEllipsis,
 // } from "@/components/ui/pagination"
-// import { Loader2, Scan, KeyboardIcon, AlertCircle } from "lucide-react"
+// import { Loader2, Scan } from "lucide-react"
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-// import { Alert, AlertDescription } from "@/components/ui/alert"
-// import {
-//     Popover,
-//     PopoverContent,
-//     PopoverTrigger,
-// } from "@/components/ui/popover"
-// import { Calendar } from "@/components/ui/calendar"
+// import { format, isAfter } from "date-fns"
 
+// const parseIndianDate = (dateString) => {
+//     if (!dateString) return null
+//     const [day, month, year] = dateString.split("/")
+//     return new Date(year, month - 1, day)
+// }
 
 // const Table = ({ children }) => (
 //     <div className="overflow-x-auto">
@@ -36,12 +34,7 @@
 // const TableHeader = ({ children }) => <thead className="bg-gray-200">{children}</thead>
 
 // const TableRow = ({ children, className, item }) => (
-//     <tr
-//         className={`bg-green-100 hover:bg-green-100 ${className}`}
-
-//     >
-//         {children}
-//     </tr>
+//     <tr className={`bg-green-100 hover:bg-green-100 ${className}`}>{children}</tr>
 // )
 
 // const TableHead = ({ children, className }) => (
@@ -70,8 +63,11 @@
 //     const [paginatedData, setPaginatedData] = useState([])
 //     const [searchColumn, setSearchColumn] = useState("all")
 //     const [goToPage, setGoToPage] = useState("")
+//     const [selectedPositions, setSelectedPositions] = useState({})
+//     const [selectedDates, setSelectedDates] = useState({})
+//     const [lastUpdateDates, setLastUpdateDates] = useState({})
 
-//     // New state variables for scanning functionality
+//     // Scanning functionality
 //     const [manualInput, setManualInput] = useState("")
 //     const [isScanning, setIsScanning] = useState(false)
 //     const [scanInput, setScanInput] = useState("")
@@ -81,9 +77,17 @@
 //         try {
 //             setIsLoading(true)
 //             const response = await getAllDispatched()
+//             console.log(response)
 //             setDispatchData(response.data.data)
 //             setFilteredData(response.data.data)
 //             setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
+
+//             // Initialize lastUpdateDates
+//             const initialLastUpdateDates = {}
+//             response.data.data.forEach((item) => {
+//                 initialLastUpdateDates[item._id] = item.lastUpdateDate || item.date
+//             })
+//             setLastUpdateDates(initialLastUpdateDates)
 //         } catch (error) {
 //             console.error("Error fetching dispatch data:", error)
 //             setError("Failed to fetch data. Please try again later.")
@@ -124,7 +128,97 @@
 //         applyFiltersAndPaginate()
 //     }, [applyFiltersAndPaginate])
 
-//     // Handle manual input changes
+//     const getAvailablePositions = (item) => {
+//         const positions = ["STATE", "CITY", "DISTRICT"]
+//         const locationHistory = item.location_and_date || {}
+
+//         // Get all previously selected positions
+//         const usedPositions = Object.keys(locationHistory)
+
+//         // Filter out positions that have been used
+//         return positions.filter((pos) => !usedPositions.includes(pos))
+//     }
+
+//     const handlePositionSelect = (value, itemId) => {
+//         const item = paginatedData.find((i) => i._id === itemId)
+
+//         // Reset date when position changes
+//         setSelectedDates((prev) => ({
+//             ...prev,
+//             [itemId]: null,
+//         }))
+
+//         setSelectedPositions((prev) => ({
+//             ...prev,
+//             [itemId]: value,
+//         }))
+//     }
+
+//     const handleDateSelect = (date, itemId) => {
+//         const item = paginatedData.find((i) => i._id === itemId)
+//         const itemDate = parseIndianDate(item.date)
+
+//         // Get the latest update date from location_and_date if it exists
+//         const locationHistory = item.location_and_date || {}
+//         const lastUpdateDate =
+//             Object.values(locationHistory).length > 0
+//                 ? parseIndianDate(Object.values(locationHistory).sort().reverse()[0])
+//                 : null
+
+//         // Check if selected date is valid
+//         if ((lastUpdateDate && isAfter(date, lastUpdateDate)) || (!lastUpdateDate && isAfter(date, itemDate))) {
+//             setSelectedDates((prev) => ({
+//                 ...prev,
+//                 [itemId]: date,
+//             }))
+//         } else {
+//             toast.error("Selected date must be later than the last update date or item creation date")
+//         }
+//     }
+
+//     const handleUpdate = async (itemId) => {
+//         const position = selectedPositions[itemId]
+//         const date = selectedDates[itemId]
+
+//         if (!position || !date) {
+//             toast.error("Please select both position and date")
+//             return
+//         }
+
+//         try {
+//             const item = paginatedData.find((i) => i._id === itemId)
+//             const formattedDate = format(date, "dd/MM/yyyy")
+
+//             // Create/update location_and_date object
+//             const locationHistory = item.location_and_date || {}
+
+//             // Validate position hierarchy
+//             if (
+//                 (position === "CITY" && !locationHistory["STATE"]) ||
+//                 (position === "DISTRICT" && (!locationHistory["STATE"] || !locationHistory["CITY"]))
+//             ) {
+//                 toast.error(
+//                     `You must first update ${position === "CITY" ? "STATE" : "STATE and CITY"} before updating ${position}`,
+//                 )
+//                 return
+//             }
+
+//             locationHistory[position] = formattedDate
+//             console.log(itemId, position, formattedDate, locationHistory)
+//             // await updatePositionAndDate(itemId, position, formattedDate, locationHistory)
+//             toast.success("Position and date updated successfully")
+
+//             // Reset selection states
+//             setSelectedPositions((prev) => ({ ...prev, [itemId]: null }))
+//             setSelectedDates((prev) => ({ ...prev, [itemId]: null }))
+
+//             await fetchData()
+//         } catch (error) {
+//             console.error("Update error:", error)
+//             toast.error("Failed to update position and date")
+//         }
+//     }
+
 //     const handleManualInputChange = (e) => {
 //         if (!isScanning) {
 //             const cleanedInput = e.target.value.replace(/[^a-zA-Z0-9]/g, "")
@@ -132,68 +226,58 @@
 //         }
 //     }
 
-//     // Handle manual send button click
 //     const handleManualSend = async () => {
 //         if (!manualInput) {
 //             toast.error("Please enter a value")
 //             return
 //         }
 //         try {
-//             console.log("Manual input value:", manualInput)
 //             await handleDispatchAction(manualInput)
-//             setManualInput("") // Clear input after successful action
+//             setManualInput("")
 //         } catch (error) {
 //             console.error("Error processing manual input:", error)
 //             toast.error("Couldn't find required item")
-//             setManualInput("") // Clear input even after error
+//             setManualInput("")
 //         }
 //     }
 
-//     // Handle scan input changes
 //     const handleScanInput = async (e) => {
 //         const value = e.target.value
 //         setScanInput(value)
 
 //         if (isScanning && value) {
 //             try {
-//                 console.log("Scanned input value:", value)
 //                 await handleDispatchAction(value)
-//                 setScanInput("") // Clear scan input after successful action
-//                 // Refocus the scan input after processing
+//                 setScanInput("")
 //                 setTimeout(() => {
 //                     scanInputRef.current?.focus()
 //                 }, 100)
 //             } catch (error) {
 //                 console.error("Error processing scanned input:", error)
 //                 toast.error("Couldn't find required item")
-//                 setScanInput("") // Clear scan input even after error
+//                 setScanInput("")
 //                 setTimeout(() => {
 //                     scanInputRef.current?.focus()
 //                 }, 100)
 //             }
 //         }
 //     }
-//     // Toggle scanning mode
+
 //     const toggleScanning = () => {
 //         setIsScanning(!isScanning)
 //         if (!isScanning) {
-//             // Focus the scan input when starting to scan
 //             setTimeout(() => {
 //                 scanInputRef.current?.focus()
 //             }, 100)
 //         }
 //     }
 
-//     // Common dispatch action handler
 //     const handleDispatchAction = async (value) => {
 //         try {
-//             // Replace this with your actual dispatch action from dispatchedService
-//             console.log(value)
 //             const response = await dispatchDataFunction(value)
 //             console.log("Processing dispatch action for value:", value)
 //             toast.success("Action completed successfully")
-//             await fetchData() // Refresh the data
-//             // return response
+//             await fetchData()
 //         } catch (error) {
 //             throw error
 //         }
@@ -245,10 +329,8 @@
 //         <div className="container mx-auto p-4 bg-gray-50 min-h-screen max-w-[95vw]">
 //             <h1 className="text-3xl font-semibold mb-6 text-gray-800">Dispatch Data</h1>
 
-//             {/* Improved input section */}
 //             <div className="bg-white shadow-sm rounded-lg p-4 mb-6">
 //                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//                     {/* Manual Input - More compact */}
 //                     <div className="flex items-center gap-2">
 //                         <div className="flex-grow flex items-center gap-2">
 //                             <Input
@@ -259,23 +341,17 @@
 //                                 className="h-9 max-w-[300px]"
 //                                 disabled={isScanning}
 //                                 onKeyDown={(e) => {
-//                                     if (e.key === 'Enter' && manualInput) {
+//                                     if (e.key === "Enter" && manualInput) {
 //                                         handleManualSend()
 //                                     }
 //                                 }}
 //                             />
-//                             <Button
-//                                 onClick={handleManualSend}
-//                                 disabled={isScanning}
-//                                 size="sm"
-//                                 className="h-9"
-//                             >
+//                             <Button onClick={handleManualSend} disabled={isScanning} size="sm" className="h-9">
 //                                 Send
 //                             </Button>
 //                         </div>
 //                     </div>
 
-//                     {/* Scanner Input - More compact */}
 //                     <div className="flex items-center gap-2">
 //                         <div className="flex-grow flex items-center gap-2">
 //                             <Input
@@ -309,7 +385,6 @@
 //                     </div>
 //                 </div>
 //             </div>
-
 
 //             <div className="mb-4 flex items-center space-x-2">
 //                 <Select onValueChange={handleColumnSelect} defaultValue="all">
@@ -376,42 +451,66 @@
 //                                 <TableHead>Disease</TableHead>
 //                                 <TableHead>Amount</TableHead>
 //                                 <TableHead>Products</TableHead>
+//                                 <TableHead>Last Position Updates</TableHead>
+//                                 <TableHead>Last Update Date</TableHead>
+//                                 <TableHead>Update</TableHead>
 //                             </tr>
 //                         </TableHeader>
 //                         <TableBody>
 //                             {paginatedData.map((item) => (
 //                                 <TableRow key={item._id} item={item}>
-//                                     <TableCell>{item.ref}</TableCell>
+//                                     <TableCell>{item.confirmedId?.ref}</TableCell>
 //                                     <TableCell>{item.date}</TableCell>
 //                                     <TableCell>{item.time}</TableCell>
-//                                     <TableCell>{item.source?.value}</TableCell>
-//                                     <TableCell>{item.payment_type?.value}</TableCell>
-//                                     <TableCell>{item.sale_type?.value}</TableCell>
-//                                     <TableCell>{item.agent_name?.value}</TableCell>
-//                                     <TableCell>{item.cm_first_name}</TableCell>
-//                                     <TableCell>{item.cm_last_name}</TableCell>
-//                                     <TableCell>{item.cm_phone}</TableCell>
-//                                     <TableCell>{item.alternate_phone}</TableCell>
-//                                     <TableCell>{item.email}</TableCell>
-//                                     <TableCell>{item.comment}</TableCell>
-//                                     <TableCell>{item.shipment_type?.value}</TableCell>
-//                                     <TableCell>{item.address}</TableCell>
-//                                     <TableCell>{item.post_type?.value}</TableCell>
-//                                     <TableCell>{item.post}</TableCell>
-//                                     <TableCell>{item.district}</TableCell>
-//                                     <TableCell>{item.city}</TableCell>
-//                                     <TableCell>{item.pincode}</TableCell>
-//                                     <TableCell>{item.state?.value}</TableCell>
-//                                     <TableCell>{item.disease?.value}</TableCell>
-//                                     <TableCell>{item.amount?.value}</TableCell>
+//                                     <TableCell>{item.confirmedId?.source?.value}</TableCell>
+//                                     <TableCell>{item.confirmedId?.payment_type?.value}</TableCell>
+//                                     <TableCell>{item.confirmedId?.sale_type?.value}</TableCell>
+//                                     <TableCell>{item.confirmedId?.agent_name?.value}</TableCell>
+//                                     <TableCell>{item.confirmedId?.cm_first_name}</TableCell>
+//                                     <TableCell>{item.confirmedId?.cm_last_name}</TableCell>
+//                                     <TableCell>{item.confirmedId?.cm_phone}</TableCell>
+//                                     <TableCell>{item.confirmedId?.alternate_phone}</TableCell>
+//                                     <TableCell>{item.confirmedId?.email}</TableCell>
+//                                     <TableCell>{item.confirmedId?.comment}</TableCell>
+//                                     <TableCell>{item.confirmedId?.shipment_type?.value}</TableCell>
+//                                     <TableCell>{item.confirmedId?.address}</TableCell>
+//                                     <TableCell>{item.confirmedId?.post_type?.value}</TableCell>
+//                                     <TableCell>{item.confirmedId?.post}</TableCell>
+//                                     <TableCell>{item.confirmedId?.district}</TableCell>
+//                                     <TableCell>{item.confirmedId?.city}</TableCell>
+//                                     <TableCell>{item.confirmedId?.pincode}</TableCell>
+//                                     <TableCell>{item.confirmedId?.state?.value}</TableCell>
+//                                     <TableCell>{item.confirmedId?.disease?.value}</TableCell>
+//                                     <TableCell>{item.confirmedId?.amount?.value}</TableCell>
 //                                     <TableCell>
-//                                         {Array.isArray(item.products?.value)
-//                                             ? item.products.value.map((product, index) => (
+//                                         {Array.isArray(item.confirmedId?.products?.value) && item.confirmedId.products.value.length > 0
+//                                             ? item.confirmedId.products.value.map((product, index) => (
 //                                                 <div key={index}>
 //                                                     {product.product} : {product.quantity}
 //                                                 </div>
 //                                             ))
-//                                             : null}
+//                                             : "No Products"}
+//                                     </TableCell>
+
+//                                     <TableCell>
+//                                         {item.location_and_date
+//                                             ? Object.entries(item.location_and_date).map(([position, date]) => (
+//                                                 <div key={position}>
+//                                                     {position}: {date}
+//                                                 </div>
+//                                             ))
+//                                             : "No updates"}
+//                                     </TableCell>
+//                                     <TableCell>
+//                                         {item.location_and_date ? Object.values(item.location_and_date).sort().reverse()[0] : item.date}
+//                                     </TableCell>
+//                                     <TableCell>
+//                                         <Button
+//                                             onClick={() => handleUpdate(item._id)}
+//                                             disabled={!selectedPositions[item._id] || !selectedDates[item._id]}
+//                                         >
+//                                             Update
+//                                         </Button>
 //                                     </TableCell>
 //                                 </TableRow>
 //                             ))}
@@ -472,6 +571,12 @@
 // }
 
 // export default DispatchPage
+
+
+
+
+
+
 
 "use client"
 
@@ -551,6 +656,7 @@ const DispatchPage = () => {
         try {
             setIsLoading(true)
             const response = await getAllDispatched()
+            console.log(response)
             setDispatchData(response.data.data)
             setFilteredData(response.data.data)
             setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
@@ -601,96 +707,6 @@ const DispatchPage = () => {
         applyFiltersAndPaginate()
     }, [applyFiltersAndPaginate])
 
-    const getAvailablePositions = (item) => {
-        const positions = ["STATE", "CITY", "DISTRICT"]
-        const locationHistory = item.location_and_date || {}
-
-        // Get all previously selected positions
-        const usedPositions = Object.keys(locationHistory)
-
-        // Filter out positions that have been used
-        return positions.filter((pos) => !usedPositions.includes(pos))
-    }
-
-    const handlePositionSelect = (value, itemId) => {
-        const item = paginatedData.find((i) => i._id === itemId)
-
-        // Reset date when position changes
-        setSelectedDates((prev) => ({
-            ...prev,
-            [itemId]: null,
-        }))
-
-        setSelectedPositions((prev) => ({
-            ...prev,
-            [itemId]: value,
-        }))
-    }
-
-    const handleDateSelect = (date, itemId) => {
-        const item = paginatedData.find((i) => i._id === itemId)
-        const itemDate = parseIndianDate(item.date)
-
-        // Get the latest update date from location_and_date if it exists
-        const locationHistory = item.location_and_date || {}
-        const lastUpdateDate =
-            Object.values(locationHistory).length > 0
-                ? parseIndianDate(Object.values(locationHistory).sort().reverse()[0])
-                : null
-
-        // Check if selected date is valid
-        if ((lastUpdateDate && isAfter(date, lastUpdateDate)) || (!lastUpdateDate && isAfter(date, itemDate))) {
-            setSelectedDates((prev) => ({
-                ...prev,
-                [itemId]: date,
-            }))
-        } else {
-            toast.error("Selected date must be later than the last update date or item creation date")
-        }
-    }
-
-    const handleUpdate = async (itemId) => {
-        const position = selectedPositions[itemId]
-        const date = selectedDates[itemId]
-
-        if (!position || !date) {
-            toast.error("Please select both position and date")
-            return
-        }
-
-        try {
-            const item = paginatedData.find((i) => i._id === itemId)
-            const formattedDate = format(date, "dd/MM/yyyy")
-
-            // Create/update location_and_date object
-            const locationHistory = item.location_and_date || {}
-
-            // Validate position hierarchy
-            if (
-                (position === "CITY" && !locationHistory["STATE"]) ||
-                (position === "DISTRICT" && (!locationHistory["STATE"] || !locationHistory["CITY"]))
-            ) {
-                toast.error(
-                    `You must first update ${position === "CITY" ? "STATE" : "STATE and CITY"} before updating ${position}`,
-                )
-                return
-            }
-
-            locationHistory[position] = formattedDate
-            console.log(itemId, position, formattedDate, locationHistory)
-            // await updatePositionAndDate(itemId, position, formattedDate, locationHistory)
-            toast.success("Position and date updated successfully")
-
-            // Reset selection states
-            setSelectedPositions((prev) => ({ ...prev, [itemId]: null }))
-            setSelectedDates((prev) => ({ ...prev, [itemId]: null }))
-
-            await fetchData()
-        } catch (error) {
-            console.error("Update error:", error)
-            toast.error("Failed to update position and date")
-        }
-    }
 
     const handleManualInputChange = (e) => {
         if (!isScanning) {
@@ -797,6 +813,73 @@ const DispatchPage = () => {
             </div>
         )
     }
+
+    const getAvailablePositions = () => {
+        const positions = ["STATE", "DISTRICT", "CITY"]
+        const locationHistory = item.location_and_date || {}
+        return positions.filter((pos) => !Object.keys(locationHistory).includes(pos))
+    }
+
+    const handlePositionSelect = (value) => {
+        setSelectedPosition(value)
+        setSelectedDate("") // Reset date when position changes
+    }
+
+    const handleDateSelect = (date) => {
+        const itemDate = parse(item.date, "dd/MM/yyyy", new Date())
+        const locationHistory = item.location_and_date || {}
+        const lastUpdateDate =
+            Object.values(locationHistory).length > 0
+                ? parse(Object.values(locationHistory).sort().reverse()[0], "dd/MM/yyyy", new Date())
+                : null
+
+        const selectedDate = parse(date, "yyyy-MM-dd", new Date())
+
+        if (
+            (lastUpdateDate && isAfter(selectedDate, lastUpdateDate)) ||
+            (!lastUpdateDate && isAfter(selectedDate, itemDate))
+        ) {
+            setSelectedDate(date)
+        } else {
+            toast.error("Selected date must be later than the last update date or item creation date")
+        }
+    }
+
+    const handleUpdate = async () => {
+        if (!selectedPosition || !selectedDate) {
+            toast.error("Please select both position and date")
+            return
+        }
+
+        try {
+            const formattedDate = format(parse(selectedDate, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
+            const locationHistory = { ...item.location_and_date } || {}
+
+            if (
+                (selectedPosition === "CITY" && !locationHistory["STATE"]) ||
+                (selectedPosition === "DISTRICT" && (!locationHistory["STATE"] || !locationHistory["CITY"]))
+            ) {
+                toast.error(
+                    `You must first update ${selectedPosition === "CITY" ? "STATE" : "STATE and CITY"} before updating ${selectedPosition}`,
+                )
+                return
+            }
+
+            locationHistory[selectedPosition] = formattedDate
+            await updatePositionAndDate(item._id, selectedPosition, formattedDate, locationHistory)
+            toast.success("Position and date updated successfully")
+
+            setSelectedPosition("")
+            setSelectedDate("")
+
+            // Trigger a re-fetch of data or update the local state
+            // This part depends on how you're managing state in your parent component
+        } catch (error) {
+            console.error("Update error:", error)
+            toast.error("Failed to update position and date")
+        }
+    }
+
 
     return (
         <div className="container mx-auto p-4 bg-gray-50 min-h-screen max-w-[95vw]">
@@ -932,38 +1015,39 @@ const DispatchPage = () => {
                         <TableBody>
                             {paginatedData.map((item) => (
                                 <TableRow key={item._id} item={item}>
-                                    <TableCell>{item.ref}</TableCell>
+                                    <TableCell>{item.confirmedId?.ref}</TableCell>
                                     <TableCell>{item.date}</TableCell>
                                     <TableCell>{item.time}</TableCell>
-                                    <TableCell>{item.source?.value}</TableCell>
-                                    <TableCell>{item.payment_type?.value}</TableCell>
-                                    <TableCell>{item.sale_type?.value}</TableCell>
-                                    <TableCell>{item.agent_name?.value}</TableCell>
-                                    <TableCell>{item.cm_first_name}</TableCell>
-                                    <TableCell>{item.cm_last_name}</TableCell>
-                                    <TableCell>{item.cm_phone}</TableCell>
-                                    <TableCell>{item.alternate_phone}</TableCell>
-                                    <TableCell>{item.email}</TableCell>
-                                    <TableCell>{item.comment}</TableCell>
-                                    <TableCell>{item.shipment_type?.value}</TableCell>
-                                    <TableCell>{item.address}</TableCell>
-                                    <TableCell>{item.post_type?.value}</TableCell>
-                                    <TableCell>{item.post}</TableCell>
-                                    <TableCell>{item.district}</TableCell>
-                                    <TableCell>{item.city}</TableCell>
-                                    <TableCell>{item.pincode}</TableCell>
-                                    <TableCell>{item.state?.value}</TableCell>
-                                    <TableCell>{item.disease?.value}</TableCell>
-                                    <TableCell>{item.amount?.value}</TableCell>
+                                    <TableCell>{item.confirmedId?.source?.value}</TableCell>
+                                    <TableCell>{item.confirmedId?.payment_type?.value}</TableCell>
+                                    <TableCell>{item.confirmedId?.sale_type?.value}</TableCell>
+                                    <TableCell>{item.confirmedId?.agent_name?.value}</TableCell>
+                                    <TableCell>{item.confirmedId?.cm_first_name}</TableCell>
+                                    <TableCell>{item.confirmedId?.cm_last_name}</TableCell>
+                                    <TableCell>{item.confirmedId?.cm_phone}</TableCell>
+                                    <TableCell>{item.confirmedId?.alternate_phone}</TableCell>
+                                    <TableCell>{item.confirmedId?.email}</TableCell>
+                                    <TableCell>{item.confirmedId?.comment}</TableCell>
+                                    <TableCell>{item.confirmedId?.shipment_type?.value}</TableCell>
+                                    <TableCell>{item.confirmedId?.address}</TableCell>
+                                    <TableCell>{item.confirmedId?.post_type?.value}</TableCell>
+                                    <TableCell>{item.confirmedId?.post}</TableCell>
+                                    <TableCell>{item.confirmedId?.district}</TableCell>
+                                    <TableCell>{item.confirmedId?.city}</TableCell>
+                                    <TableCell>{item.confirmedId?.pincode}</TableCell>
+                                    <TableCell>{item.confirmedId?.state?.value}</TableCell>
+                                    <TableCell>{item.confirmedId?.disease?.value}</TableCell>
+                                    <TableCell>{item.confirmedId?.amount?.value}</TableCell>
                                     <TableCell>
-                                        {Array.isArray(item.products?.value)
-                                            ? item.products.value.map((product, index) => (
+                                        {Array.isArray(item.confirmedId?.products?.value) && item.confirmedId.products.value.length > 0
+                                            ? item.confirmedId.products.value.map((product, index) => (
                                                 <div key={index}>
                                                     {product.product} : {product.quantity}
                                                 </div>
                                             ))
-                                            : null}
+                                            : "No Products"}
                                     </TableCell>
+
                                     <TableCell>
                                         {item.location_and_date
                                             ? Object.entries(item.location_and_date).map(([position, date]) => (
@@ -1043,4 +1127,9 @@ const DispatchPage = () => {
 }
 
 export default DispatchPage
+
+
+
+
+
 
