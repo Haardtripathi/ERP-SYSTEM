@@ -351,9 +351,9 @@
 
 
 "use client"
+import { useState, useEffect, useCallback, useRef } from "react"
 
-import { useState, useEffect, useCallback } from "react"
-import { getAllReturn } from "@/services/returnService"
+import { getAllReturn, returnDataFunction } from "@/services/returnService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
@@ -366,8 +366,9 @@ import {
     PaginationPrevious,
     PaginationEllipsis,
 } from "@/components/ui/pagination"
-import { Loader2 } from "lucide-react"
+import { Loader2, Scan } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 
 const Table = ({ children }) => (
     <div className="overflow-x-auto">
@@ -412,15 +413,21 @@ const ReturnPage = () => {
     const [searchColumn, setSearchColumn] = useState("all")
     const [goToPage, setGoToPage] = useState("")
 
+    const [returnManualInput, setReturnManualInput] = useState("")
+    const [isReturnScanning, setIsReturnScanning] = useState(false)
+    const [returnScanInput, setReturnScanInput] = useState("")
+    const returnScanInputRef = useRef(null)
+
+
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true)
             const response = await getAllReturn()
-            // console.log(response)
+            console.log(response)
             // Ensure we have a valid array of data
             if (response.data?.returnData) {
                 const validData = Array.isArray(response.data.returnData) ? response.data.returnData : [response.data.returnData]
-                console.log(validData)
+                // console.log(validData)
                 setReturnData(validData)
                 setFilteredData(validData)
                 setTotalPages(Math.ceil(validData.length / itemsPerPage))
@@ -503,6 +510,70 @@ const ReturnPage = () => {
         applyFiltersAndPaginate()
     }, [applyFiltersAndPaginate])
 
+    const handleReturnManualInputChange = (e) => {
+        if (!isReturnScanning) {
+            const cleanedInput = e.target.value.replace(/[^a-zA-Z0-9]/g, "")
+            setReturnManualInput(cleanedInput)
+        }
+    }
+
+    const handleReturnManualSend = async () => {
+        if (!returnManualInput) {
+            toast.error("Please enter a value")
+            return
+        }
+        try {
+            await handleReturnAction(returnManualInput)
+            setReturnManualInput("")
+        } catch (error) {
+            console.error("Error processing manual return input:", error)
+            toast.error("Couldn't find required item")
+            setReturnManualInput("")
+        }
+    }
+
+    const handleReturnScanInput = async (e) => {
+        const value = e.target.value
+        setReturnScanInput(value)
+
+        if (isReturnScanning && value) {
+            try {
+                await handleReturnAction(value)
+                setReturnScanInput("")
+                setTimeout(() => {
+                    returnScanInputRef.current?.focus()
+                }, 100)
+            } catch (error) {
+                console.error("Error processing scanned return input:", error)
+                toast.error("Couldn't find required item")
+                setReturnScanInput("")
+                setTimeout(() => {
+                    returnScanInputRef.current?.focus()
+                }, 100)
+            }
+        }
+    }
+
+    const toggleReturnScanning = () => {
+        setIsReturnScanning(!isReturnScanning)
+        if (!isReturnScanning) {
+            setTimeout(() => {
+                returnScanInputRef.current?.focus()
+            }, 100)
+        }
+    }
+
+    const handleReturnAction = async (value) => {
+        try {
+            const response = await returnDataFunction(value)
+            console.log("Processing return action for value:", value)
+            toast.success("Return action completed successfully")
+            await fetchData()
+        } catch (error) {
+            throw error
+        }
+    }
+
     const handleGoToPage = () => {
         const pageNumber = Number.parseInt(goToPage, 10)
         if (pageNumber >= 1 && pageNumber <= totalPages) {
@@ -584,6 +655,63 @@ const ReturnPage = () => {
                 </Select>
                 <Input type="text" placeholder="Search..." value={searchTerm} onChange={handleSearch} className="max-w-sm" />
             </div>
+            <div className="bg-white shadow-sm rounded-lg p-4 mb-6">
+                <h2 className="text-xl font-semibold mb-4 text-gray-700">Return Controls</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                        <div className="flex-grow flex items-center gap-2">
+                            <Input
+                                type="text"
+                                value={returnManualInput}
+                                onChange={handleReturnManualInputChange}
+                                placeholder="Enter return code manually..."
+                                className="h-9 max-w-[300px]"
+                                disabled={isReturnScanning}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && returnManualInput) {
+                                        handleReturnManualSend()
+                                    }
+                                }}
+                            />
+                            <Button onClick={handleReturnManualSend} disabled={isReturnScanning} size="sm" className="h-9">
+                                Return
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <div className="flex-grow flex items-center gap-2">
+                            <Input
+                                ref={returnScanInputRef}
+                                type="text"
+                                value={returnScanInput}
+                                onChange={handleReturnScanInput}
+                                placeholder="Scan return barcode..."
+                                className="h-9 max-w-[300px]"
+                                disabled={!isReturnScanning}
+                            />
+                            <Button
+                                onClick={toggleReturnScanning}
+                                variant={isReturnScanning ? "destructive" : "default"}
+                                size="sm"
+                                className="h-9 w-[140px]"
+                            >
+                                {isReturnScanning ? (
+                                    <span className="flex items-center gap-2">
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        Return Scanning
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center gap-2">
+                                        <Scan className="h-3 w-3" />
+                                        Start Return Scan
+                                    </span>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="max-w-full">
@@ -618,7 +746,7 @@ const ReturnPage = () => {
                         </TableHeader>
                         <TableBody>
                             {paginatedData.map((item) => {
-                                console.log(item)
+                                // console.log(item)
                                 return (
                                     <TableRow key={item._id} item={item}>
                                         <TableCell>{item.dispatchedId.confirmedId?.ref}</TableCell>

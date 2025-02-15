@@ -8,3 +8,7 @@ export const getAllReturn = async () => {
     return response;
 };
 
+export const returnDataFunction = async (value) => {
+    const response = await axiosInstance.put(`/dispatched/return-data`, { value })
+    return response
+}

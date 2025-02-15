@@ -116,14 +116,21 @@ exports.returnData = async (req, res) => {
         if (!ID) {
             return res.status(400).json({ message: "ID is required" });
         }
+        let dispatchRow
+        const confirmedRow = await Confirmed.findOne({
+            $or: [{ awb_number: ID }, { ref: ID }]
+        });
 
-        // Find the row where ID matches awb_number or ref
-        const dispatchRow = await Dispatched.findOne()
-            .populate({
-                path: 'confirmedId',
-                match: { $or: [{ awb_number: ID }, { ref: ID }] } // Find only matching confirmedId
-            });
-        console.log(dispatchRow)
+        if (!confirmedRow) {
+            console.log("No matching confirmedId found");
+        } else {
+            dispatchRow = await Dispatched.findOne({ confirmedId: confirmedRow._id })
+                .populate('confirmedId'); // Populate to get full Confirmed document if needed
+
+        }
+
+        // console.log(dispatchRow);
+
 
 
         if (!dispatchRow) {

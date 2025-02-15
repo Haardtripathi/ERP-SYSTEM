@@ -13,7 +13,7 @@ module.exports.getAllReturnData = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // Fetch data with pagination, including only records where awb_number is "" or null
-        const returnData = await Return.findOne({ isDeleted: false })
+        const returnData = await Return.find({ isDeleted: false })
             .populate({
                 path: 'dispatchedId',
                 populate: {
