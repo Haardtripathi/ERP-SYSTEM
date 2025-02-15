@@ -24,11 +24,10 @@ export const updatePositionAndDate = async (itemId, position, date, locationHist
     }
 }
 
-export const returnDataFunction = async (value) => {
-    const response = await axiosInstance.put(`/dispatched/return-data`, { value })
-    return response
-}
+
 export const raiseComplain = async (value) => {
-    const response = await axiosInstance.put(`/dispatched/put-dispatched-data`, { value })
-    return response
+    console.log(value)
+    // const response = await axiosInstance.put(`/dispatched/raise-complain`, { value })
+    // return response
+    return
 }
