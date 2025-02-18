@@ -716,7 +716,7 @@ const DispatchPage = () => {
     const [complaintDetails, setComplaintDetails] = useState({
         complain_id: "",
         complain_detail: "",
-        comment_complain: ""
+        complain_comment: ""
     })
 
     // Scanning functionality
@@ -794,7 +794,7 @@ const DispatchPage = () => {
                 ...complaintDetails,
             })
             toast.success("Complaint submitted successfully")
-            setComplaintDetails({ complain_id: "", complain_detail: "", comment_complain: "" })
+            setComplaintDetails({ complain_id: "", complain_detail: "", complain_comment: "" })
         } catch (error) {
             console.error("Error submitting complaint:", error)
             toast.error("Failed to submit complaint")
@@ -1122,6 +1122,7 @@ const DispatchPage = () => {
                                                                         complain_id: e.target.value,
                                                                     }))
                                                                 }
+                                                                required
                                                             />
                                                         </div>
                                                     )}
@@ -1147,14 +1148,14 @@ const DispatchPage = () => {
                                                         </Select>
                                                     </div>
                                                     <div className="grid gap-2">
-                                                        <Label htmlFor="comment_complain">Comment</Label>
+                                                        <Label htmlFor="complain_comment">Comment</Label>
                                                         <Input
-                                                            id="comment_complain"
-                                                            value={complaintDetails.comment_complain}
+                                                            id="complain_comment"
+                                                            value={complaintDetails.complain_comment}
                                                             onChange={(e) =>
                                                                 setComplaintDetails((prev) => ({
                                                                     ...prev,
-                                                                    comment_complain: e.target.value,
+                                                                    complain_comment: e.target.value,
                                                                 }))
                                                             }
                                                         />
@@ -1164,7 +1165,7 @@ const DispatchPage = () => {
                                                         disabled={
                                                             !complaintDetails.complain_detail ||
                                                             (item.confirmedId?.shipment_type?.value === "Indian Post" &&
-                                                                !complaintDetails.complain_id || !complaintDetails.comment_complain)
+                                                                !complaintDetails.complain_id || !complaintDetails.complain_comment)
                                                         }
                                                     >
                                                         Submit Complaint

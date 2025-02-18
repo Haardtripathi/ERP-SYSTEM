@@ -14,6 +14,9 @@ router.put('/update-position/:id', isAuthenticated, dispatchedController.updateP
 
 router.put('/return-data', isAuthenticated, dispatchedController.returnData);
 
+router.post('/raise-complain', isAuthenticated, dispatchedController.raiseComplain);
+
+
 
 
 module.exports = router;
