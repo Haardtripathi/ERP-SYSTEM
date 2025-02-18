@@ -20,6 +20,7 @@ export const updatePositionAndDate = async (itemId, position, date, locationHist
         const response = await axiosInstance.put(`/dispatched/update-position/${itemId}`, { position, date, locationHistory })
         return response
     } catch (error) {
+        console.log(error)
         throw error
     }
 }
