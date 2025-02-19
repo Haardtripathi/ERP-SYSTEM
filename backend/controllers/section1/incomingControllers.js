@@ -103,41 +103,7 @@ exports.postAddIncomingData = async (req, res) => {
             return res.status(400).json({ message: "All fields are required." });
         }
 
-        //     source: {
-        //         value: source.value,
-        //         dropdown_data: new mongoose.Types.ObjectId(source.dropdown_data),
-        //     },
-        //     cm_first_name,
-        //     cm_last_name,
-        //     cm_phone,
-        //     alternate_phone,
-        //     agent_name: {
-        //         value: agent_name.value,
-        //         dropdown_data: new mongoose.Types.ObjectId(agent_name.dropdown_data),
-        //     },
-        //     language: {
-        //         value: language.value,
-        //         dropdown_data: new mongoose.Types.ObjectId(language.dropdown_data),
-        //     },
-        //     disease: {
-        //         value: disease.value,
-        //         dropdown_data: new mongoose.Types.ObjectId(disease.dropdown_data),
-        //     },
-        //     age,
-        //     height,
-        //     weight,
-        //     state: {
-        //         value: state.value,
-        //         dropdown_data: new mongoose.Types.ObjectId(state.dropdown_data),
-        //     },
-        //     city,
-        //     remark: {
-        //         value: remark.value,
-        //         dropdown_data: new mongoose.Types.ObjectId(remark.dropdown_data),
-        //     },
-        //     comment
-        // })
-        // Create the new Incoming document
+
         const newIncoming = new Incoming({
             source: {
                 value: source.value,

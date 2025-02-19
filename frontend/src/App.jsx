@@ -27,6 +27,7 @@ import LabelGenerator from "./components/section3/labelGenerator/LabelGenerator"
 import DispatchPage from "./components/section4/DispatchPage";
 import ReturnPage from "./components/section5/ReturnPage";
 import ComplainPage from "./components/section4/ComplainPage";
+import ProfilePage from "./components/ProfilePage";
 
 const App = () => {
   const { checkAuth, loading, user } = useAuthStore();
@@ -68,6 +69,14 @@ const App = () => {
                     <AuthOnlyRoute>
                       <Signup />
                     </AuthOnlyRoute>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <ProfilePage />
+                    </ProtectedRoute>
                   }
                 />
                 <Route

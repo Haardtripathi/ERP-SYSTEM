@@ -18,6 +18,9 @@ const labelRoutes = require("./routes/labelRoutes")
 const dispatchedRoutes = require("./routes/dispatchedRoutes")
 const returnRoutes = require("./routes/returnRoutes")
 const complainRoutes = require("./routes/complainRoutes")
+const profileRoutes = require("./routes/profileRoutes")
+
+
 
 
 
@@ -46,6 +49,9 @@ app.use('/api/label', labelRoutes)
 app.use('/api/dispatched', dispatchedRoutes)
 app.use('/api/return', returnRoutes)
 app.use('/api/complain', complainRoutes)
+app.use('/api', profileRoutes)
+
+
 
 
 
