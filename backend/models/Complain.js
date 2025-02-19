@@ -30,7 +30,15 @@ const ComplainSchema = new Schema({
     complain_comment: {
         type: String,
 
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false,
     }
 }, { timestamps: true })
+
+
+ComplainSchema.index({ isDeleted: 1, createdAt: -1 });
+
 
 module.exports = mongoose.model("Complain", ComplainSchema);

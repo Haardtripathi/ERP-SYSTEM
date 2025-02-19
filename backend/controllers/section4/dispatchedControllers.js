@@ -16,16 +16,10 @@ module.exports.getAllDispatchedData = async (req, res) => {
 
         // Fetch data with pagination, including only records where awb_number is "" or null
         let data = await Dispatched.find({ isDeleted: false }).populate('confirmedId')
-        // console.log(data);
-        // data.confirmedId.location_and_date = data.location_and_date || null
-        // console.log(data);
 
-        // data.confirmedId.location_and_date = data.location_and_date || null
-        // Get total count of filtered documents
         const totalCount = await Dispatched.countDocuments({
             isDeleted: false
         });
-        // console.log(totalCount);
         return res.status(200).json({
             message: "Dispatch data fetched successfully.",
             data,
@@ -101,7 +95,6 @@ exports.updatePosition = async (req, res) => {
 
         // Save the updated document
         await dispatchedEntry.save();
-        console.log(dispatchedEntry)
         res.status(200).json({ message: "Position updated successfully", data: dispatchedEntry });
     } catch (error) {
         console.error("Error updating position:", error);
@@ -114,7 +107,6 @@ exports.updatePosition = async (req, res) => {
 exports.returnData = async (req, res) => {
     try {
         const ID = req.body.value; // Get ID from request body
-        console.log(ID)
         if (!ID) {
             return res.status(400).json({ message: "ID is required" });
         }
@@ -131,7 +123,6 @@ exports.returnData = async (req, res) => {
 
         }
 
-        // console.log(dispatchRow);
 
 
 
@@ -167,8 +158,13 @@ exports.returnData = async (req, res) => {
 
 exports.raiseComplain = async (req, res) => {
     try {
-        console.log(req.body)
         const value = req.body.value
+
+        let dispatchedData = await Dispatched.findOne({ _id: value.itemId })
+        dispatchedData.isComplain = true
+        await dispatchedData.save()
+
+
         const complain = new Complain({
             dispatchedId: value.itemId,
             complain_id: value.complain_id || null,

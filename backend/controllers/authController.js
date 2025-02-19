@@ -1,34 +1,98 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const Dropdoen = require("../models/Dropdown")
+const Dropdown = require("../models/Dropdown")
+const path = require('path');
+const multer = require('multer');
+
 
 require("dotenv").config()
 
+
+
 exports.getAgentList = async (req, res) => {
     try {
-        const agentList = await Dropdoen.find({ name: "Agent Name" })
+        const agentList = await Dropdown.find({ name: "Agent Name" })
         res.status(200).json({ agentList })
     } catch (error) {
         res.status(500).json({ error: error.message })
     }
 }
 
-exports.register = async (req, res) => {
-    const { email, agentName, password } = req.body;
-    const user = await User.findOne({ email: email });
-    if (user) return res.status(404).json({ message: 'User already exists' });
-    try {
+// Configure multer for handling file uploads
+const storage = multer.memoryStorage();
+const upload = multer({
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type. Only JPEG, PNG and JPG are allowed.'));
+        }
+    },
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB file size limit
+    },
+});
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ email: email, agent_name: agentName, password: hashedPassword });
-        await user.save();
-        res.status(201).json({ message: 'User registered successfully' });
-    } catch (error) {
-        res.status(400).json({ error: error.message });
+exports.register = [
+    upload.single('photo'),
+    async (req, res) => {
+        console.log('Received form data:', req.body);
+        console.log('Received file:', req.file);
+
+        const {
+            email,
+            agentName,
+            password,
+            companyNumber,
+            address,
+            localAddress,
+            aadharNumber
+        } = req.body;
+
+        try {
+            const existingUser = await User.findOne({
+                $or: [
+                    { email },
+                    { company_number: companyNumber },
+                    { agent_name: agentName },
+                    { aadhar_number: aadharNumber }
+                ]
+            });
+
+            if (existingUser) {
+                return res.status(400).json({ message: 'User with this email, company number, agent name, or Aadhar number already exists' });
+            }
+
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            const newUser = new User({
+                email,
+                agent_name: agentName,
+                password: hashedPassword,
+                company_number: companyNumber,
+                address,
+                local_address: localAddress,
+                aadhar_number: aadharNumber,
+            });
+
+            if (req.file) {
+                newUser.photo = {
+                    data: req.file.buffer,
+                    contentType: req.file.mimetype
+                };
+            }
+
+            await newUser.save();
+            res.status(201).json({ message: 'User registered successfully' });
+        } catch (error) {
+            console.error('Registration error:', error);
+            res.status(500).json({ error: error.message });
+        }
     }
-};
-
+];
 exports.login = async (req, res) => {
     const { email, password } = req.body;
 

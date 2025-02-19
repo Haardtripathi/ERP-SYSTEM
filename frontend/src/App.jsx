@@ -26,6 +26,7 @@ import SheetGenerator from "./components/section3/sheetGenerator/SheetGenerator"
 import LabelGenerator from "./components/section3/labelGenerator/LabelGenerator";
 import DispatchPage from "./components/section4/DispatchPage";
 import ReturnPage from "./components/section5/ReturnPage";
+import ComplainPage from "./components/section4/ComplainPage";
 
 const App = () => {
   const { checkAuth, loading, user } = useAuthStore();
@@ -186,6 +187,14 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <ReturnPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/complain"
+                  element={
+                    <ProtectedRoute>
+                      <ComplainPage />
                     </ProtectedRoute>
                   }
                 />

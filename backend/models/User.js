@@ -1,19 +1,3 @@
-// const { DataTypes } = require('sequelize');
-// const sequelize = require('../config/database');
-
-// const User = sequelize.define('User', {
-//     email: {
-//         type: DataTypes.STRING,
-//         allowNull: false,
-//         unique: true,
-//     },
-//     password: {
-//         type: DataTypes.STRING,
-//         allowNull: false,
-//     },
-// });
-
-// module.exports = User;
 
 
 const mongoose = require("mongoose")
@@ -26,6 +10,15 @@ const UserSchema = new Schema({
         required: true,
         unique: true,
     },
+    company_number: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    photo: {
+        data: Buffer, // This will hold the binary data of the image
+        contentType: String // This will hold the MIME type of the image
+    },
     agent_name: {
         type: String,
         required: true,
@@ -35,6 +28,19 @@ const UserSchema = new Schema({
         type: String,
         required: true,
     },
+    address: {
+        type: String,
+        required: true,
+    },
+    local_address: {
+        type: String,
+        required: true,
+    },
+    aadhar_number: {
+        type: String,
+        required: true,
+        unique: true,
+    }
 }, { timestamps: true })
 
 module.exports = mongoose.model("User", UserSchema);

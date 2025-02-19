@@ -21,16 +21,7 @@ module.exports.getAllReturnData = async (req, res) => {
                 }
             });
 
-        // console.log(returnData);
-
-        // console.log(data);
-        // data.confirmedId.location_and_date = data.location_and_date || null
-        // console.log(data);
-
-        // data.confirmedId.location_and_date = data.location_and_date || null
-        // Get total count of filtered documents
         const totalCount = await Return.countDocuments({ isDeleted: false })
-        // console.log(totalCount);
         return res.status(200).json({
             message: "Dispatch data fetched successfully.",
             returnData,
