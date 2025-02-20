@@ -149,7 +149,7 @@ const Login = () => {
                             )}
                         </Button>
 
-                        <div className="text-center text-sm text-gray-500">
+                        {/* <div className="text-center text-sm text-gray-500">
                             Dont have an account?{' '}
                             <button
                                 type="button"
@@ -158,7 +158,7 @@ const Login = () => {
                             >
                                 Register
                             </button>
-                        </div>
+                        </div> */}
                     </form>
                 </CardContent>
             </Card>

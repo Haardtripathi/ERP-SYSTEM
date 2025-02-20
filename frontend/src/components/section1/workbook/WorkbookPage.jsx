@@ -6,7 +6,7 @@ import { getAllWorkbook } from "@/services/workbookService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
-import { RotateCw } from "lucide-react"
+import { RotateCw, RefreshCcw } from "lucide-react"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -18,6 +18,8 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+
 import {
     Pagination,
     PaginationContent,
@@ -67,6 +69,8 @@ const WorkbookPage = () => {
     const [goToPage, setGoToPage] = useState("")
     const [paginatedData, setPaginatedData] = useState([])
     const [searchColumn, setSearchColumn] = useState("all")
+    const [refreshing, setRefreshing] = useState(false)
+
 
     const navigate = useNavigate()
 
@@ -127,31 +131,6 @@ const WorkbookPage = () => {
         setIsReviewDialogOpen(true)
     }
 
-    // const validateForm = (formData) => {
-    //     let isValid = true
-    //     const phoneRegex = /^\d{10}$/
-
-    //     Object.entries(formData).forEach(([key, value]) => {
-    //         if (key !== "alternate_phone" && typeof value === "object" && (value.value === null || value.value === "")) {
-    //             toast.error(`${key.replace(/_/g, " ")} is required`)
-    //             isValid = false
-    //         } else if (key !== "alternate_phone" && typeof value === "string" && value.trim() === "") {
-    //             toast.error(`${key.replace(/_/g, " ")} is required`)
-    //             isValid = false
-    //         }
-    //     })
-    //     if (!phoneRegex.test(formData.cm_phone)) {
-    //         toast.error("Phone number must be 10 digits")
-    //         isValid = false
-    //     }
-
-    //     if (formData.alternate_phone && !phoneRegex.test(formData.alternate_phone)) {
-    //         toast.error("Alternate phone number must be 10 digits")
-    //         isValid = false
-    //     }
-
-    //     return isValid
-    // }
 
     const validateForm = (formData) => {
         let isValid = true;
@@ -185,6 +164,12 @@ const WorkbookPage = () => {
         return true;
     };
 
+    const refreshData = async () => {
+        setRefreshing(true)
+        await fetchData()
+        setRefreshing(false)
+        toast.success("Data refreshed successfully")
+    }
 
     const confirmSendToPending = async () => {
         if (selectedItem) {
@@ -353,9 +338,23 @@ const WorkbookPage = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="max-w-sm"
                 />
+
             </div>
             <div className="mb-4 flex justify-between items-center">
+
                 <div className="flex space-x-2">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" onClick={refreshData} disabled={refreshing}>
+                                    <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Refresh data</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                     <Button onClick={() => handleFilterChange("All")} variant={filterStatus === "All" ? "default" : "outline"}>
                         All
                     </Button>
@@ -372,6 +371,7 @@ const WorkbookPage = () => {
                         Not Sent
                     </Button>
                 </div>
+
             </div>
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="overflow-x-auto max-w-full">

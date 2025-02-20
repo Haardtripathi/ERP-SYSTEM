@@ -6,6 +6,7 @@ const useAuthStore = create((set, get) => ({
     user: null,
     token: null,
     loading: true, // Initially, the app is in the loading state
+    isAdmin: false,
     setLoading: (loading) => set({ loading }),
     checkAuth: async () => {
         set({ loading: true });
@@ -18,7 +19,9 @@ const useAuthStore = create((set, get) => ({
             const { data } = await axiosInstance.get('/auth/checkAuth', {
                 headers: { Authorization: token },
             });
-            set({ user: data, token, loading: false });
+            console.log(data)
+            const isAdmin = data.user.agent_name == "Panchved";
+            set({ user: data, token, loading: false, isAdmin });
         } catch {
             localStorage.removeItem('token');
             set({ user: null, token: null, loading: false });
@@ -28,39 +31,12 @@ const useAuthStore = create((set, get) => ({
         }
     },
 
-    // checkAuth: async () => {
-    //     if (get().loading === false) return; // ✅ Prevent unnecessary calls
 
-    //     set({ loading: true });
-    //     const token = localStorage.getItem('token');
-
-    //     if (!token) {
-    //         set({ user: null, token: null, loading: false });
-    //         return;
-    //     }
-
-    //     try {
-    //         const { data } = await axiosInstance.get('/auth/checkAuth', {
-    //             headers: { Authorization: token },
-    //         });
-
-    //         if (get().user !== data) { // ✅ Only update if user changes
-    //             set({ user: data, token, loading: false });
-    //         } else {
-    //             set({ loading: false });
-    //         }
-    //     } catch (error) {
-    //         console.error("Auth check failed:", error);
-    //         localStorage.removeItem('token');
-    //         set({ user: null, token: null, loading: false });
-    //     }
+    // setUser: (token) => {
+    //     const decodedUser = jwtDecode(token);
+    //     localStorage.setItem('token', token);
+    //     set({ user: decodedUser, token, loading: false });
     // },
-
-    setUser: (token) => {
-        const decodedUser = jwtDecode(token);
-        localStorage.setItem('token', token);
-        set({ user: decodedUser, token, loading: false });
-    },
     setUser: (token) => {
         try {
             const decodedUser = jwtDecode(token);

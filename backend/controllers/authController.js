@@ -41,6 +41,7 @@ exports.register = [
     async (req, res) => {
         console.log('Received form data:', req.body);
         console.log('Received file:', req.file);
+        const token = req.header('Authorization').split(" ")[1];
 
         const {
             email,
@@ -53,6 +54,12 @@ exports.register = [
         } = req.body;
 
         try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const user = decoded.agent_name
+            if (user.agent_name !== "Panchved") {
+                return res.status(403).json({ message: 'Only Admin is allowed to register users' });
+            }
+
             const existingUser = await User.findOne({
                 $or: [
                     { email },

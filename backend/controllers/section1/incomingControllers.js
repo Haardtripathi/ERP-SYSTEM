@@ -197,13 +197,9 @@ exports.getAllIncomingData = async (req, res) => {
         // Get total count of documents
         if (user == "Panchved") {
             totalCount = await Incoming.countDocuments({ isDeleted: false });
-
-
         }
         else {
             totalCount = await Incoming.countDocuments({ isDeleted: false, "agent_name.value": user });
-
-
         }
 
         return res.status(200).json({

@@ -5,8 +5,8 @@ import { Loader2 } from "lucide-react"
 
 
 const AuthOnlyRoute = ({ children }) => {
-    const { user, loading } = useAuthStore();
-
+    const { user, loading, isAdmin } = useAuthStore();
+    console.log(isAdmin)
     if (loading) {
         return (
             <div className="min-h-[400px] flex flex-col items-center justify-center bg-gradient-to-b from-stone-50 to-stone-100">
