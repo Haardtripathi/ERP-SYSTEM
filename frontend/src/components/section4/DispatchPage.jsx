@@ -206,7 +206,7 @@ const DispatchPage = () => {
                 setScanInput("")
                 setTimeout(() => {
                     scanInputRef.current?.focus()
-                }, 100)
+                }, 500)
             } catch (error) {
                 console.error("Error processing scanned input:", error)
                 toast.error("Couldn't find required item")
@@ -506,7 +506,7 @@ const DispatchPage = () => {
                                     <TableCell>
                                         <Dialog>
                                             <DialogTrigger asChild>
-                                                <Button variant="destructive" size="sm" disabled={item.isReturn}>
+                                                <Button variant="destructive" size="sm" disabled={item.isReturn | item.isDelivered}>
                                                     Raise Complaint
                                                 </Button>
                                             </DialogTrigger>
@@ -611,6 +611,7 @@ const DispatchPage = () => {
                                                         size="sm"
                                                         className="mt-2 bg-blue-500 hover:bg-blue-600 text-white"
                                                         onClick={() => handleDelivered(item._id)}
+                                                        disabled={item.isDelivered}
                                                     >
                                                         Delivered
                                                     </Button>

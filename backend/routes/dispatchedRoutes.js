@@ -16,6 +16,7 @@ router.put('/return-data', isAuthenticated, dispatchedController.returnData);
 
 router.post('/raise-complain', isAuthenticated, dispatchedController.raiseComplain);
 
+router.post('/delivered', isAuthenticated, dispatchedController.deliverItem);
 
 
 

@@ -2,7 +2,7 @@ const Confirmed = require('../../models/Confirmed')
 const Dispatched = require('../../models/Dispatched')
 const Return = require('../../models/Return')
 const Complain = require('../../models/Complain')
-
+const Delivered = require('../../models/Delivered')
 
 
 
@@ -182,4 +182,29 @@ exports.raiseComplain = async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 
+}
+
+
+exports.deliverItem = async (req, res) => {
+    try {
+        const data = req.body
+        console.log(data)
+        const dispatchedData = await Dispatched.findOne({ _id: data.id })
+
+        dispatchedData.isDelivered = true
+
+        await dispatchedData.save()
+
+
+        const deliveredData = new Delivered({
+            dispatchedId: data.id
+        })
+
+        deliveredData.save()
+        res.status(200).json({ message: "Item delivered successfully", data: dispatchedData });
+    }
+    catch (error) {
+        console.error("Error delivering item:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
 }

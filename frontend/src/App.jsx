@@ -264,6 +264,7 @@ import ReturnPage from "./components/section5/ReturnPage";
 import ComplainPage from "./components/section4/ComplainPage";
 import ProfilePage from "./components/ProfilePage";
 import AddUser from "./components/admin/AddUser";
+import DeliveredPage from "./components/section5/DeliveredPage";
 
 const App = () => {
   const { checkAuth, loading, user } = useAuthStore();
@@ -304,6 +305,8 @@ const App = () => {
                 <Route path="/dispatched" element={<ProtectedRoute><DispatchPage /></ProtectedRoute>} />
                 <Route path="/return" element={<ProtectedRoute><ReturnPage /></ProtectedRoute>} />
                 <Route path="/complain" element={<ProtectedRoute><ComplainPage /></ProtectedRoute>} />
+                <Route path="/delivered" element={<ProtectedRoute><DeliveredPage /></ProtectedRoute>} />
+
               </Routes>
             )}
           </div>

@@ -14,6 +14,7 @@ export const dispatchDataFunction = async (value) => {
     const response = await axiosInstance.put(`/dispatched/put-dispatched-data`, { value })
     return response
 }
+
 export const updatePositionAndDate = async (itemId, position, date, locationHistory) => {
     try {
         console.log(itemId, position, date, locationHistory)
@@ -25,7 +26,6 @@ export const updatePositionAndDate = async (itemId, position, date, locationHist
     }
 }
 
-
 export const raiseComplain = async (value) => {
     console.log(value)
     const response = await axiosInstance.post(`/dispatched/raise-complain`, { value })
@@ -34,5 +34,7 @@ export const raiseComplain = async (value) => {
 
 
 export const delivered = async (id) => {
+    const response = await axiosInstance.post(`/dispatched/delivered`, { id })
+    return response
 
 }

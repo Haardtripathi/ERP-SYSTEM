@@ -25,7 +25,6 @@ const ComplainSchema = new Schema({
     },
     complain_detail: {
         type: String,
-        required: true,
     },
     complain_comment: {
         type: String,
