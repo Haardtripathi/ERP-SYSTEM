@@ -290,7 +290,18 @@ const DeliveredPage = () => {
                                 return (
                                     <TableRow key={item._id} item={item}>
                                         <TableCell>
-                                            <PaymentDialog referenceId={item.dispatchedId.confirmedId?.ref} dispatchedId={item.dispatchedId._id} />
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className={`px-3 py-1 text-sm transition-all ${item.payment_received ? "text-gray-400 cursor-not-allowed" : "text-blue-600 hover:bg-blue-50"
+                                                    }`}
+                                                disabled={item.payment_received}
+                                            >
+                                                {item.payment_received ? "Paid" : "Add Now"}
+                                                {!item.payment_received && (
+                                                    <PaymentDialog referenceId={item.dispatchedId?.confirmedId?.ref} dispatchedId={item.dispatchedId?._id} />
+                                                )}
+                                            </Button>
                                         </TableCell>
                                         <TableCell>{item.dispatchedId.confirmedId?.ref}</TableCell>
                                         <TableCell>{item.date}</TableCell>

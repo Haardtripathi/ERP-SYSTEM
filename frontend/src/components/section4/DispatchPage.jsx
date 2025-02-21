@@ -209,7 +209,7 @@ const DispatchPage = () => {
                 }, 500)
             } catch (error) {
                 console.error("Error processing scanned input:", error)
-                toast.error("Couldn't find required item")
+                // toast.error("Couldn't find required item")
                 setScanInput("")
                 setTimeout(() => {
                     scanInputRef.current?.focus()

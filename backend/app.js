@@ -21,6 +21,7 @@ const complainRoutes = require("./routes/complainRoutes")
 const profileRoutes = require("./routes/profileRoutes")
 const deliveredRoutes = require("./routes/deliveredRoutes")
 
+const paymentRoutes = require("./routes/paymentRoutes")
 
 
 
@@ -54,6 +55,8 @@ app.use('/api/return', returnRoutes)
 app.use('/api/complain', complainRoutes)
 app.use('/api', profileRoutes)
 app.use('/api/delivered', deliveredRoutes)
+app.use('/api/payment', paymentRoutes)
+
 
 
 

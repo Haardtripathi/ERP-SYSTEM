@@ -125,7 +125,7 @@ exports.login = async (req, res) => {
 };
 
 exports.checkAuth = async (req, res) => {
-    const token = req.header('Authorization').split(" ")[1];;
+    const token = req.header('Authorization').split(" ")[1];
     if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
 
     try {

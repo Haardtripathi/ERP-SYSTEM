@@ -265,6 +265,7 @@ import ComplainPage from "./components/section4/ComplainPage";
 import ProfilePage from "./components/ProfilePage";
 import AddUser from "./components/admin/AddUser";
 import DeliveredPage from "./components/section5/DeliveredPage";
+import PaymentPage from "./components/section5/PaymentPage";
 
 const App = () => {
   const { checkAuth, loading, user } = useAuthStore();
@@ -306,6 +307,8 @@ const App = () => {
                 <Route path="/return" element={<ProtectedRoute><ReturnPage /></ProtectedRoute>} />
                 <Route path="/complain" element={<ProtectedRoute><ComplainPage /></ProtectedRoute>} />
                 <Route path="/delivered" element={<ProtectedRoute><DeliveredPage /></ProtectedRoute>} />
+                <Route path="/payment" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
+
 
               </Routes>
             )}

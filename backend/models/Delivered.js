@@ -33,12 +33,16 @@ const deliveredSchema = new Schema(
                 }).format(new Date()),
             immutable: true,
         },
-
+        payment_received: {
+            type: Boolean,
+            default: false,
+        },
         isDeleted: {
             type: Boolean,
             default: 0, // Set default to 0 (closed)
         },
     },
+
     { timestamps: true }
 );
 

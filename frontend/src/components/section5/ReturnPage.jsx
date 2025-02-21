@@ -195,7 +195,7 @@ const ReturnPage = () => {
                 }, 100)
             } catch (error) {
                 console.error("Error processing scanned return input:", error)
-                toast.error("Couldn't find required item")
+                // toast.error("Couldn't find required item")
                 setReturnScanInput("")
                 setTimeout(() => {
                     returnScanInputRef.current?.focus()
