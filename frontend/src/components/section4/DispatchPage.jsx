@@ -7,6 +7,7 @@ import {
     dispatchDataFunction,
     updatePositionAndDate,
     raiseComplain,
+    delivered
 } from "@/services/dispatchedService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -273,13 +274,45 @@ const DispatchPage = () => {
         if (updatedPositions.includes("DISTRICT") && !updatedPositions.includes("CITY")) return ["CITY"]
         return []
     }
+    const handleDelivered = async (itemId) => {
+        try {
+            await delivered(itemId)
+            toast.success("Item marked as delivered successfully")
+            await fetchData() // Refresh the data
+        } catch (error) {
+            console.error("Error marking item as delivered:", error)
+            toast.error("Failed to mark item as delivered")
+        }
+    }
+
+
+
+
+    const getLatestLocationDate = (locationAndDate) => {
+        if (!locationAndDate) return null;
+
+        // If CITY exists, return its date
+        if (locationAndDate["CITY"]) {
+            return locationAndDate["CITY"];
+        }
+        // If DISTRICT exists but no CITY, return DISTRICT date
+        else if (locationAndDate["DISTRICT"]) {
+            return locationAndDate["DISTRICT"];
+        }
+        // If only STATE exists, return STATE date
+        else if (locationAndDate["STATE"]) {
+            return locationAndDate["STATE"];
+        }
+        return null;
+    }
+
+
 
     const handleUpdate = async (itemId) => {
         if (!selectedPositions[itemId] || !selectedDates[itemId] || selectedPositions[itemId] === "Select") {
             toast.error("Please select both position and date")
             return
         }
-
         try {
             const item = paginatedData.find((i) => i._id === itemId)
             const formattedDate = format(new Date(selectedDates[itemId]), "dd/MM/yyyy")
@@ -482,22 +515,7 @@ const DispatchPage = () => {
                                                     <DialogTitle>Raise Complaint</DialogTitle>
                                                 </DialogHeader>
                                                 <div className="grid gap-4 py-4">
-                                                    {/* {item.confirmedId?.shipment_type?.value === "Indian Post" && (
-                                                        <div className="grid gap-2">
-                                                            <Label htmlFor="complain_id">Complaint ID</Label>
-                                                            <Input
-                                                                id="complain_id"
-                                                                value={complaintDetails.complain_id}
-                                                                onChange={(e) =>
-                                                                    setComplaintDetails((prev) => ({
-                                                                        ...prev,
-                                                                        complain_id: e.target.value,
-                                                                    }))
-                                                                }
-                                                                required
-                                                            />
-                                                        </div>
-                                                    )} */}
+
                                                     <div className="grid gap-2">
                                                         <Label htmlFor="complain_detail">Complaint Detail</Label>
                                                         <Select
@@ -580,16 +598,33 @@ const DispatchPage = () => {
                                     </TableCell>
 
                                     <TableCell>
-                                        {item.location_and_date
-                                            ? Object.entries(item.location_and_date).map(([position, date]) => (
-                                                <div key={position}>
-                                                    {position}: {date}
-                                                </div>
-                                            ))
-                                            : "No updates"}
+                                        {item.location_and_date ? (
+                                            <div>
+                                                {Object.entries(item.location_and_date).map(([position, date]) => (
+                                                    <div key={position}>
+                                                        {position}: {date}
+                                                    </div>
+                                                ))}
+                                                {item.location_and_date["CITY"] && !item.isReturn && (
+                                                    <Button
+                                                        variant="default"
+                                                        size="sm"
+                                                        className="mt-2 bg-blue-500 hover:bg-blue-600 text-white"
+                                                        onClick={() => handleDelivered(item._id)}
+                                                    >
+                                                        Delivered
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            "No updates"
+                                        )}
                                     </TableCell>
                                     <TableCell>
-                                        {item.location_and_date ? Object.values(item.location_and_date).sort().reverse()[0] : item.date}
+                                        {item.location_and_date
+                                            ? getLatestLocationDate(item.location_and_date) || item.date
+                                            : item.date
+                                        }
                                     </TableCell>
                                     <TableCell>
                                         <Select

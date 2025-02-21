@@ -31,3 +31,8 @@ export const raiseComplain = async (value) => {
     const response = await axiosInstance.post(`/dispatched/raise-complain`, { value })
     return response
 }
+
+
+export const delivered = async (id) => {
+
+}
