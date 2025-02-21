@@ -482,7 +482,7 @@ const DispatchPage = () => {
                                                     <DialogTitle>Raise Complaint</DialogTitle>
                                                 </DialogHeader>
                                                 <div className="grid gap-4 py-4">
-                                                    {item.confirmedId?.shipment_type?.value === "Indian Post" && (
+                                                    {/* {item.confirmedId?.shipment_type?.value === "Indian Post" && (
                                                         <div className="grid gap-2">
                                                             <Label htmlFor="complain_id">Complaint ID</Label>
                                                             <Input
@@ -497,7 +497,7 @@ const DispatchPage = () => {
                                                                 required
                                                             />
                                                         </div>
-                                                    )}
+                                                    )} */}
                                                     <div className="grid gap-2">
                                                         <Label htmlFor="complain_detail">Complaint Detail</Label>
                                                         <Select

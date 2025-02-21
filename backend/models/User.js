@@ -15,6 +15,11 @@ const UserSchema = new Schema({
         required: true,
         unique: true,
     },
+    phone_number: {
+        type: String,
+        required: true,
+        unique: true,
+    },
     photo: {
         data: Buffer, // This will hold the binary data of the image
         contentType: String // This will hold the MIME type of the image

@@ -39,35 +39,41 @@ const upload = multer({
 exports.register = [
     upload.single('photo'),
     async (req, res) => {
-        console.log('Received form data:', req.body);
-        console.log('Received file:', req.file);
+        // console.log('Received form data:', req.body);
+        // console.log('Received file:', req.file);
         const token = req.header('Authorization').split(" ")[1];
-
+        console.log(token)
         const {
             email,
             agentName,
             password,
             companyNumber,
+            phoneNumber,
+
             address,
             localAddress,
             aadharNumber
         } = req.body;
-
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            console.log(decoded)
             const user = decoded.agent_name
-            if (user.agent_name !== "Panchved") {
+            if (user !== "Panchved") {
                 return res.status(403).json({ message: 'Only Admin is allowed to register users' });
             }
+            console.log(user)
+            console.log(email, agentName, password, companyNumber, address, localAddress, aadharNumber)
 
             const existingUser = await User.findOne({
                 $or: [
-                    { email },
+                    { email: email },
                     { company_number: companyNumber },
                     { agent_name: agentName },
                     { aadhar_number: aadharNumber }
                 ]
             });
+
+            console.log(existingUser)
 
             if (existingUser) {
                 return res.status(400).json({ message: 'User with this email, company number, agent name, or Aadhar number already exists' });
@@ -80,6 +86,8 @@ exports.register = [
                 agent_name: agentName,
                 password: hashedPassword,
                 company_number: companyNumber,
+                phone_number: phoneNumber,
+
                 address,
                 local_address: localAddress,
                 aadhar_number: aadharNumber,
@@ -91,7 +99,7 @@ exports.register = [
                     contentType: req.file.mimetype
                 };
             }
-
+            console.log(newUser)
             await newUser.save();
             res.status(201).json({ message: 'User registered successfully' });
         } catch (error) {

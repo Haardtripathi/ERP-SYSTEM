@@ -21,6 +21,7 @@ const AddUser = () => {
         password: "",
         agentName: "",
         companyNumber: "",
+        phoneNumber: "",
         address: "",
         localAddress: "",
         aadharNumber: "",
@@ -80,7 +81,7 @@ const AddUser = () => {
         try {
             await register(formDataToSend)
             toast.success("Signup successful")
-            navigate("/login")
+            navigate("/add-user")
         } catch (error) {
             console.error("Signup failed:", error) //Added error logging
             toast.error("Signup failed")
@@ -160,6 +161,23 @@ const AddUser = () => {
                                     name="companyNumber"
                                     type="text"
                                     value={formData.companyNumber}
+                                    onChange={handleChange}
+                                    placeholder="Enter company number"
+                                    required
+                                    className="pl-10"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="phoneNumber">Phone Number</Label>
+                            <div className="relative">
+                                <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                <Input
+                                    id="phoneNumber"
+                                    name="phoneNumber"
+                                    type="text"
+                                    value={formData.phoneNumber}
                                     onChange={handleChange}
                                     placeholder="Enter company number"
                                     required

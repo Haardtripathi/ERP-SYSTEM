@@ -56,12 +56,12 @@ const Home = () => {
                                                 Login
                                             </Link>
                                         </Button>
-                                        <Button asChild variant="outline" size="lg" className="px-8">
+                                        {/* <Button asChild variant="outline" size="lg" className="px-8">
                                             <Link to="/signup">
                                                 <UserPlus className="mr-2 h-5 w-5" />
                                                 Register
                                             </Link>
-                                        </Button>
+                                        </Button> */}
                                     </div>
                                 </div>
                             )}
