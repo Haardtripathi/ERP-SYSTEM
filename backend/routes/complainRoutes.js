@@ -6,6 +6,7 @@ const multer = require("multer");
 
 
 router.get('/get-complain-data', isAuthenticated, complainController.getAllComplainData);
+router.put('/edit-complain-id', isAuthenticated, complainController.editComplainId);
 
 
 

@@ -7,3 +7,9 @@ export const getAllComplain = async () => {
     console.log(response)
     return response;
 };
+
+
+export const editComplainId = async (data) => {
+    const response = await axiosInstance.put(`/complain/edit-complain-id`, { data });
+    return response
+}
