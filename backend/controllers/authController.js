@@ -39,10 +39,10 @@ const upload = multer({
 exports.register = [
     upload.single('photo'),
     async (req, res) => {
-        // console.log('Received form data:', req.body);
-        // console.log('Received file:', req.file);
+
         const token = req.header('Authorization').split(" ")[1];
-        console.log(token)
+        // console.log(req.body)
+
         const {
             email,
             agentName,
@@ -52,17 +52,19 @@ exports.register = [
 
             address,
             localAddress,
-            aadharNumber
+            aadharNumber,
+            bankName,
+            bankBranch,
+            accountNumber,
+            IFSC_Code,
+
         } = req.body;
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            console.log(decoded)
             const user = decoded.agent_name
             if (user !== "Panchved") {
                 return res.status(403).json({ message: 'Only Admin is allowed to register users' });
             }
-            console.log(user)
-            console.log(email, agentName, password, companyNumber, address, localAddress, aadharNumber)
 
             const existingUser = await User.findOne({
                 $or: [
@@ -73,14 +75,28 @@ exports.register = [
                 ]
             });
 
-            console.log(existingUser)
 
             if (existingUser) {
                 return res.status(400).json({ message: 'User with this email, company number, agent name, or Aadhar number already exists' });
             }
 
             const hashedPassword = await bcrypt.hash(password, 10);
+            console.log({
+                email,
+                agent_name: agentName,
+                password: hashedPassword,
+                company_number: companyNumber,
+                phone_number: phoneNumber,
 
+                address,
+                local_address: localAddress,
+                aadhar_number: aadharNumber,
+                bank_name: bankName,
+                bank_branch: bankBranch,
+                account_number: accountNumber,
+                ifsc_code: IFSC_Code,
+
+            })
             const newUser = new User({
                 email,
                 agent_name: agentName,
@@ -91,6 +107,11 @@ exports.register = [
                 address,
                 local_address: localAddress,
                 aadhar_number: aadharNumber,
+                bank_name: bankName,
+                branch_name: bankBranch,
+                account_number: accountNumber,
+                ifsc_code: IFSC_Code,
+
             });
 
             if (req.file) {
@@ -99,7 +120,6 @@ exports.register = [
                     contentType: req.file.mimetype
                 };
             }
-            console.log(newUser)
             await newUser.save();
             res.status(201).json({ message: 'User registered successfully' });
         } catch (error) {

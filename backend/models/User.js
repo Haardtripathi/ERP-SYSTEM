@@ -45,7 +45,26 @@ const UserSchema = new Schema({
         type: String,
         required: true,
         unique: true,
-    }
+    },
+
+    bank_name: {
+        type: String,
+        required: true
+    },
+    branch_name: {
+        type: String,
+        required: true
+    },
+    account_number: {
+        type: String,
+        required: true
+    },
+    ifsc_code: {
+        type: String,
+        required: true
+    },
+
+
 }, { timestamps: true })
 
 module.exports = mongoose.model("User", UserSchema);

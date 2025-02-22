@@ -264,8 +264,11 @@ import ReturnPage from "./components/section5/ReturnPage";
 import ComplainPage from "./components/section4/ComplainPage";
 import ProfilePage from "./components/ProfilePage";
 import AddUser from "./components/admin/AddUser";
+import Users from "./components/admin/Users";
+
 import DeliveredPage from "./components/section5/DeliveredPage";
 import PaymentPage from "./components/section5/PaymentPage";
+
 
 const App = () => {
   const { checkAuth, loading, user } = useAuthStore();
@@ -287,6 +290,8 @@ const App = () => {
                 <Route path="/login" element={<AuthOnlyRoute><Login /></AuthOnlyRoute>} />
                 {/* <Route path="/signup" element={<AuthOnlyRoute><Signup /></AuthOnlyRoute>} /> */}
                 <Route path="/add-user" element={<ProtectedRoute><AdminOnlyRoute><AddUser /></AdminOnlyRoute></ProtectedRoute>} />
+                <Route path="/users" element={<ProtectedRoute><AdminOnlyRoute><Users /></AdminOnlyRoute></ProtectedRoute>} />
+
                 {/* <Route path="/add-user" element={<AddUser />} /> */}
 
                 <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
