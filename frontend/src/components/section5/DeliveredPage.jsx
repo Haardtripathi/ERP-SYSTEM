@@ -16,9 +16,12 @@ import {
     PaginationPrevious,
     PaginationEllipsis,
 } from "@/components/ui/pagination"
-import { Loader2, Scan } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+import { Loader2, Scan, RefreshCcw } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import PaymentDialog from "@/components/section5/PaymentDialog"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 const Table = ({ children }) => (
     <div className="overflow-x-auto">
@@ -68,16 +71,17 @@ const DeliveredPage = () => {
     const [returnScanInput, setReturnScanInput] = useState("")
     const returnScanInputRef = useRef(null)
 
+    const [refreshing, setRefreshing] = useState(false)
+
+
 
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true)
             const response = await delivered()
-            console.log(response)
             // Ensure we have a valid array of data
             if (response.data?.deliveredData) {
                 const validData = Array.isArray(response.data.deliveredData) ? response.data.deliveredData : [response.data.deliveredData]
-                // console.log(validData)
                 setDeliveredData(validData)
                 setFilteredData(validData)
                 setTotalPages(Math.ceil(validData.length / itemsPerPage))
@@ -100,6 +104,13 @@ const DeliveredPage = () => {
     useEffect(() => {
         fetchData()
     }, [fetchData])
+    const refreshData = async () => {
+        setRefreshing(true)
+        await fetchData()
+        setRefreshing(false)
+        toast.success("Data refreshed successfully")
+    }
+
 
     const applyFiltersAndPaginate = useCallback(() => {
         if (!Array.isArray(deliveredData) || deliveredData.length === 0) {
@@ -212,45 +223,148 @@ const DeliveredPage = () => {
     }
 
     return (
-        <div className="container mx-auto p-4 bg-gray-50 min-h-screen max-w-[95vw]">
-            <h1 className="text-3xl font-semibold mb-6 text-gray-800">Delivered Data</h1>
+        <div className="container mx-auto p-8 bg-gray-50 min-h-screen max-w-full">
+            {/* <div className="mb-6 flex items-center justify-between">
+                <h1 className="text-3xl font-semibold text-gray-800">Delivered Page</h1>
 
-            <div className="mb-4 flex items-center space-x-2">
-                <Select onValueChange={handleColumnSelect} defaultValue="all">
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select column" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Columns</SelectItem>
-                        <SelectItem value="ref">Reference</SelectItem>
-                        <SelectItem value="date">Date</SelectItem>
-                        <SelectItem value="time">Time</SelectItem>
-                        <SelectItem value="source">Source</SelectItem>
-                        <SelectItem value="payment_type">Payment Type</SelectItem>
-                        <SelectItem value="sale_type">Sale Type</SelectItem>
-                        <SelectItem value="agent_name">Agent</SelectItem>
-                        <SelectItem value="cm_first_name">First Name</SelectItem>
-                        <SelectItem value="cm_last_name">Last Name</SelectItem>
-                        <SelectItem value="cm_phone">Phone</SelectItem>
-                        <SelectItem value="alternate_phone">Alternate Number</SelectItem>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="status">Status</SelectItem>
-                        <SelectItem value="shipment_type">Shipment Type</SelectItem>
-                        <SelectItem value="address">Address</SelectItem>
-                        <SelectItem value="post_type">Post Type</SelectItem>
-                        <SelectItem value="post">Post</SelectItem>
-                        <SelectItem value="district">District</SelectItem>
-                        <SelectItem value="city">City/Town/Village</SelectItem>
-                        <SelectItem value="pincode">Pincode</SelectItem>
-                        <SelectItem value="state">State</SelectItem>
-                        <SelectItem value="disease">Disease</SelectItem>
-                        <SelectItem value="amount">Amount</SelectItem>
-                        <SelectItem value="products">Products</SelectItem>
-                    </SelectContent>
-                </Select>
-                <Input type="text" placeholder="Search..." value={searchTerm} onChange={handleSearch} className="max-w-sm" />
+                <div className="flex items-center space-x-2">
+                    <Select onValueChange={handleColumnSelect} defaultValue="all">
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Select column" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Columns</SelectItem>
+                            <SelectItem value="ref">Reference</SelectItem>
+                            <SelectItem value="date">Date</SelectItem>
+                            <SelectItem value="time">Time</SelectItem>
+                            <SelectItem value="source">Source</SelectItem>
+                            <SelectItem value="payment_type">Payment Type</SelectItem>
+                            <SelectItem value="sale_type">Sale Type</SelectItem>
+                            <SelectItem value="agent_name">Agent</SelectItem>
+                            <SelectItem value="cm_first_name">First Name</SelectItem>
+                            <SelectItem value="cm_last_name">Last Name</SelectItem>
+                            <SelectItem value="cm_phone">Phone</SelectItem>
+                            <SelectItem value="alternate_phone">Alternate Number</SelectItem>
+                            <SelectItem value="email">Email</SelectItem>
+                            <SelectItem value="status">Status</SelectItem>
+                            <SelectItem value="shipment_type">Shipment Type</SelectItem>
+                            <SelectItem value="address">Address</SelectItem>
+                            <SelectItem value="post_type">Post Type</SelectItem>
+                            <SelectItem value="post">Post</SelectItem>
+                            <SelectItem value="district">District</SelectItem>
+                            <SelectItem value="city">City/Town/Village</SelectItem>
+                            <SelectItem value="pincode">Pincode</SelectItem>
+                            <SelectItem value="state">State</SelectItem>
+                            <SelectItem value="disease">Disease</SelectItem>
+                            <SelectItem value="amount">Amount</SelectItem>
+                            <SelectItem value="products">Products</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Input
+                        type="text"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="max-w-sm"
+                    />
+                </div>
             </div>
 
+
+            <div className="mb-4 flex justify-between items-center">
+                <div className="flex space-x-2">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" onClick={refreshData} disabled={refreshing}>
+                                    <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Refresh data</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+
+
+                </div>
+
+            </div> */}
+            <Card className="mb-6">
+                <CardHeader className="flex flex-row items-center justify-between pb-4">
+                    <CardTitle className="text-3xl font-bold">Delivered Page</CardTitle>
+                    <div className="flex items-center space-x-4">
+                        {/* Refresh Label */}
+                        {/* <span className="text-l font-semibold">Refresh:</span> */}
+
+                        {/* Refresh Button */}
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="lg"
+                                        className="px-4 py-2 flex items-center space-x-2"
+                                        onClick={refreshData}
+                                        disabled={refreshing}
+                                    >
+                                        <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                                        Refresh
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Click to refresh the data</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        {/* Column Selection Dropdown */}
+                        <Select onValueChange={handleColumnSelect} defaultValue="all">
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Select column" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Columns</SelectItem>
+                                <SelectItem value="ref">Reference</SelectItem>
+                                <SelectItem value="date">Date</SelectItem>
+                                <SelectItem value="time">Time</SelectItem>
+                                <SelectItem value="source">Source</SelectItem>
+                                <SelectItem value="payment_type">Payment Type</SelectItem>
+                                <SelectItem value="sale_type">Sale Type</SelectItem>
+                                <SelectItem value="agent_name">Agent</SelectItem>
+                                <SelectItem value="cm_first_name">First Name</SelectItem>
+                                <SelectItem value="cm_last_name">Last Name</SelectItem>
+                                <SelectItem value="cm_phone">Phone</SelectItem>
+                                <SelectItem value="alternate_phone">Alternate Number</SelectItem>
+                                <SelectItem value="email">Email</SelectItem>
+                                <SelectItem value="status">Status</SelectItem>
+                                <SelectItem value="shipment_type">Shipment Type</SelectItem>
+                                <SelectItem value="address">Address</SelectItem>
+                                <SelectItem value="post_type">Post Type</SelectItem>
+                                <SelectItem value="post">Post</SelectItem>
+                                <SelectItem value="district">District</SelectItem>
+                                <SelectItem value="city">City/Town/Village</SelectItem>
+                                <SelectItem value="pincode">Pincode</SelectItem>
+                                <SelectItem value="state">State</SelectItem>
+                                <SelectItem value="disease">Disease</SelectItem>
+                                <SelectItem value="amount">Amount</SelectItem>
+                                <SelectItem value="products">Products</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        {/* Search Input */}
+                        <Input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="max-w-sm"
+                        />
+                    </div>
+
+                </CardHeader>
+
+            </Card>
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="max-w-full">
                     <Table>
@@ -286,7 +400,6 @@ const DeliveredPage = () => {
                         </TableHeader>
                         <TableBody>
                             {paginatedData.map((item) => {
-                                // console.log(item)
                                 return (
                                     <TableRow key={item._id} item={item}>
                                         <TableCell>

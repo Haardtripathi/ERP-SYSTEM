@@ -38,12 +38,9 @@ module.exports.getAllComplainData = async (req, res) => {
 }
 
 exports.editComplainId = async (req, res) => {
-    console.log('abc')
     try {
         const data = req.body.data
-        console.log(data)
         const complainData = await Complain.findOne({ _id: data.id })
-        console.log(complainData)
         if (!complainData) {
             return res.status(404).json({ message: "Complain not found." })
         }

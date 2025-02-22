@@ -76,9 +76,7 @@ const generateShippingLabelPDF = (shipmentData) => {
 };
 
 const FormatPDF = ({ selectedData }) => {
-    console.log(selectedData)
     useEffect(() => {
-        console.log(selectedData)
         const generatePDFs = () => {
             if (!selectedData || selectedData.length === 0) return;
 

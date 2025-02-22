@@ -31,3 +31,21 @@ export const sendLeadToPending = async (id) => {
     const response = await axiosInstance.post(`/lead/send-lead-data-to-pending/${id}`);
     return response;
 }
+
+
+export const uploadLeadFile = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await axiosInstance.post('lead/add-lead-data', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error uploading file:', error);
+        throw error;
+    }
+};

@@ -107,7 +107,7 @@ export default function EditPendingData() {
                     status: editData.status || { dropdown_data: "", value: "" },
                     district: editData.district || "",
                 }
-                // console.log(mappedFormData)
+                // (mappedFormData)
                 setFormData(mappedFormData)
             } catch (error) {
                 toast.error("Failed to load data")
@@ -267,22 +267,6 @@ export default function EditPendingData() {
         }
     }
 
-    // const handleProductChange = (index, field, value) => {
-    //     const updatedProducts = [...formData.products.value]
-    //     updatedProducts[index] = {
-    //         ...updatedProducts[index],
-    //         [field]: value,
-    //     }
-
-    //     setFormData((prev) => ({
-    //         ...prev,
-    //         products: {
-    //             dropdown_data: dropdowns.products?.id || "",
-    //             value: updatedProducts,
-    //         },
-    //     }))
-    //     console.log(formData)
-    // }
     const handleProductChange = (index, field, value) => {
         const updatedProducts = [...formData.products.value];
 
@@ -294,7 +278,6 @@ export default function EditPendingData() {
 
         // Find product details from productExtra
         const selectedProduct = updatedProducts[index].product;
-        console.log(selectedProduct, dropdowns.products)
         if (selectedProduct && dropdowns.products?.productExtra[selectedProduct]) {
             updatedProducts[index].product_id = dropdowns.products?.productExtra[selectedProduct].product_id;
             updatedProducts[index].price = dropdowns.products?.productExtra[selectedProduct].price;
@@ -317,7 +300,6 @@ export default function EditPendingData() {
             },
         }));
 
-        console.log(formData);
     };
 
     const handleSubmit = async (e) => {
@@ -327,7 +309,6 @@ export default function EditPendingData() {
         // }
         setLoading(true)
         try {
-            console.log(formData)
             const response = await updateEditPending(id, formData)
             toast.success("Data updated successfully!")
             navigate("/pending")
@@ -827,7 +808,7 @@ export default function EditPendingData() {
                                             onChange={(e) => handleDropdownChange(e, "remark")}
                                             className="w-full mt-1.5 px-3 py-2 bg-stone-50 border border-stone-300 rounded-md"
                                             required
-                                            disabled
+
                                         >
                                             <option value="">Select remark</option>
                                             {dropdowns.remark?.values?.map((item) => (

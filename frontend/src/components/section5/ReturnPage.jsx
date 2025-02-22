@@ -6,6 +6,8 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { getAllReturn, returnDataFunction } from "@/services/returnService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
 import { toast } from "react-hot-toast"
 import {
     Pagination,
@@ -71,13 +73,10 @@ const ReturnPage = () => {
 
     const fetchData = useCallback(async () => {
         try {
-            setIsLoading(true)
             const response = await getAllReturn()
-            console.log(response)
             // Ensure we have a valid array of data
             if (response.data?.returnData) {
                 const validData = Array.isArray(response.data.returnData) ? response.data.returnData : [response.data.returnData]
-                // console.log(validData)
                 setReturnData(validData)
                 setFilteredData(validData)
                 setTotalPages(Math.ceil(validData.length / itemsPerPage))
@@ -216,7 +215,6 @@ const ReturnPage = () => {
     const handleReturnAction = async (value) => {
         try {
             const response = await returnDataFunction(value)
-            console.log("Processing return action for value:", value)
             toast.success("Return action completed successfully")
             await fetchData()
         } catch (error) {
@@ -268,7 +266,7 @@ const ReturnPage = () => {
 
     return (
         <div className="container mx-auto p-4 bg-gray-50 min-h-screen max-w-[95vw]">
-            <h1 className="text-3xl font-semibold mb-6 text-gray-800">Dispatch Data</h1>
+            {/* <h1 className="text-3xl font-semibold mb-6 text-gray-800">Dispatch Data</h1>
 
             <div className="mb-4 flex items-center space-x-2">
                 <Select onValueChange={handleColumnSelect} defaultValue="all">
@@ -361,7 +359,111 @@ const ReturnPage = () => {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> */}
+
+            <Card className="mb-6">
+                {/* Header Section */}
+                <CardHeader className="flex flex-row items-center justify-between pb-4">
+                    <CardTitle className="text-3xl font-bold">Dispatch Data</CardTitle>
+                    <div className="flex items-center space-x-4">
+                        <Select onValueChange={handleColumnSelect} defaultValue="all">
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Select column" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Columns</SelectItem>
+                                <SelectItem value="ref">Reference</SelectItem>
+                                <SelectItem value="date">Date</SelectItem>
+                                <SelectItem value="time">Time</SelectItem>
+                                <SelectItem value="source">Source</SelectItem>
+                                <SelectItem value="payment_type">Payment Type</SelectItem>
+                                <SelectItem value="sale_type">Sale Type</SelectItem>
+                                <SelectItem value="agent_name">Agent</SelectItem>
+                                <SelectItem value="cm_first_name">First Name</SelectItem>
+                                <SelectItem value="cm_last_name">Last Name</SelectItem>
+                                <SelectItem value="cm_phone">Phone</SelectItem>
+                                <SelectItem value="alternate_phone">Alternate Number</SelectItem>
+                                <SelectItem value="email">Email</SelectItem>
+                                <SelectItem value="status">Status</SelectItem>
+                                <SelectItem value="shipment_type">Shipment Type</SelectItem>
+                                <SelectItem value="address">Address</SelectItem>
+                                <SelectItem value="post_type">Post Type</SelectItem>
+                                <SelectItem value="post">Post</SelectItem>
+                                <SelectItem value="district">District</SelectItem>
+                                <SelectItem value="city">City/Town/Village</SelectItem>
+                                <SelectItem value="pincode">Pincode</SelectItem>
+                                <SelectItem value="state">State</SelectItem>
+                                <SelectItem value="disease">Disease</SelectItem>
+                                <SelectItem value="amount">Amount</SelectItem>
+                                <SelectItem value="products">Products</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={handleSearch}
+                            className="max-w-sm"
+                        />
+                    </div>
+                </CardHeader>
+
+                {/* Content Section */}
+                <CardContent>
+                    <div className="flex flex-wrap gap-10">
+                        {/* Manual Code Entry */}
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="text"
+                                value={returnManualInput}
+                                onChange={handleReturnManualInputChange}
+                                placeholder="Enter return code manually..."
+                                className="h-9 w-[300px]"
+                                disabled={isReturnScanning}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && returnManualInput) {
+                                        handleReturnManualSend();
+                                    }
+                                }}
+                            />
+                            <Button onClick={handleReturnManualSend} disabled={isReturnScanning} size="sm" className="h-9">
+                                Send
+                            </Button>
+                        </div>
+
+                        {/* Barcode Scanning */}
+                        <div className="flex items-center gap-2">
+                            <Input
+                                ref={returnScanInputRef}
+                                type="text"
+                                value={returnScanInput}
+                                onChange={handleReturnScanInput}
+                                placeholder="Scan barcode..."
+                                className="h-9 w-[300px]"
+                                disabled={!isReturnScanning}
+                            />
+                            <Button
+                                onClick={toggleReturnScanning}
+                                variant={isReturnScanning ? "destructive" : "default"}
+                                size="sm"
+                                className="h-9 w-[120px]"
+                            >
+                                {isReturnScanning ? (
+                                    <span className="flex items-center gap-1">
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        Scanning
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center gap-1">
+                                        <Scan className="h-3 w-3" />
+                                        Start Scan
+                                    </span>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="max-w-full">
@@ -396,7 +498,6 @@ const ReturnPage = () => {
                         </TableHeader>
                         <TableBody>
                             {paginatedData.map((item) => {
-                                // console.log(item)
                                 return (
                                     <TableRow key={item._id} item={item}>
                                         <TableCell>{item.dispatchedId.confirmedId?.ref}</TableCell>

@@ -19,7 +19,6 @@ const useAuthStore = create((set, get) => ({
             const { data } = await axiosInstance.get('/auth/checkAuth', {
                 headers: { Authorization: token },
             });
-            console.log(data)
             const isAdmin = data.user.agent_name == "Panchved";
             set({ user: data, token, loading: false, isAdmin });
         } catch {

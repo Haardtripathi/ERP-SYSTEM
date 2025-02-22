@@ -9,7 +9,6 @@ export const getAllConfirmed = async () => {
 
 
 export const updateAwbNumber = async (id, ref, newAwbNumber) => {
-    console.log({ id, newAwbNumber })
     const response = await axiosInstance.put(`/confirmed/edit-awbnumber`, {
         id,
         ref,

@@ -41,7 +41,6 @@ exports.register = [
     async (req, res) => {
 
         const token = req.header('Authorization').split(" ")[1];
-        // console.log(req.body)
 
         const {
             email,
@@ -81,22 +80,7 @@ exports.register = [
             }
 
             const hashedPassword = await bcrypt.hash(password, 10);
-            console.log({
-                email,
-                agent_name: agentName,
-                password: hashedPassword,
-                company_number: companyNumber,
-                phone_number: phoneNumber,
 
-                address,
-                local_address: localAddress,
-                aadhar_number: aadharNumber,
-                bank_name: bankName,
-                bank_branch: bankBranch,
-                account_number: accountNumber,
-                ifsc_code: IFSC_Code,
-
-            })
             const newUser = new User({
                 email,
                 agent_name: agentName,
@@ -123,7 +107,7 @@ exports.register = [
             await newUser.save();
             res.status(201).json({ message: 'User registered successfully' });
         } catch (error) {
-            console.error('Registration error:', error);
+
             res.status(500).json({ error: error.message });
         }
     }

@@ -1,5 +1,6 @@
 
 
+
 "use client"
 
 import React, { useState, useEffect } from "react"
@@ -8,7 +9,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
 import { RotateCw, RefreshCcw } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
 import {
+
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -39,6 +43,8 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+
 
 const Table = ({ children }) => <table className="w-full border-collapse">{children}</table>
 
@@ -70,27 +76,35 @@ const LeadPage = () => {
     const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
     const [goToPage, setGoToPage] = useState("")
     const [searchColumn, setSearchColumn] = useState("all")
+    const [refreshing, setRefreshing] = useState(false)
 
     const navigate = useNavigate()
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setIsLoading(true)
-                const response = await getAllLead()
-                setLeadData(response.data.data)
-                setFilteredData(response.data.data)
-                setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
-            } catch (error) {
-                console.error("Error fetching lead data:", error)
-                setError("Failed to fetch data. Please try again later.")
-            } finally {
-                setIsLoading(false)
-            }
+    const fetchData = async () => {
+        try {
+            setIsLoading(true)
+            const response = await getAllLead()
+            setLeadData(response.data.data)
+            setFilteredData(response.data.data)
+            setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
+        } catch (error) {
+            console.error("Error fetching lead data:", error)
+            setError("Failed to fetch data. Please try again later.")
+        } finally {
+            setIsLoading(false)
         }
+    }
+    useEffect(() => {
+
 
         fetchData()
     }, [itemsPerPage])
+
+    const refreshData = async () => {
+        setRefreshing(true)
+        await fetchData()
+        setRefreshing(false)
+        toast.success("Data refreshed successfully")
+    }
 
     useEffect(() => {
         const results = leadData.filter((item) => {
@@ -262,39 +276,54 @@ const LeadPage = () => {
 
     return (
         <div className="container mx-auto p-8 bg-gray-50 min-h-screen max-w-full">
-            <h1 className="text-3xl font-semibold mb-6 text-gray-800">Lead Data</h1>
-            <div className="mb-4 flex items-center space-x-2">
-                <Select onValueChange={handleColumnSelect} defaultValue="all">
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select column" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Columns</SelectItem>
-                        <SelectItem value="source">Source</SelectItem>
-                        <SelectItem value="cm_first_name">First Name</SelectItem>
-                        <SelectItem value="cm_last_name">Last Name</SelectItem>
-                        <SelectItem value="cm_phone">Phone</SelectItem>
-                        <SelectItem value="alternate_phone">Alternate Phone</SelectItem>
-                        <SelectItem value="agent_name">Agent</SelectItem>
-                        <SelectItem value="language">Language</SelectItem>
-                        <SelectItem value="disease">Disease</SelectItem>
-                        <SelectItem value="state">State</SelectItem>
-                        <SelectItem value="city">City</SelectItem>
-                        <SelectItem value="remark">Remark</SelectItem>
-                        <SelectItem value="comment">Comment</SelectItem>
-                        <SelectItem value="date">Date</SelectItem>
-                    </SelectContent>
-                </Select>
-                <Input
-                    type="text"
-                    placeholder="Search..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="max-w-sm"
-                />
+
+            {/* <div className="mb-6 flex items-center justify-between">
+                <h1 className="text-3xl font-semibold text-gray-800">Lead Page</h1>
+                <div className="flex items-center space-x-2">
+                    <Select onValueChange={handleColumnSelect} defaultValue="all">
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Select column" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Columns</SelectItem>
+                            <SelectItem value="data">Data</SelectItem>
+                            <SelectItem value="source">Source</SelectItem>
+                            <SelectItem value="cm_first_name">First Name</SelectItem>
+                            <SelectItem value="cm_last_name">Last Name</SelectItem>
+                            <SelectItem value="cm_phone">Phone</SelectItem>
+                            <SelectItem value="agent_name">Agent</SelectItem>
+                            <SelectItem value="language">Language</SelectItem>
+                            <SelectItem value="disease">Disease</SelectItem>
+                            <SelectItem value="state">State</SelectItem>
+                            <SelectItem value="city">City</SelectItem>
+                            <SelectItem value="remark">Remark</SelectItem>
+                            <SelectItem value="comment">Comment</SelectItem>
+                            <SelectItem value="date">Date</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Input
+                        type="text"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="max-w-sm"
+                    />
+                </div>
             </div>
             <div className="mb-4 flex justify-between items-center">
                 <div className="flex space-x-2">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" onClick={refreshData} disabled={refreshing}>
+                                    <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Refresh data</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                     <Button
                         onClick={() => {
                             setFilterStatus("All")
@@ -323,7 +352,114 @@ const LeadPage = () => {
                         Not Sent
                     </Button>
                 </div>
-            </div>
+            </div> */}
+
+            <Card className="mb-6">
+                {/* Header Section */}
+                <CardHeader className="flex flex-row items-center justify-between pb-4">
+                    <CardTitle className="text-3xl font-bold">Lead Page</CardTitle>
+
+                    {/* Right Side Controls */}
+                    <div className="flex items-center space-x-4">
+                        {/* Refresh Label */}
+                        {/* <span className="text-l font-semibold">Refresh:</span>x` */}
+
+                        {/* Refresh Button */}
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="lg"
+                                        className="px-4 py-2 flex items-center space-x-2"
+                                        onClick={refreshData}
+                                        disabled={refreshing}
+                                    >
+                                        <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                                        Refresh
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Click to refresh the data</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        {/* Column Selection Dropdown */}
+                        <Select onValueChange={handleColumnSelect} defaultValue="all">
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Select column" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Columns</SelectItem>
+                                <SelectItem value="data">Data</SelectItem>
+                                <SelectItem value="source">Source</SelectItem>
+                                <SelectItem value="cm_first_name">First Name</SelectItem>
+                                <SelectItem value="cm_last_name">Last Name</SelectItem>
+                                <SelectItem value="cm_phone">Phone</SelectItem>
+                                <SelectItem value="agent_name">Agent</SelectItem>
+                                <SelectItem value="language">Language</SelectItem>
+                                <SelectItem value="disease">Disease</SelectItem>
+                                <SelectItem value="state">State</SelectItem>
+                                <SelectItem value="city">City</SelectItem>
+                                <SelectItem value="remark">Remark</SelectItem>
+                                <SelectItem value="comment">Comment</SelectItem>
+                                <SelectItem value="date">Date</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        {/* Search Input */}
+                        <Input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="max-w-sm"
+                        />
+                    </div>
+                </CardHeader>
+                <br />
+                {/* Content Section */}
+                <CardContent>
+
+                    <div className="flex space-x-2">
+                        <Button
+                            onClick={() => {
+                                setFilterStatus("All")
+                                setCurrentPage(1)
+                            }}
+                            variant={filterStatus === "All" ? "default" : "outline"}
+                        >
+                            All
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setFilterStatus("isSent")
+                                setCurrentPage(1)
+                            }}
+                            variant={filterStatus === "isSent" ? "default" : "outline"}
+                        >
+                            Sent to Pending
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setFilterStatus("isNotSent")
+                                setCurrentPage(1)
+                            }}
+                            variant={filterStatus === "isNotSent" ? "default" : "outline"}
+                        >
+                            Not Sent
+                        </Button>
+                    </div>
+
+
+
+
+
+                </CardContent>
+            </Card>
+
+
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="overflow-x-auto max-w-full">
                     <Table>

@@ -1,10 +1,7 @@
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { getEditUserData, editUserData } from '@/services/adminService';
 
-
-"use client"
-
-import React from "react"
-
-import { useState, useEffect } from "react"
 import { toast } from "react-hot-toast"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,7 +14,15 @@ import { register, getAgentList } from "../../services/authService"
 import { Mail, Lock, Loader2, Building, MapPin, CreditCard, Image } from "lucide-react"
 
 
-export default function AddUser() {
+const EditUserData = () => {
+    const { id } = useParams();
+    const [userData, setUserData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [photo, setPhoto] = useState(null)
+    const [agentList, setAgentList] = useState([])
+
+    const [sameAsAddress, setSameAsAddress] = useState(false)
+
     const [formData, setFormData] = useState({
         email: "",
         password: "",
@@ -32,10 +37,49 @@ export default function AddUser() {
         IFSC_Code: "",
         accountNumber: "",
     })
-    const [photo, setPhoto] = useState(null)
-    const [agentList, setAgentList] = useState([])
-    const [loading, setLoading] = useState(false)
-    const [sameAsAddress, setSameAsAddress] = useState(false)
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const data = await getEditUserData(id);
+                console.log("Fetched User Data:", data);
+
+                if (data.user) {
+                    setUserData(data.user);
+
+                    setFormData({
+                        email: data.user.email || "",
+                        password: "",
+                        agentName: data.user.agent_name || "",
+                        companyNumber: data.user.company_number || "",
+                        phoneNumber: data.user.phone_number || "",
+                        address: data.user.address || "",
+                        localAddress: data.user.local_address || "",
+                        aadharNumber: data.user.aadhar_number || "",
+                        bankName: data.user.bank_name || "",
+                        bankBranch: data.user.branch_name || "",
+                        IFSC_Code: data.user.ifsc_code || "",
+                        accountNumber: data.user.account_number || "",
+                    });
+
+                    if (data.user.photo?.data) {
+                        setPhoto(data.user.photo.data); // Set the current photo
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+            }
+            setLoading(false);
+        };
+
+        fetchUserData();
+    }, [id]);
+
+
+
+
+
+
 
     useEffect(() => {
         const fetchAgentList = async () => {
@@ -61,6 +105,41 @@ export default function AddUser() {
         }
     }, [sameAsAddress, formData.address])
 
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+
+        const formDataToSend = new FormData();
+
+        Object.entries(formData).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                formDataToSend.append(key, value);
+            }
+        });
+
+        // If the photo is unchanged, append existing photo
+        if (photo && typeof photo !== "string") {
+            formDataToSend.append("photo", photo);
+        }
+
+        // Debugging: Check what is being sent
+        for (let pair of formDataToSend.entries()) {
+            console.log(pair[0], pair[1]);
+        }
+
+        try {
+            await editUserData(id, formDataToSend);
+            toast.success("User updated successfully");
+        } catch (error) {
+            console.error("Update failed:", error);
+            toast.error("Failed to update user");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+
     const handleChange = (e) => {
         const { name, value } = e.target
         setFormData((prev) => ({ ...prev, [name]: value }))
@@ -68,58 +147,18 @@ export default function AddUser() {
 
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {
-            setPhoto(e.target.files[0])
+            setPhoto(e.target.files[0]); // Update photo when changed
         }
-    }
+    };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault()
-        setLoading(true)
 
-        const formDataToSend = new FormData()
-        Object.entries(formData).forEach(([key, value]) => {
-            formDataToSend.append(key, value)
-        })
-        if (photo) {
-            formDataToSend.append("photo", photo)
-        }
 
-        try {
-            // const response = await fetch("/api/register", {
-            //     method: "POST",
-            //     body: formDataToSend,
-            // })
+    if (loading) return <div>Loading...</div>;
+    if (!userData) return <div>User not found</div>;
 
-            await register(formDataToSend)
 
-            // if (!response.ok) {
-            //     throw new Error("Registration failed")
-            // }
 
-            toast.success("User added successfully")
-            // Reset form
-            setFormData({
-                email: "",
-                password: "",
-                agentName: "",
-                companyNumber: "",
-                phoneNumber: "",
-                address: "",
-                localAddress: "",
-                aadharNumber: "",
-                bankName: "",
-                bankBranch: "",
-                IFSC_Code: "",
-                accountNumber: "",
-            })
-            setPhoto(null)
-        } catch (error) {
-            console.error("Registration failed:", error)
-            toast.error("Failed to add user")
-        } finally {
-            setLoading(false)
-        }
-    }
+
 
     return (
         <div className="container mx-auto py-8">
@@ -352,11 +391,19 @@ export default function AddUser() {
                                     type="file"
                                     onChange={handleFileChange}
                                     accept="image/jpeg,image/png,image/jpg"
-                                    required
                                     className="pl-10"
                                 />
                             </div>
+
+
+                            <img
+                                src={`data:image/png;base64,${userData?.photo?.data}`}
+                                alt="User Photo"
+                                className="h-44 w-44 rounded-full object-cover mt-2"
+                            />
+
                         </div>
+
 
                         <Button type="submit" className="w-full" disabled={loading}>
                             {loading ? (
@@ -373,5 +420,6 @@ export default function AddUser() {
             </Card>
         </div>
     )
-}
+};
 
+export default EditUserData;

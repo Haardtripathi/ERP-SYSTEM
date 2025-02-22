@@ -3,7 +3,6 @@ import axiosInstance from '../axiosInstance'
 
 
 export const addPayment = async (data) => {
-    console.log(data)
     const response = await axiosInstance.post(`/payment/add-payment`, { data });
     return response;
 };

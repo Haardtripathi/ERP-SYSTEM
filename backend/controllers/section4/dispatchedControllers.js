@@ -188,7 +188,6 @@ exports.raiseComplain = async (req, res) => {
 exports.deliverItem = async (req, res) => {
     try {
         const data = req.body
-        console.log(data)
         const dispatchedData = await Dispatched.findOne({ _id: data.id })
 
         dispatchedData.isDelivered = true

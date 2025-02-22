@@ -6,7 +6,6 @@ exports.addPayment = async (req, res) => {
     try {
 
         const data = req.body.data
-        console.log(data)
         const deliveredItem = await Delivered.findOne({ dispatchedId: data.dispatchedId })
         deliveredItem.payment_received = true
 

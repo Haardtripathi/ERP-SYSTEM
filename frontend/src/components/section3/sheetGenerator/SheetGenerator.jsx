@@ -362,8 +362,8 @@ const SheetGenerator = () => {
     }
 
     return (
-        <div className="container mx-auto p-4 bg-gray-50 min-h-screen max-w-[95vw]">
-            <Card className="mb-6">
+        <div className="container mx-auto p-8 bg-gray-50 min-h-screen max-w-full">
+            {/* <Card className="mb-6">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                     <CardTitle className="text-2xl font-bold">Sheet Generator</CardTitle>
                     <TooltipProvider>
@@ -497,8 +497,217 @@ const SheetGenerator = () => {
                         </Table>
                     </div>
                 </CardContent>
+            </Card> */}
+
+            <Card className="mb-6">
+                <CardHeader className="flex flex-row items-center justify-between pb-4">
+                    <CardTitle className="text-3xl font-bold">Sheet Generator</CardTitle>
+                    <div className="flex items-center space-x-4">
+                        {/* Refresh Label */}
+                        {/* <span className="text-l font-semibold">Refresh:</span> */}
+
+                        {/* Refresh Button */}
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="lg"
+                                        className="px-4 py-2 flex items-center space-x-2"
+                                        onClick={refreshData}
+                                        disabled={refreshing}
+                                    >
+                                        <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                                        Refresh
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Click to refresh the data</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        {/* Column Selection Dropdown */}
+                        <Select onValueChange={handleColumnSelect} defaultValue="all">
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Select column" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Columns</SelectItem>
+                                <SelectItem value="ref">Reference</SelectItem>
+                                <SelectItem value="date">Date</SelectItem>
+                                <SelectItem value="time">Time</SelectItem>
+                                <SelectItem value="source">Source</SelectItem>
+                                <SelectItem value="payment_type">Payment Type</SelectItem>
+                                <SelectItem value="sale_type">Sale Type</SelectItem>
+                                <SelectItem value="agent_name">Agent</SelectItem>
+                                <SelectItem value="cm_first_name">First Name</SelectItem>
+                                <SelectItem value="cm_last_name">Last Name</SelectItem>
+                                <SelectItem value="cm_phone">Phone</SelectItem>
+                                <SelectItem value="alternate_phone">Alternate Number</SelectItem>
+                                <SelectItem value="email">Email</SelectItem>
+                                <SelectItem value="status">Status</SelectItem>
+                                <SelectItem value="shipment_type">Shipment Type</SelectItem>
+                                <SelectItem value="address">Address</SelectItem>
+                                <SelectItem value="post_type">Post Type</SelectItem>
+                                <SelectItem value="post">Post</SelectItem>
+                                <SelectItem value="district">District</SelectItem>
+                                <SelectItem value="city">City/Town/Village</SelectItem>
+                                <SelectItem value="pincode">Pincode</SelectItem>
+                                <SelectItem value="state">State</SelectItem>
+                                <SelectItem value="disease">Disease</SelectItem>
+                                <SelectItem value="amount">Amount</SelectItem>
+                                <SelectItem value="products">Products</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        {/* Search Input */}
+                        <Input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="max-w-sm"
+                        />
+                    </div>
+
+                </CardHeader>
+                <CardContent>
+                    {/* <div className="flex items-center space-x-2 mb-4">
+
+                        <Select onValueChange={handleShipmentTypeFilter} defaultValue="all">
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Filter" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Types</SelectItem>
+                                <SelectItem value="smartship">Smartship (Bluedart+Delhivery)</SelectItem>
+                                <SelectItem value="Indian Post">Indian Post</SelectItem>
+                                <SelectItem value="F2F">F2F</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Badge variant="outline" className="mb-2">
+                            {filteredData.length} records found
+                        </Badge>
+                        <div className="space-x-2">
+                            {(shipmentTypeFilter === "Indian Post") && (
+                                <Button
+                                    onClick={() => downloadCSV("indian_post")}
+                                    className="flex items-center gap-2"
+                                    disabled={isDownloading || filteredData.length === 0}
+                                    variant="outline"
+                                >
+                                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                    Download Indian Post CSV
+                                </Button>
+                            )}
+                            {(shipmentTypeFilter === "smartship") && (
+                                <Button
+                                    onClick={() => downloadCSV("smart_ship")}
+                                    className="flex items-center gap-2"
+                                    disabled={isDownloading || filteredData.length === 0}
+                                    variant="outline"
+                                >
+                                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                    Download SmartShip CSV
+                                </Button>
+                            )}
+                        </div>
+
+                    </div> */}
+
+                    <div className="flex items-center justify-between mb-4">
+                        {/* Left Side: Filter Dropdown & Record Count */}
+                        <div className="flex items-center space-x-2">
+                            {/* Shipment Type Filter */}
+                            <Select onValueChange={handleShipmentTypeFilter} defaultValue="all">
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Filter" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Types</SelectItem>
+                                    <SelectItem value="smartship">Smartship (Bluedart+Delhivery)</SelectItem>
+                                    <SelectItem value="Indian Post">Indian Post</SelectItem>
+                                    <SelectItem value="F2F">F2F</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            {/* Record Count Badge */}
+                            <Badge variant="outline" className="mb-2">
+                                {filteredData.length} records found
+                            </Badge>
+                        </div>
+
+                        {/* Right Side: Download Buttons */}
+                        <div className="flex space-x-2">
+                            {shipmentTypeFilter === "Indian Post" && (
+                                <Button
+                                    onClick={() => downloadCSV("indian_post")}
+                                    className="flex items-center gap-2"
+                                    disabled={isDownloading || filteredData.length === 0}
+                                    variant="outline"
+                                >
+                                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                    Download Indian Post CSV
+                                </Button>
+                            )}
+
+                            {shipmentTypeFilter === "smartship" && (
+                                <Button
+                                    onClick={() => downloadCSV("smart_ship")}
+                                    className="flex items-center gap-2"
+                                    disabled={isDownloading || filteredData.length === 0}
+                                    variant="outline"
+                                >
+                                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                    Download SmartShip CSV
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+
+                </CardContent>
             </Card>
 
+
+            <Card>
+                <CardContent className="p-0">
+                    <div className="rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Ref</TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Shipment Type</TableHead>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Phone</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Address</TableHead>
+                                    <TableHead>City</TableHead>
+                                    <TableHead>Pincode</TableHead>
+                                    <TableHead>Amount</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {paginatedData.map((item, index) => (
+                                    <TableRow key={item._id} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+                                        <TableCell>{item.ref}</TableCell>
+                                        <TableCell>{item.date}</TableCell>
+                                        <TableCell>{item.shipment_type?.value}</TableCell>
+                                        <TableCell>{`${item.cm_first_name} ${item.cm_last_name}`}</TableCell>
+                                        <TableCell>{item.cm_phone}</TableCell>
+                                        <TableCell>{item.email}</TableCell>
+                                        <TableCell>{item.address}</TableCell>
+                                        <TableCell>{item.city}</TableCell>
+                                        <TableCell>{item.pincode}</TableCell>
+                                        <TableCell>{item.amount?.value}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
             <div className="mt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <Pagination>
                     <PaginationContent>
@@ -530,25 +739,26 @@ const SheetGenerator = () => {
                     </PaginationContent>
                 </Pagination>
 
-                <div className="flex items-center space-x-2">
-                    <Input
-                        type="number"
-                        placeholder="Go to page"
-                        value={goToPage}
-                        onChange={(e) => setGoToPage(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && goToPage) {
-                                handleGoToPage()
-                            }
-                        }}
-                        className="w-24"
-                        min={1}
-                        max={totalPages}
-                    />
-                    <Button onClick={handleGoToPage} disabled={!goToPage} variant="outline" size="sm">
-                        Go
-                    </Button>
-                </div>
+
+            </div>
+            <div className="flex items-center space-x-2">
+                <Input
+                    type="number"
+                    placeholder="Go to page"
+                    value={goToPage}
+                    onChange={(e) => setGoToPage(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" && goToPage) {
+                            handleGoToPage()
+                        }
+                    }}
+                    className="w-40"
+                    min={1}
+                    max={totalPages}
+                />
+                <Button onClick={handleGoToPage} disabled={!goToPage}>
+                    Go
+                </Button>
             </div>
         </div>
     )
