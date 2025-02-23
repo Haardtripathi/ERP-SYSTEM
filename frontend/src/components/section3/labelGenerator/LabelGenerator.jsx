@@ -23,7 +23,17 @@ import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 const Table = ({ children }) => (
     <div className="overflow-x-auto">
@@ -620,7 +630,12 @@ const LabelGenerator = () => {
                         />
                     </div>
                 </CardHeader>
-
+                <CardContent>
+                    <br />
+                    <Button onClick={handleLabelGeneration}>
+                        Send
+                    </Button>
+                </CardContent>
 
             </Card>
 
@@ -628,47 +643,76 @@ const LabelGenerator = () => {
                 <div className="max-w-full">
                     <Table>
                         <TableHeader>
-                            <TableRow>
+                            <tr className="bg-gray-200">
                                 <TableHead className="w-12">
                                     <Checkbox
                                         checked={isAllSelected}
                                         onCheckedChange={handleSelectAll}
                                     />
                                 </TableHead>
-                                <TableHead>Ref</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Time</TableHead>
-                                <TableHead>Source</TableHead>
-                                <TableHead>Payment Type</TableHead>
-                                <TableHead>Sale Type</TableHead>
-                                <TableHead>Agent</TableHead>
-                                <TableHead>First Name</TableHead>
-                                <TableHead>Last Name</TableHead>
-                                <TableHead>Phone</TableHead>
-                                <TableHead>Alternate Number</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>AWB Number</TableHead>
-                                <TableHead>Comment</TableHead>
-                                <TableHead>Shipment Type</TableHead>
-                                <TableHead>Address</TableHead>
-                                <TableHead>Post Type</TableHead>
-                                <TableHead>Post</TableHead>
-                                <TableHead>Sub District / Taluka</TableHead>
-                                <TableHead>City / District</TableHead>
-                                <TableHead>Pincode</TableHead>
-                                <TableHead>State</TableHead>
-                                <TableHead>Disease</TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Ref</span>
+                                        <br />
+                                        <span>AWB Number</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Date</span>
+                                        <br />
+                                        <span>Time</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Sale Type</span>
+                                        <br />
+                                        <span>Source</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Agent Name</span>
+                                        <br />
+                                        <span>Payment Type</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>First Name</span>
+                                        <br />
+                                        <span>Last Name</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Phone</span>
+                                        <br />
+                                        <span>Alternate Number</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+
+                                        <span>Comment</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>State</span>
+                                        <br />
+                                        <span>City</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>Product</TableHead>
                                 <TableHead>Amount</TableHead>
-                                <TableHead>Products</TableHead>
-                                <TableHead>City</TableHead>
-                            </TableRow>
+                                <TableHead></TableHead>
+                            </tr>
                         </TableHeader>
                         <TableBody>
                             {paginatedData.map((item, index) => (
-                                <TableRow
-                                    key={item._id}
-                                    className={`bg-blue-100 hover:bg-blue-100`}
-                                >
+                                <TableRow key={item._id} item={item} className={`bg-blue-100 hover:bg-blue-100`}>
                                     <TableCell className="w-12">
                                         <Checkbox
                                             checked={selectedRows.has(item._id)}
@@ -676,46 +720,197 @@ const LabelGenerator = () => {
                                         />
 
                                     </TableCell>
-                                    <TableCell>{item.ref}</TableCell>
-                                    <TableCell>{item.date}</TableCell>
-                                    <TableCell>{item.time}</TableCell>
-                                    <TableCell>{item.source?.value}</TableCell>
-                                    <TableCell>{item.payment_type?.value}</TableCell>
-                                    <TableCell>{item.sale_type?.value}</TableCell>
-                                    <TableCell>{item.agent_name?.value}</TableCell>
-                                    <TableCell>{item.cm_first_name}</TableCell>
-                                    <TableCell>{item.cm_last_name}</TableCell>
-                                    <TableCell>{item.cm_phone}</TableCell>
-                                    <TableCell>{item.alternate_phone}</TableCell>
-                                    <TableCell>{item.email}</TableCell>
-                                    <TableCell>{item.awb_number}</TableCell>
-                                    <TableCell>{item.comment}</TableCell>
-                                    <TableCell>{item.shipment_type?.value}</TableCell>
-                                    <TableCell>{item.address}</TableCell>
-                                    <TableCell>{item.post_type?.value}</TableCell>
-                                    <TableCell>{item.post}</TableCell>
-                                    <TableCell>{item.district}</TableCell>
-                                    <TableCell>{item.city}</TableCell>
-                                    <TableCell>{item.pincode}</TableCell>
-                                    <TableCell>{item.state?.value}</TableCell>
-                                    <TableCell>{item.disease?.value}</TableCell>
-                                    <TableCell>{item.amount?.value}</TableCell>
+                                    {/* (Ref, AWB Number) */}
+
+                                    <TableCell>
+                                        <div>
+                                            {item.ref}
+                                            <br />
+                                            {item.awb_number}
+                                        </div>
+                                    </TableCell>
+                                    {/* (Date, Time) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.date}
+                                            <br />
+                                            {item.time}
+                                        </div>
+                                    </TableCell>
+                                    {/* (Sale Type, Source) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.sale_type?.value}
+                                            <br />
+                                            {item.source?.value}
+                                        </div>
+                                    </TableCell>
+                                    {/* (Agent Name, Payment Type) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.agent_name?.value}
+                                            <br />
+                                            {item.payment_type?.value}
+                                        </div>
+                                    </TableCell>
+                                    {/* (First Name, Last Name) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.cm_first_name}
+                                            <br />
+                                            {item.cm_last_name}
+                                        </div>
+                                    </TableCell>
+                                    {/* (Phone, Alternate Number) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.cm_phone}
+                                            <br />
+                                            {item.alternate_phone}
+                                        </div>
+                                    </TableCell>
+                                    {/* (Status, Comment) */}
+                                    <TableCell>
+                                        <div>
+
+                                            {item.comment}
+                                        </div>
+                                    </TableCell>
+                                    {/* (State, City) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.state?.value}
+                                            <br />
+                                            {item.city}
+                                        </div>
+                                    </TableCell>
+                                    {/* Product */}
                                     <TableCell>
                                         {Array.isArray(item.products?.value)
-                                            ? item.products.value.map((product, index) => (
-                                                <div key={index}>
+                                            ? item.products.value.map((product, idx) => (
+                                                <div key={idx}>
                                                     {product.product} : {product.quantity}
                                                 </div>
                                             ))
                                             : null}
                                     </TableCell>
-                                    <TableCell>{item.city}</TableCell>
+                                    {/* Amount */}
+                                    <TableCell>{item.amount?.value}</TableCell>
+                                    {/* Show Button */}
+                                    <TableCell>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="p-1 rounded hover:bg-gray-200 transition-colors duration-200"
+                                                >
+                                                    Show More...
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent className="max-w-md">
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Review Label Data</AlertDialogTitle>
+
+
+                                                </AlertDialogHeader>
+                                                {item && (
+                                                    <div className="mt-4">
+                                                        <dl className="space-y-3">
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Source:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.source?.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Name:</dt>
+                                                                <dd className="text-sm text-gray-800">
+                                                                    {item.cm_first_name} {item.cm_last_name}
+                                                                </dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Phone:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.cm_phone}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Alternate Phone:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.alternate_phone}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Sale Type:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.sale_type.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Payment Type:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.payment_type.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Shipment Type:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.shipment_type.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Agent:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.agent_name?.value}</dd>
+                                                            </div>
+                                                            {/* <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Language:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.language?.value}</dd>
+                                                            </div> */}
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Disease:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.disease?.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">State:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.state?.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">City:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.city}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Products:</dt>
+                                                                <dd className="text-sm text-gray-800">{Array.isArray(item.products?.value)
+                                                                    ? item.products.value.map((product, idx) => (
+                                                                        <div key={idx}>
+                                                                            {product.product} : {product.quantity}
+                                                                        </div>
+                                                                    ))
+                                                                    : null}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Amount:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.amount?.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Remark:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.remark?.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Comment:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.comment}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <dt className="text-sm font-medium text-gray-600">Date:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.date}</dd>
+                                                            </div>
+                                                        </dl>
+                                                    </div>
+                                                )}
+
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Close</AlertDialogCancel>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+
+                                        </AlertDialog>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 </div>
             </div>
+
+
 
             <Pagination className="mt-4 flex justify-center">
                 <PaginationContent>

@@ -597,7 +597,7 @@ const DispatchPage = () => {
                 </CardContent>
             </Card>
 
-            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+            {/* <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="max-w-full">
                     <Table>
                         <TableHeader>
@@ -810,7 +810,320 @@ const DispatchPage = () => {
                         </TableBody>
                     </Table>
                 </div>
+            </div> */}
+            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+                <div className="max-w-full">
+                    <Table>
+                        <TableHeader>
+                            <tr className="bg-gray-200">
+                                {/* Complain */}
+                                <TableHead>Complain</TableHead>
+                                {/* Ref & AWB Number */}
+                                <TableHead>
+                                    <div>
+                                        <span>Ref</span>
+                                        <br />
+                                        <span>AWB Number</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Date</span>
+                                    </div>
+                                </TableHead>
+                                {/* Sale Type & Payment Type */}
+                                <TableHead>
+                                    <div>
+                                        <span>Sale Type</span>
+                                        <br />
+                                        <span>Payment Type</span>
+                                    </div>
+                                </TableHead>
+                                {/* First Name & Last Name */}
+                                <TableHead>
+                                    <div>
+                                        <span>First Name</span>
+                                        <br />
+                                        <span>Last Name</span>
+                                    </div>
+                                </TableHead>
+                                {/* Phone & Alternate Phone */}
+                                <TableHead>
+                                    <div>
+                                        <span>Phone</span>
+                                        <br />
+                                        <span>Alternate Phone</span>
+                                    </div>
+                                </TableHead>
+                                {/* Address */}
+                                <TableHead>Address</TableHead>
+                                {/* City & District */}
+                                <TableHead>
+                                    <div>
+                                        <span>City</span>
+                                        <br />
+                                        <span>District</span>
+                                    </div>
+                                </TableHead>
+                                {/* State & Pincode */}
+                                <TableHead>
+                                    <div>
+                                        <span>State</span>
+                                        <br />
+                                        <span>Pincode</span>
+                                    </div>
+                                </TableHead>
+                                {/* Products */}
+                                <TableHead>Products</TableHead>
+                                {/* Amount */}
+                                <TableHead>Amount</TableHead>
+                                {/* Last Update Position */}
+                                <TableHead>Last Update Position</TableHead>
+                                {/* Update */}
+                                <TableHead>Update</TableHead>
+                            </tr>
+                        </TableHeader>
+                        <TableBody>
+                            {paginatedData.map((item) => (
+                                <TableRow key={item._id} item={item}>
+                                    {/* 1. Complain */}
+                                    <TableCell>
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    disabled={item.isReturn || item.isDelivered}
+                                                >
+                                                    Raise Complaint
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>Raise Complaint</DialogTitle>
+                                                </DialogHeader>
+                                                <div className="grid gap-4 py-4">
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="complain_detail">Complaint Detail</Label>
+                                                        <Select
+                                                            value={complaintDetails.complain_detail}
+                                                            onValueChange={(value) =>
+                                                                setComplaintDetails((prev) => ({
+                                                                    ...prev,
+                                                                    complain_detail: value,
+                                                                }))
+                                                            }
+                                                        >
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select complaint type" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="Delay in Delivery of Articles">
+                                                                    Delay in Delivery of Articles
+                                                                </SelectItem>
+                                                                <SelectItem value="Non Delivery of Article">
+                                                                    Non Delivery of Article
+                                                                </SelectItem>
+                                                                <SelectItem value="Wrong Delivery Status Update">
+                                                                    Wrong Delivery Status Update
+                                                                </SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="complain_comment">Comment</Label>
+                                                        <Input
+                                                            id="complain_comment"
+                                                            value={complaintDetails.complain_comment}
+                                                            onChange={(e) =>
+                                                                setComplaintDetails((prev) => ({
+                                                                    ...prev,
+                                                                    complain_comment: e.target.value,
+                                                                }))
+                                                            }
+                                                        />
+                                                    </div>
+                                                    <Button
+                                                        onClick={() => handleComplaint(item)}
+                                                        // disabled={
+                                                        //     !complaintDetails.complain_detail ||
+                                                        //     (item.confirmedId?.shipment_type?.value === "Indian Post" &&
+                                                        //         (!complaintDetails.complain_id ||
+                                                        //             !complaintDetails.complain_comment))
+                                                        // }
+                                                        disabled={
+                                                            !complaintDetails.complain_detail || !complaintDetails.complain_comment
+                                                        }
+                                                    >
+                                                        Submit Complaint
+                                                    </Button>
+                                                </div>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </TableCell>
+
+                                    {/* 2. Ref & AWB Number */}
+                                    <TableCell>
+                                        <div>
+                                            {item.confirmedId?.ref}
+                                            <br />
+                                            {item.awb_number}
+                                        </div>
+                                    </TableCell>
+
+                                    <TableCell>
+                                        <div>
+                                            {item.date}
+                                        </div>
+                                    </TableCell>
+
+                                    {/* 3. Sale Type & Payment Type */}
+                                    <TableCell>
+                                        <div>
+                                            {item.confirmedId?.sale_type?.value}
+                                            <br />
+                                            {item.confirmedId?.payment_type?.value}
+                                        </div>
+                                    </TableCell>
+
+                                    {/* 4. First Name & Last Name */}
+                                    <TableCell>
+                                        <div>
+                                            {item.confirmedId?.cm_first_name}
+                                            <br />
+                                            {item.confirmedId?.cm_last_name}
+                                        </div>
+                                    </TableCell>
+
+                                    {/* 5. Phone & Alternate Phone */}
+                                    <TableCell>
+                                        <div>
+                                            {item.confirmedId?.cm_phone}
+                                            <br />
+                                            {item.confirmedId?.alternate_phone}
+                                        </div>
+                                    </TableCell>
+
+                                    {/* 6. Address */}
+                                    <TableCell>{item.confirmedId?.address}</TableCell>
+
+                                    {/* 7. City & District */}
+                                    <TableCell>
+                                        <div>
+                                            {item.confirmedId?.city}
+                                            <br />
+                                            {item.confirmedId?.district}
+                                        </div>
+                                    </TableCell>
+
+                                    {/* 8. State & Pincode */}
+                                    <TableCell>
+                                        <div>
+                                            {item.confirmedId?.state?.value}
+                                            <br />
+                                            {item.confirmedId?.pincode}
+                                        </div>
+                                    </TableCell>
+
+                                    {/* 9. Products */}
+                                    <TableCell>
+                                        {Array.isArray(item.confirmedId?.products?.value) &&
+                                            item.confirmedId.products.value.length > 0
+                                            ? item.confirmedId.products.value.map((product, index) => (
+                                                <div key={index}>
+                                                    {product.product} : {product.quantity}
+                                                </div>
+                                            ))
+                                            : "No Products"}
+                                    </TableCell>
+
+                                    {/* 10. Amount */}
+                                    <TableCell>{item.confirmedId?.amount?.value}</TableCell>
+
+                                    {/* 11. Last Update Position */}
+                                    <TableCell>
+                                        {item.location_and_date ? (
+                                            <div>
+                                                {Object.entries(item.location_and_date).map(([position, date]) => (
+                                                    <div key={position}>
+                                                        {position}: {date}
+                                                    </div>
+                                                ))}
+                                                {item.location_and_date["CITY"] && !item.isReturn && (
+                                                    <Button
+                                                        variant="default"
+                                                        size="sm"
+                                                        className="mt-2 bg-blue-500 hover:bg-blue-600 text-white"
+                                                        onClick={() => handleDelivered(item._id)}
+                                                        disabled={item.isDelivered}
+                                                    >
+                                                        Delivered
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            "No updates"
+                                        )}
+                                    </TableCell>
+
+                                    {/* 12. Update Button */}
+                                    <TableCell>
+                                        <Select
+                                            value={selectedPositions[item._id] || "Select"}
+                                            onValueChange={(value) =>
+                                                setSelectedPositions({ ...selectedPositions, [item._id]: value })
+                                            }
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select position" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Select">Select</SelectItem>
+                                                {getAvailablePositions(item).map((position) => (
+                                                    <SelectItem key={position} value={position}>
+                                                        {position}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Input
+                                            type="date"
+                                            value={selectedDates[item._id] || ""}
+                                            onChange={(e) => {
+                                                const newDate = e.target.value;
+                                                const itemDate = parseIndianDate(item.confirmedId.date);
+                                                const lastUpdateDate = parseIndianDate(lastUpdateDates[item._id]);
+                                                const selectedDate = new Date(newDate);
+
+                                                if (isAfter(selectedDate, lastUpdateDate) && isAfter(selectedDate, itemDate)) {
+                                                    setSelectedDates({ ...selectedDates, [item._id]: newDate });
+                                                } else {
+                                                    toast.error(
+                                                        "Selected date must be later than the last update date and item creation date"
+                                                    );
+                                                }
+                                            }}
+                                            min={format(parseIndianDate(lastUpdateDates[item._id]), "yyyy-MM-dd")}
+                                        />
+                                        <Button
+                                            onClick={() => handleUpdate(item._id)}
+                                            disabled={
+                                                !selectedPositions[item._id] ||
+                                                !selectedDates[item._id] ||
+                                                selectedPositions[item._id] === "Select" ||
+                                                item.isReturn
+                                            }
+                                        >
+                                            Update
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
+
             <Pagination className="mt-4 flex justify-center">
                 <PaginationContent>
                     <PaginationItem>

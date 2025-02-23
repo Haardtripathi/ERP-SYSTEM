@@ -45,6 +45,7 @@ const PaymentDialog = ({ referenceId, dispatchedId }) => {  // Changed from ref 
 
             await addPayment(paymentData)
             toast.success("Payment added successfully")
+            window.location.reload()
             setIsOpen(false)
             resetForm()
         } catch (error) {

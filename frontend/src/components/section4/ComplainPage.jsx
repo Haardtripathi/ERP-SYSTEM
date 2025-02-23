@@ -349,7 +349,7 @@ const ComplainPage = () => {
 
             </Card>
 
-            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+            {/* <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="max-w-full">
                     <Table>
                         <TableHeader>
@@ -360,6 +360,8 @@ const ComplainPage = () => {
                                 <TableHead>Complain Comment</TableHead>
                                 <TableHead>Ref</TableHead>
                                 <TableHead>AWB Number</TableHead>
+                                <TableHead>Dispatched Date</TableHead>
+
                                 <TableHead>Name</TableHead>
                                 <TableHead>Number</TableHead>
                                 <TableHead>Address</TableHead>
@@ -415,6 +417,8 @@ const ComplainPage = () => {
                                     <TableCell>{item.complain_comment}</TableCell>
                                     <TableCell>{item.dispatchedId?.confirmedId?.ref}</TableCell>
                                     <TableCell>{item.dispatchedId?.confirmedId?.awb_number}</TableCell>
+                                    <TableCell>{item.dispatchedId?.date}</TableCell>
+
                                     <TableCell>{`${item.dispatchedId?.confirmedId?.cm_first_name} ${item.dispatchedId?.confirmedId?.cm_last_name}`}</TableCell>
                                     <TableCell>{item.dispatchedId?.confirmedId?.cm_phone}</TableCell>
                                     <TableCell>{item.dispatchedId?.confirmedId?.address}</TableCell>
@@ -423,7 +427,169 @@ const ComplainPage = () => {
                         </TableBody>
                     </Table>
                 </div>
+            </div> */}
+            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+                <div className="max-w-full">
+                    <Table>
+                        <TableHeader>
+                            <tr className="bg-gray-200">
+                                {/* Group 1: Date & Complain Detail */}
+                                <TableHead>
+                                    <div>
+                                        <span>Date</span>
+                                        <br />
+                                        <span>Complain Detail</span>
+                                    </div>
+                                </TableHead>
+                                {/* Group 2: Dispatched Date & Complain ID */}
+                                <TableHead>
+                                    <div>
+                                        <span>Dispatched Date</span>
+                                        <br />
+                                        <span>Complain ID</span>
+                                    </div>
+                                </TableHead>
+                                {/* Group 3: Ref & AWB */}
+                                <TableHead>
+                                    <div>
+                                        <span>Ref</span>
+                                        <br />
+                                        <span>AWB</span>
+                                    </div>
+                                </TableHead>
+                                {/* Group 4: Name */}
+                                <TableHead>Name</TableHead>
+                                {/* Group 5: Phone & Alternate Phone */}
+                                <TableHead>
+                                    <div>
+                                        <span>Phone</span>
+                                        <br />
+                                        <span>Alternate Phone</span>
+                                    </div>
+                                </TableHead>
+                                {/* Group 6: Address */}
+                                <TableHead>Address</TableHead>
+                                {/* Group 7: City & District */}
+                                <TableHead>
+                                    <div>
+                                        <span>City</span>
+                                        <br />
+                                        <span>District</span>
+                                    </div>
+                                </TableHead>
+                                {/* Group 8: State & Pin */}
+                                <TableHead>
+                                    <div>
+                                        <span>State</span>
+                                        <br />
+                                        <span>Pin</span>
+                                    </div>
+                                </TableHead>
+                            </tr>
+                        </TableHeader>
+                        <TableBody>
+                            {paginatedData.map((item) => (
+                                <TableRow key={item._id}>
+                                    {/* Group 1: Date & Complain Detail */}
+                                    <TableCell>
+                                        <div>
+                                            <span>{item.date}</span>
+                                            <br />
+                                            <span>{item.complain_detail}</span>
+                                        </div>
+                                    </TableCell>
+                                    {/* Group 2: Dispatched Date & Complain ID */}
+                                    <TableCell>
+                                        <div>
+                                            <span>{item.dispatchedId?.date}</span>
+                                            <br />
+                                            <div className="flex items-center space-x-2">
+                                                {editingId === item._id ? (
+                                                    <>
+                                                        <Input
+                                                            value={editValue}
+                                                            onChange={(e) => setEditValue(e.target.value)}
+                                                            className="w-32"
+                                                        />
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => handleSave(item._id)}
+                                                            className="p-1"
+                                                        >
+                                                            <Check className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="destructive"
+                                                            onClick={handleCancel}
+                                                            className="p-1"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        {item.complain_id}
+                                                        {!item.complain_id && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                onClick={() => handleEdit(item._id, item.complain_id)}
+                                                                className="p-1"
+                                                            >
+                                                                <Edit2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </TableCell>
+                                    {/* Group 3: Ref & AWB */}
+                                    <TableCell>
+                                        <div>
+                                            <span>{item.dispatchedId?.confirmedId?.ref}</span>
+                                            <br />
+                                            <span>{item.dispatchedId?.confirmedId?.awb_number}</span>
+                                        </div>
+                                    </TableCell>
+                                    {/* Group 4: Name */}
+                                    <TableCell>
+                                        {`${item.dispatchedId?.confirmedId?.cm_first_name} ${item.dispatchedId?.confirmedId?.cm_last_name}`}
+                                    </TableCell>
+                                    {/* Group 5: Phone & Alternate Phone */}
+                                    <TableCell>
+                                        <div>
+                                            <span>{item.dispatchedId?.confirmedId?.cm_phone}</span>
+                                            <br />
+                                            <span>{item.dispatchedId?.confirmedId?.alternate_phone}</span>
+                                        </div>
+                                    </TableCell>
+                                    {/* Group 6: Address */}
+                                    <TableCell>{item.dispatchedId?.confirmedId?.address}</TableCell>
+                                    {/* Group 7: City & District */}
+                                    <TableCell>
+                                        <div>
+                                            <span>{item.dispatchedId?.confirmedId?.city}</span>
+                                            <br />
+                                            <span>{item.dispatchedId?.confirmedId?.district}</span>
+                                        </div>
+                                    </TableCell>
+                                    {/* Group 8: State & Pin */}
+                                    <TableCell>
+                                        <div>
+                                            <span>{item.dispatchedId?.confirmedId?.state?.value}</span>
+                                            <br />
+                                            <span>{item.dispatchedId?.confirmedId?.pincode}</span>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
+
             <Pagination className="mt-4 flex justify-center">
                 <PaginationContent>
                     <PaginationItem>

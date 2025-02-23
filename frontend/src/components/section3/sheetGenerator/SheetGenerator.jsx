@@ -670,7 +670,7 @@ const SheetGenerator = () => {
             </Card>
 
 
-            <Card>
+            {/* <Card>
                 <CardContent className="p-0">
                     <div className="rounded-md border">
                         <Table>
@@ -707,7 +707,94 @@ const SheetGenerator = () => {
                         </Table>
                     </div>
                 </CardContent>
+            </Card> */}
+            <Card>
+                <CardContent className="p-0">
+                    <div className="rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>
+                                        <div>
+                                            <span>Ref</span>
+
+                                        </div>
+                                    </TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>
+                                        <div>
+                                            <span>First Name</span>
+                                            <br />
+                                            <span>Last Name</span>
+                                        </div>
+                                    </TableHead>
+                                    <TableHead>
+                                        <div>
+                                            <span>Phone</span>
+                                            <br />
+                                            <span>Alternate Phone</span>
+                                        </div>
+                                    </TableHead>
+                                    <TableHead>Address</TableHead>
+                                    <TableHead>
+                                        <div>
+                                            <span>City</span>
+                                            <br />
+                                            <span>State</span>
+                                        </div>
+                                    </TableHead>
+                                    <TableHead>Products</TableHead>
+                                    <TableHead>Amount</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {paginatedData.map((item, index) => (
+                                    <TableRow key={item._id} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+                                        <TableCell>
+                                            <div>
+                                                {item.ref}
+
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{item.date}</TableCell>
+                                        <TableCell>
+                                            <div>
+                                                {item.cm_first_name}
+                                                <br />
+                                                {item.cm_last_name}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div>
+                                                {item.cm_phone}
+                                                <br />
+                                                {item.alternate_phone}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{item.address}</TableCell>
+                                        <TableCell>
+                                            <div>
+                                                {item.city}
+                                                <br />
+                                                {item.state?.value}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{Array.isArray(item.products?.value)
+                                            ? item.products.value.map((product, idx) => (
+                                                <div key={idx}>
+                                                    {product.product} : {product.quantity}
+                                                </div>
+                                            ))
+                                            : null}</TableCell>
+                                        <TableCell>{item.amount?.value}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
             </Card>
+
             <div className="mt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <Pagination>
                     <PaginationContent>

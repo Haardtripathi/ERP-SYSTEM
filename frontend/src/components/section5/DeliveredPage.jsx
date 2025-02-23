@@ -365,44 +365,91 @@ const DeliveredPage = () => {
                 </CardHeader>
 
             </Card>
+
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="max-w-full">
                     <Table>
                         <TableHeader>
                             <tr className="bg-gray-200">
-                                <TableHead>Payment</TableHead>
+                                {/* Group 1: (Ref, AWB) */}
+                                <TableHead>
+                                    <div>
+                                        <span>Payment</span>
 
-                                <TableHead>Ref</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Time</TableHead>
-                                <TableHead>Source</TableHead>
-                                <TableHead>Payment Type</TableHead>
-                                <TableHead>Sale Type</TableHead>
-                                <TableHead>Agent</TableHead>
-                                <TableHead>First Name</TableHead>
-                                <TableHead>Last Name</TableHead>
-                                <TableHead>Phone</TableHead>
-                                <TableHead>Alternate Number</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Comment</TableHead>
-                                <TableHead>Shipment Type</TableHead>
-                                <TableHead>Address</TableHead>
-                                <TableHead>Post Type</TableHead>
-                                <TableHead>Post</TableHead>
-                                <TableHead>District</TableHead>
-                                <TableHead>City/Town/Village</TableHead>
-                                <TableHead>Pincode</TableHead>
-                                <TableHead>State</TableHead>
-                                <TableHead>Disease</TableHead>
-                                <TableHead>Amount</TableHead>
-                                <TableHead>Products</TableHead>
+                                    </div>
+                                </TableHead>
+
+                                <TableHead>
+                                    <div>
+                                        <span>Ref</span>
+                                        <br />
+                                        <span>AWB</span>
+                                    </div>
+                                </TableHead>
+                                {/* Group 2: (Date, Dispatch Date) */}
+                                <TableHead>
+                                    <div>
+                                        <span>Date</span>
+                                        <br />
+                                        <span>Dispatch Date</span>
+                                    </div>
+                                </TableHead>
+                                {/* Group 3: (Sale Type, Payment Type) */}
+                                <TableHead>
+                                    <div>
+                                        <span>Sale Type</span>
+                                        <br />
+                                        <span>Payment Type</span>
+                                    </div>
+                                </TableHead>
+                                {/* Group 4: (Agent Name, First & Last Name) */}
+                                <TableHead>
+                                    <div>
+                                        <span>Agent Name</span>
+                                        <br />
+                                        <span>Name</span>
+                                    </div>
+                                </TableHead>
+                                {/* Group 5: (Phone, Alternate Phone) */}
+                                <TableHead>
+                                    <div>
+                                        <span>Phone</span>
+                                        <br />
+                                        <span>Alternate Phone</span>
+                                    </div>
+                                </TableHead>
+                                {/* Group 6: (Address, City & District) */}
+                                <TableHead>
+                                    <div>
+                                        <span>Address</span>
+                                        <br />
+                                        <span>City, District</span>
+                                    </div>
+                                </TableHead>
+                                {/* Group 7: (State, Pincode) */}
+                                <TableHead>
+                                    <div>
+                                        <span>State</span>
+                                        <br />
+                                        <span>Pincode</span>
+                                    </div>
+                                </TableHead>
+                                {/* Group 8: (Amount, Products) */}
+                                <TableHead>
+                                    <div>
+                                        <span>Amount</span>
+                                        <br />
+                                        <span>Products</span>
+                                    </div>
+                                </TableHead>
                             </tr>
                         </TableHeader>
                         <TableBody>
-                            {paginatedData.map((item) => {
-                                return (
-                                    <TableRow key={item._id} item={item}>
-                                        <TableCell>
+                            {paginatedData.map((item) => (
+                                <TableRow key={item._id} item={item}>
+                                    {/* Group 1: Ref & AWB */}
+                                    <TableCell>
+                                        <span>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
@@ -415,43 +462,87 @@ const DeliveredPage = () => {
                                                     <PaymentDialog referenceId={item.dispatchedId?.confirmedId?.ref} dispatchedId={item.dispatchedId?._id} />
                                                 )}
                                             </Button>
-                                        </TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.ref}</TableCell>
-                                        <TableCell>{item.date}</TableCell>
-                                        <TableCell>{item.time}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.source?.value}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.payment_type?.value}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.sale_type?.value}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.agent_name?.value}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.cm_first_name}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.cm_last_name}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.cm_phone}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.alternate_phone}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.email}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.comment}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.shipment_type?.value}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.address}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.post_type?.value}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.post}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.district}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.city}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.pincode}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.state?.value}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.disease?.value}</TableCell>
-                                        <TableCell>{item.dispatchedId.confirmedId?.amount?.value}</TableCell>
-                                        <TableCell>
-                                            {Array.isArray(item.dispatchedId.confirmedId?.products?.value) &&
-                                                item.dispatchedId.confirmedId.products.value.length > 0
-                                                ? item.dispatchedId.confirmedId.products.value.map((product, index) => (
-                                                    <div key={index}>
-                                                        {product.product} : {product.quantity}
-                                                    </div>
-                                                ))
-                                                : "No Products"}
-                                        </TableCell>
-                                    </TableRow>
-                                )
-                            })}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div>
+                                            <span>{item.dispatchedId.confirmedId?.ref}</span>
+                                            <br />
+                                            <span>{item.dispatchedId.confirmedId?.awb_number}</span>
+                                        </div>
+                                    </TableCell>
+                                    {/* Group 2: Date & Dispatch Date */}
+                                    <TableCell>
+                                        <div>
+                                            <span>{item.date}</span>
+                                            <br />
+                                            <span>{item.dispatchedId?.date}</span>
+                                        </div>
+                                    </TableCell>
+                                    {/* Group 3: Sale Type & Payment Type */}
+                                    <TableCell>
+                                        <div>
+                                            <span>{item.dispatchedId.confirmedId?.sale_type?.value}</span>
+                                            <br />
+                                            <span>{item.dispatchedId.confirmedId?.payment_type?.value}</span>
+                                        </div>
+                                    </TableCell>
+                                    {/* Group 4: Agent Name & First+Last Name */}
+                                    <TableCell>
+                                        <div>
+                                            <span>{item.dispatchedId.confirmedId?.agent_name?.value}</span>
+                                            <br />
+                                            <span>
+                                                {item.dispatchedId.confirmedId?.cm_first_name}{" "}
+                                                {item.dispatchedId.confirmedId?.cm_last_name}
+                                            </span>
+                                        </div>
+                                    </TableCell>
+                                    {/* Group 5: Phone & Alternate Phone */}
+                                    <TableCell>
+                                        <div>
+                                            <span>{item.dispatchedId.confirmedId?.cm_phone}</span>
+                                            <br />
+                                            <span>{item.dispatchedId.confirmedId?.alternate_phone}</span>
+                                        </div>
+                                    </TableCell>
+                                    {/* Group 6: Address, City & District */}
+                                    <TableCell>
+                                        <div>
+                                            <span>{item.dispatchedId.confirmedId?.address}</span>
+                                            <br />
+                                            <span>
+                                                {item.dispatchedId.confirmedId?.city}, {item.dispatchedId.confirmedId?.district}
+                                            </span>
+                                        </div>
+                                    </TableCell>
+                                    {/* Group 7: State & Pincode */}
+                                    <TableCell>
+                                        <div>
+                                            <span>{item.dispatchedId.confirmedId?.state?.value}</span>
+                                            <br />
+                                            <span>{item.dispatchedId.confirmedId?.pincode}</span>
+                                        </div>
+                                    </TableCell>
+                                    {/* Group 8: Amount & Products */}
+                                    <TableCell>
+                                        <div>
+                                            <span>{item.dispatchedId.confirmedId?.amount?.value}</span>
+                                            <br />
+                                            <span>
+                                                {Array.isArray(item.dispatchedId.confirmedId?.products?.value) &&
+                                                    item.dispatchedId.confirmedId.products.value.length > 0
+                                                    ? item.dispatchedId.confirmedId.products.value.map((product, index) => (
+                                                        <div key={index}>
+                                                            {product.product} : {product.quantity}
+                                                        </div>
+                                                    ))
+                                                    : "No Products"}
+                                            </span>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
                         </TableBody>
                     </Table>
                 </div>

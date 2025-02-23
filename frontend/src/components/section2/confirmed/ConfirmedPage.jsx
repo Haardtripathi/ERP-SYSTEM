@@ -733,7 +733,7 @@ const ConfirmedPage = () => {
                                                     variant="ghost"
                                                     className="p-1 rounded hover:bg-gray-200 transition-colors duration-200"
                                                 >
-                                                    Show...
+                                                    Show More...
                                                 </Button>
                                             </AlertDialogTrigger>
                                             <AlertDialogContent className="max-w-md">
@@ -779,10 +779,10 @@ const ConfirmedPage = () => {
                                                                 <dt className="text-sm font-medium text-gray-600">Agent:</dt>
                                                                 <dd className="text-sm text-gray-800">{item.agent_name?.value}</dd>
                                                             </div>
-                                                            <div className="flex justify-between border-b pb-1">
+                                                            {/* <div className="flex justify-between border-b pb-1">
                                                                 <dt className="text-sm font-medium text-gray-600">Language:</dt>
                                                                 <dd className="text-sm text-gray-800">{item.language?.value}</dd>
-                                                            </div>
+                                                            </div> */}
                                                             <div className="flex justify-between border-b pb-1">
                                                                 <dt className="text-sm font-medium text-gray-600">Disease:</dt>
                                                                 <dd className="text-sm text-gray-800">{item.disease?.value}</dd>
@@ -805,7 +805,7 @@ const ConfirmedPage = () => {
                                                                     ))
                                                                     : null}</dd>
                                                             </div>
-                                                            <div className="flex justify-between">
+                                                            <div className="flex justify-between border-b pb-1">
                                                                 <dt className="text-sm font-medium text-gray-600">Amount:</dt>
                                                                 <dd className="text-sm text-gray-800">{item.amount?.value}</dd>
                                                             </div>
