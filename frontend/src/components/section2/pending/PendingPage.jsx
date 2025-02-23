@@ -527,7 +527,7 @@ const PendingPage = () => {
             </Card>
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
 
-                <div className="max-w-full">
+                {/* <div className="max-w-full">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -624,7 +624,7 @@ const PendingPage = () => {
                                             ? item.products.value.map((product, index) => (
 
                                                 <div key={index}>
-                                                    {/* {`${Object.keys(product)[0]}: ${Object.values(product)[0]}`} */}
+
                                                     {product.product} : {product.quantity}
                                                 </div>
                                             ))
@@ -673,7 +673,221 @@ const PendingPage = () => {
                             ))}
                         </TableBody>
                     </Table>
+                </div> */}
+                <div className="max-w-full">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Send</TableHead>
+                                <TableHead>Issue</TableHead>
+                                <TableHead>Ref</TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Date</span>
+                                        <br />
+                                        <span>Time</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Sale Type</span>
+                                        <br />
+                                        <span>Source</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Agent Name</span>
+                                        <br />
+                                        <span>Payment Type</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>First Name</span>
+                                        <br />
+                                        <span>Last Name</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Phone</span>
+                                        <br />
+                                        <span>Alternate Number</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Status</span>
+                                        <br />
+                                        <span>Comment</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>State</span>
+                                        <br />
+                                        <span>City</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>Product</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead>Update</TableHead>
+                                <TableHead>Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {paginatedData.map((item, index) => (
+                                <TableRow
+                                    key={item._id}
+                                    className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}
+                                >
+                                    {/* Send */}
+                                    <TableCell>
+                                        <Forward
+                                            size={25}
+                                            color="green"
+                                            strokeWidth={2}
+                                            style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
+                                            onClick={() =>
+                                                handleSendToConfirmed(item._id, item.dataId, item.data)
+                                            }
+                                        />
+                                    </TableCell>
+                                    {/* Issue */}
+                                    <TableCell>
+                                        <SendHorizontal
+                                            size={20}
+                                            color="red"
+                                            strokeWidth={2}
+                                            style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
+                                            onClick={() => handleIssue(item._id, item.dataId, item.data)}
+                                        />
+                                    </TableCell>
+                                    {/* Ref */}
+                                    <TableCell>{item.ref}</TableCell>
+                                    {/* Date & Time */}
+                                    <TableCell>
+                                        <div>
+                                            {item.date}
+                                            <br />
+                                            {item.time}
+                                        </div>
+                                    </TableCell>
+                                    {/* Sale Type & Source */}
+                                    <TableCell>
+                                        <div>
+                                            {item.sale_type?.value}
+                                            <br />
+                                            {item.source?.value}
+                                        </div>
+                                    </TableCell>
+                                    {/* Agent Name & Payment Type */}
+                                    <TableCell>
+                                        <div>
+                                            {item.agent_name?.value}
+                                            <br />
+                                            {item.payment_type?.value}
+                                        </div>
+                                    </TableCell>
+                                    {/* First Name & Last Name */}
+                                    <TableCell>
+                                        <div>
+                                            {item.cm_first_name}
+                                            <br />
+                                            {item.cm_last_name}
+                                        </div>
+                                    </TableCell>
+                                    {/* Phone & Alternate Number */}
+                                    <TableCell>
+                                        <div>
+                                            {item.cm_phone}
+                                            <br />
+                                            {item.alternate_phone}
+                                        </div>
+                                    </TableCell>
+                                    {/* Status & Comment */}
+                                    <TableCell>
+                                        <div>
+                                            {item.status?.value}
+                                            <br />
+                                            {item.comment}
+                                        </div>
+                                    </TableCell>
+                                    {/* State & City */}
+                                    <TableCell>
+                                        <div>
+                                            {item.state?.value}
+                                            <br />
+                                            {item.city}
+                                        </div>
+                                    </TableCell>
+                                    {/* Product */}
+                                    <TableCell>
+                                        {Array.isArray(item.products?.value)
+                                            ? item.products.value.map((product, idx) => (
+                                                <div key={idx}>
+                                                    {product.product} : {product.quantity}
+                                                </div>
+                                            ))
+                                            : null}
+                                    </TableCell>
+                                    {/* Amount */}
+                                    <TableCell>{item.amount?.value}</TableCell>
+                                    {/* Update */}
+                                    <TableCell>
+                                        <RotateCw
+                                            size={20}
+                                            color="#007BFF"
+                                            strokeWidth={2}
+                                            style={{ cursor: "pointer", transition: "transform 0.2s ease" }}
+                                            onClick={() => handleUpdateClick(item._id)}
+                                            onMouseOver={(e) =>
+                                                (e.currentTarget.style.transform = "rotate(90deg)")
+                                            }
+                                            onMouseOut={(e) =>
+                                                (e.currentTarget.style.transform = "rotate(0deg)")
+                                            }
+                                        />
+                                    </TableCell>
+                                    {/* Actions */}
+                                    <TableCell>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200"
+                                                >
+                                                    <Trash2 className="h-5 w-5 text-red-500" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action cannot be undone. This will permanently delete the
+                                                        selected record.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                        onClick={() =>
+                                                            handleDelete(item._id, item.dataId, item.data)
+                                                        }
+                                                    >
+                                                        Delete
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 </div>
+
             </div>
             <Pagination className="mt-4 flex justify-center">
                 <PaginationContent>
@@ -730,85 +944,79 @@ const PendingPage = () => {
                         <DialogTitle>Review Pending Data</DialogTitle>
                         <DialogDescription>Please review the pending data before sending to confirmed.</DialogDescription>
                     </DialogHeader>
+
                     {selectedItem && (
-                        <div className="mt-4 max-h-[60vh] overflow-y-auto">
-                            <div className="mt-4">
-                                <p>
-                                    <strong>Reference:</strong> {selectedItem.ref}
-                                </p>
-                                <p>
-                                    <strong>Date:</strong> {selectedItem.date}
-                                </p>
-                                <p>
-                                    <strong>Time:</strong> {selectedItem.time}
-                                </p>
-                                <p>
-                                    <strong>Source:</strong> {selectedItem.source?.value}
-                                </p>
-                                <p>
-                                    <strong>Name:</strong> {selectedItem.cm_first_name} {selectedItem.cm_last_name}
-                                </p>
-                                <p>
-                                    <strong>Phone:</strong> {selectedItem.cm_phone}
-                                </p>
-                                <p>
-                                    <strong>Alternate Phone:</strong> {selectedItem.alternate_phone}
-                                </p>
-                                <p>
-                                    <strong>Email:</strong> {selectedItem.email}
-                                </p>
-                                <p>
-                                    <strong>Agent Name:</strong> {selectedItem.agent_name?.value}
-                                </p>
-                                <p>
-                                    <strong>Status:</strong> {selectedItem.status?.value}
-                                </p>
-                                <p>
-                                    <strong>Remark:</strong> {selectedItem.remark?.value}
-                                </p>
-                                <p>
-                                    <strong>Comment:</strong> {selectedItem.comment}
-                                </p>
-                                <p>
-                                    <strong>Shipment Type:</strong> {selectedItem.shipment_type?.value}
-                                </p>
-                                <p>
-                                    <strong>Address:</strong> {selectedItem.address}
-                                </p>
-                                <p>
-                                    <strong>Post Type:</strong> {selectedItem.post_type?.value}
-                                </p>
-                                <p>
-                                    <strong>Post:</strong> {selectedItem.post}
-                                </p>
-                                <p>
-                                    <strong>Sub District/Taluka:</strong> {selectedItem.district}
-                                </p>
-                                <p>
-                                    <strong>City:</strong> {selectedItem.city}
-                                </p>
-                                <p>
-                                    <strong>Pincode:</strong> {selectedItem.pincode}
-                                </p>
-                                <p>
-                                    <strong>State:</strong> {selectedItem.state?.value}
-                                </p>
-                                <p>
-                                    <strong>Disease:</strong> {selectedItem.disease?.value}
-                                </p>
-                                <p>
-                                    <strong>Amount:</strong> {selectedItem.amount?.value}
-                                </p>
-                                <div>
-                                    <strong>Products:</strong>
-                                    {Array.isArray(selectedItem.products?.value)
-                                        ? selectedItem.products.value.map((product, index) => (
-                                            <div key={index}>{`${product.product} : ${product.quantity}`}</div>
-                                        ))
-                                        : "No products"}
+                        <div className="mt-4">
+                            <dl className="space-y-3">
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Ref:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.ref}</dd>
                                 </div>
 
-                            </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Source:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.source?.value}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Name:</dt>
+                                    <dd className="text-sm text-gray-800">
+                                        {selectedItem.cm_first_name} {selectedItem.cm_last_name}
+                                    </dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Phone:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.cm_phone}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Agent:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.agent_name?.value}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Language:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.language?.value}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Disease:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.disease?.value}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">State:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.state?.value}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">City:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.city}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Address:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.address}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Post Type:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.post_type?.value}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Shipment Type:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.shipment_type?.value}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Post:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.post}</dd>
+                                </div>
+
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Remark:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.remark?.value}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Comment:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.comment}</dd>
+                                </div>
+                                <div className="flex justify-between">
+                                    <dt className="text-sm font-medium text-gray-600">Date:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.date}</dd>
+                                </div>
+                            </dl>
                         </div>
                     )}
                     <DialogFooter>

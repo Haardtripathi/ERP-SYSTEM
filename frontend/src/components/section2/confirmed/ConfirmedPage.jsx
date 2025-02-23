@@ -8,6 +8,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 
 import {
     Pagination,
@@ -473,7 +485,7 @@ const ConfirmedPage = () => {
 
             </Card>
 
-            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+            {/* <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="max-w-full">
                     <Table>
                         <TableHeader>
@@ -564,7 +576,269 @@ const ConfirmedPage = () => {
                         </TableBody>
                     </Table>
                 </div>
+            </div> */}
+            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+                <div className="max-w-full">
+                    <Table>
+                        <TableHeader>
+                            <tr className="bg-gray-200">
+                                <TableHead>ACTION</TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Ref</span>
+                                        <br />
+                                        <span>AWB Number</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Date</span>
+                                        <br />
+                                        <span>Time</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Sale Type</span>
+                                        <br />
+                                        <span>Source</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Agent Name</span>
+                                        <br />
+                                        <span>Payment Type</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>First Name</span>
+                                        <br />
+                                        <span>Last Name</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Phone</span>
+                                        <br />
+                                        <span>Alternate Number</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Status</span>
+                                        <br />
+                                        <span>Comment</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>State</span>
+                                        <br />
+                                        <span>City</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>Product</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead></TableHead>
+                            </tr>
+                        </TableHeader>
+                        <TableBody>
+                            {paginatedData.map((item, index) => (
+                                <TableRow key={item._id} item={item}>
+                                    {/* ACTION */}
+                                    <TableCell>{renderStateColumn(item)}</TableCell>
+                                    {/* (Ref, AWB Number) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.ref}
+                                            <br />
+                                            {renderAwbNumberColumn(item)}
+                                        </div>
+                                    </TableCell>
+                                    {/* (Date, Time) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.date}
+                                            <br />
+                                            {item.time}
+                                        </div>
+                                    </TableCell>
+                                    {/* (Sale Type, Source) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.sale_type?.value}
+                                            <br />
+                                            {item.source?.value}
+                                        </div>
+                                    </TableCell>
+                                    {/* (Agent Name, Payment Type) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.agent_name?.value}
+                                            <br />
+                                            {item.payment_type?.value}
+                                        </div>
+                                    </TableCell>
+                                    {/* (First Name, Last Name) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.cm_first_name}
+                                            <br />
+                                            {item.cm_last_name}
+                                        </div>
+                                    </TableCell>
+                                    {/* (Phone, Alternate Number) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.cm_phone}
+                                            <br />
+                                            {item.alternate_phone}
+                                        </div>
+                                    </TableCell>
+                                    {/* (Status, Comment) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.status?.value}
+                                            <br />
+                                            {item.comment}
+                                        </div>
+                                    </TableCell>
+                                    {/* (State, City) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.state?.value}
+                                            <br />
+                                            {item.city}
+                                        </div>
+                                    </TableCell>
+                                    {/* Product */}
+                                    <TableCell>
+                                        {Array.isArray(item.products?.value)
+                                            ? item.products.value.map((product, idx) => (
+                                                <div key={idx}>
+                                                    {product.product} : {product.quantity}
+                                                </div>
+                                            ))
+                                            : null}
+                                    </TableCell>
+                                    {/* Amount */}
+                                    <TableCell>{item.amount?.value}</TableCell>
+                                    {/* Show Button */}
+                                    <TableCell>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="p-1 rounded hover:bg-gray-200 transition-colors duration-200"
+                                                >
+                                                    Show...
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent className="max-w-md">
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Review Confirmed Data</AlertDialogTitle>
+
+
+                                                </AlertDialogHeader>
+                                                {item && (
+                                                    <div className="mt-4">
+                                                        <dl className="space-y-3">
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Source:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.source?.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Name:</dt>
+                                                                <dd className="text-sm text-gray-800">
+                                                                    {item.cm_first_name} {item.cm_last_name}
+                                                                </dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Phone:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.cm_phone}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Alternate Phone:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.alternate_phone}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Sale Type:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.sale_type.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Payment Type:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.payment_type.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Shipment Type:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.shipment_type.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Agent:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.agent_name?.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Language:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.language?.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Disease:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.disease?.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">State:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.state?.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">City:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.city}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Products:</dt>
+                                                                <dd className="text-sm text-gray-800">{Array.isArray(item.products?.value)
+                                                                    ? item.products.value.map((product, idx) => (
+                                                                        <div key={idx}>
+                                                                            {product.product} : {product.quantity}
+                                                                        </div>
+                                                                    ))
+                                                                    : null}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <dt className="text-sm font-medium text-gray-600">Amount:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.amount?.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Remark:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.remark?.value}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between border-b pb-1">
+                                                                <dt className="text-sm font-medium text-gray-600">Comment:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.comment}</dd>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <dt className="text-sm font-medium text-gray-600">Date:</dt>
+                                                                <dd className="text-sm text-gray-800">{item.date}</dd>
+                                                            </div>
+                                                        </dl>
+                                                    </div>
+                                                )}
+
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Close</AlertDialogCancel>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+
+                                        </AlertDialog>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
+
             <Pagination className="mt-4 flex justify-center">
                 <PaginationContent>
                     <PaginationItem>

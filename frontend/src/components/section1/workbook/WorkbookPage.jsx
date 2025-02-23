@@ -465,7 +465,7 @@ const WorkbookPage = () => {
             </Card>
 
 
-            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+            {/* <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="overflow-x-auto max-w-full">
                     <Table>
                         <TableHeader>
@@ -569,7 +569,7 @@ const WorkbookPage = () => {
                 </div>
             </div>
 
-            {/* Pagination and other components remain unchanged */}
+
             <div className="mt-4 flex flex-col items-center justify-center space-y-4">
                 <Pagination className="mt-4 flex justify-center">
                     <PaginationContent>
@@ -600,7 +600,251 @@ const WorkbookPage = () => {
                         </PaginationItem>
                     </PaginationContent>
                 </Pagination>
+            </div> */}
+            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+                <div className="overflow-x-auto max-w-full">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Send</TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Data</span>
+                                        <br />
+                                        <span>Source</span>
+                                    </div>
+                                </TableHead>                                <TableHead>
+                                    <div>
+                                        <span>First Name</span>
+                                        <br />
+                                        <span>Last Name</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Phone</span>
+                                        <br />
+                                        <span>Alternate Phone</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>Agent</TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Disease</span>
+                                        <br />
+                                        <span>Language</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>State</span>
+                                        <br />
+                                        <span>City/Town/Village</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Remark</span>
+                                        <br />
+                                        <span>Comment</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>
+                                    <div>
+                                        <span>Date</span>
+                                        <br />
+                                        <span>Time</span>
+                                    </div>
+                                </TableHead>
+                                <TableHead>Update</TableHead>
+                                <TableHead>Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {paginatedData.map((item, index) => (
+                                <TableRow
+                                    key={item._id}
+                                    className={
+                                        item.is_sent_to_pending
+                                            ? "bg-green-100"
+                                            : index % 2 === 0
+                                                ? "bg-gray-50"
+                                                : "bg-white"
+                                    }
+                                >
+                                    {/* Send */}
+                                    <TableCell>
+                                        <SendHorizontal
+                                            size={20}
+                                            color={item.is_sent_to_pending ? "#28a745" : "#007BFF"}
+                                            strokeWidth={2}
+                                            style={{
+                                                cursor: item.is_sent_to_pending ? "not-allowed" : "pointer",
+                                                transition: "transform 0.2s ease",
+                                                opacity: item.is_sent_to_pending ? 0.5 : 1,
+                                            }}
+                                            onClick={() =>
+                                                !item.is_sent_to_pending && handleSendToPending(item._id)
+                                            }
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <div>
+                                            {item.data?.value}
+                                            <br />
+                                            {item.source?.value}
+                                        </div>
+                                    </TableCell>
+                                    {/* Name (First Name + Last Name) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.cm_first_name}
+                                            <br />
+                                            {item.cm_last_name}
+                                        </div>
+                                    </TableCell>
+                                    {/* Contact (Phone + Alternate Phone) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.cm_phone}
+                                            <br />
+                                            {item.alternate_phone}
+                                        </div>
+                                    </TableCell>
+                                    {/* Agent */}
+                                    <TableCell>{item.agent_name?.value}</TableCell>
+                                    {/* Disease & Language */}
+                                    <TableCell>
+                                        <div>
+                                            {item.disease?.value}
+                                            <br />
+                                            {item.language?.value}
+                                        </div>
+                                    </TableCell>
+                                    {/* Location (State + City) */}
+                                    <TableCell>
+                                        <div>
+                                            {item.state?.value}
+                                            <br />
+                                            {item.city}
+                                        </div>
+                                    </TableCell>
+                                    {/* Remark & Comment */}
+                                    <TableCell>
+                                        <div>
+                                            {item.remark?.value}
+                                            <br />
+                                            {item.comment}
+                                        </div>
+                                    </TableCell>
+                                    {/* Date & Time */}
+                                    <TableCell>
+                                        <div>
+                                            {item.date}
+                                            <br />
+                                            {item.time}
+                                        </div>
+                                    </TableCell>
+                                    {/* Update */}
+                                    <TableCell>
+                                        <RotateCw
+                                            size={20}
+                                            color="#007BFF"
+                                            strokeWidth={2}
+                                            style={{
+                                                cursor: item.is_sent_to_pending ? "not-allowed" : "pointer",
+                                                transition: "transform 0.2s ease",
+                                                opacity: item.is_sent_to_pending ? 0.5 : 1,
+                                            }}
+                                            onClick={() =>
+                                                !item.is_sent_to_pending &&
+                                                handleUpdateClick(item._id, item.is_sent_to_pending)
+                                            }
+                                            onMouseOver={(e) =>
+                                                !item.is_sent_to_pending &&
+                                                (e.currentTarget.style.transform = "rotate(90deg)")
+                                            }
+                                            onMouseOut={(e) =>
+                                                !item.is_sent_to_pending &&
+                                                (e.currentTarget.style.transform = "rotate(0deg)")
+                                            }
+                                        />
+                                    </TableCell>
+                                    {/* Actions */}
+                                    <TableCell>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200"
+                                                    disabled={item.is_sent_to_pending}
+                                                >
+                                                    <Trash2 className="h-5 w-5 text-red-500" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action cannot be undone. This will permanently delete the selected record.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDelete(item._id)}>
+                                                        Delete
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
+            <div className="mt-4 flex flex-col items-center justify-center space-y-4">
+                <Pagination>
+                    <PaginationContent>
+                        <PaginationItem>
+                            <PaginationPrevious
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                            />
+                        </PaginationItem>
+                        {[...Array(totalPages)].map((_, index) => {
+                            const pageNumber = index + 1;
+                            if (
+                                pageNumber === 1 ||
+                                pageNumber === totalPages ||
+                                (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                            ) {
+                                return (
+                                    <PaginationItem key={index}>
+                                        <PaginationLink
+                                            onClick={() => handlePageChange(pageNumber)}
+                                            isActive={currentPage === pageNumber}
+                                        >
+                                            {pageNumber}
+                                        </PaginationLink>
+                                    </PaginationItem>
+                                );
+                            } else if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
+                                return <PaginationEllipsis key={index} />;
+                            }
+                            return null;
+                        })}
+                        <PaginationItem>
+                            <PaginationNext
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                            />
+                        </PaginationItem>
+                    </PaginationContent>
+                </Pagination>
+            </div>
+
 
             <div className="flex items-center space-x-2">
                 <Input
@@ -623,56 +867,77 @@ const WorkbookPage = () => {
             </div>
 
             <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
-                <DialogContent>
+                <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>Review Workbook Data</DialogTitle>
-                        <DialogDescription>Please review the data before sending to pending.</DialogDescription>
+                        <DialogDescription className="mb-4">
+                            Please review the data before sending to pending.
+                        </DialogDescription>
                     </DialogHeader>
                     {selectedItem && (
                         <div className="mt-4">
-                            <p>
-                                <strong>Data Type:</strong> {selectedItem.data?.value}
-                            </p>
-                            <p>
-                                <strong>Source:</strong> {selectedItem.source?.value}
-                            </p>
-                            <p>
-                                <strong>Name:</strong> {selectedItem.cm_first_name} {selectedItem.cm_last_name}
-                            </p>
-                            <p>
-                                <strong>Phone:</strong> {selectedItem.cm_phone}
-                            </p>
-                            <p>
-                                <strong>Agent:</strong> {selectedItem.agent_name?.value}
-                            </p>
-                            <p>
-                                <strong>Language:</strong> {selectedItem.language?.value}
-                            </p>
-                            <p>
-                                <strong>Disease:</strong> {selectedItem.disease?.value}
-                            </p>
-                            <p>
-                                <strong>State:</strong> {selectedItem.state?.value}
-                            </p>
-                            <p>
-                                <strong>City:</strong> {selectedItem.city}
-                            </p>
-                            <p>
-                                <strong>Remark:</strong> {selectedItem.remark?.value}
-                            </p>
-                            <p>
-                                <strong>Comment:</strong> {selectedItem.comment}
-                            </p>
-                            <p>
-                                <strong>Date:</strong> {selectedItem.date}
-                            </p>
+                            <dl className="space-y-3">
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Data Type:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.data?.value}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Source:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.source?.value}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Name:</dt>
+                                    <dd className="text-sm text-gray-800">
+                                        {selectedItem.cm_first_name} {selectedItem.cm_last_name}
+                                    </dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Phone:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.cm_phone}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Agent:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.agent_name?.value}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Language:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.language?.value}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Disease:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.disease?.value}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">State:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.state?.value}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">City:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.city}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Remark:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.remark?.value}</dd>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                    <dt className="text-sm font-medium text-gray-600">Comment:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.comment}</dd>
+                                </div>
+                                <div className="flex justify-between">
+                                    <dt className="text-sm font-medium text-gray-600">Date:</dt>
+                                    <dd className="text-sm text-gray-800">{selectedItem.date}</dd>
+                                </div>
+                            </dl>
                         </div>
                     )}
-                    <DialogFooter>
-                        <Button onClick={() => setIsReviewDialogOpen(false)}>Cancel</Button>
+                    <DialogFooter className="mt-6 flex justify-end space-x-4">
+                        <Button onClick={() => setIsReviewDialogOpen(false)} variant="outline">
+                            Cancel
+                        </Button>
                         <Button onClick={confirmSendToPending}>Confirm Send</Button>
                     </DialogFooter>
                 </DialogContent>
+
             </Dialog>
         </div>
 
