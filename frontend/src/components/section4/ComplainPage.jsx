@@ -275,7 +275,7 @@ const ComplainPage = () => {
             </div> */}
             <Card className="mb-6">
                 <CardHeader className="flex flex-row items-center justify-between pb-4">
-                    <CardTitle className="text-3xl font-bold">Sheet Generator</CardTitle>
+                    <CardTitle className="text-3xl font-bold">Complain Page</CardTitle>
                     <div className="flex items-center space-x-4">
                         {/* Refresh Label */}
                         {/* <span className="text-l font-semibold">Refresh:</span> */}

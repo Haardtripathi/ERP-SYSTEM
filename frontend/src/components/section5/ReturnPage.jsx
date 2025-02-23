@@ -265,7 +265,7 @@ const ReturnPage = () => {
     }
 
     return (
-        <div className="container mx-auto p-4 bg-gray-50 min-h-screen max-w-[95vw]">
+        <div className="container mx-auto p-8 bg-gray-50 min-h-screen max-w-full">
             {/* <h1 className="text-3xl font-semibold mb-6 text-gray-800">Dispatch Data</h1>
 
             <div className="mb-4 flex items-center space-x-2">
@@ -364,7 +364,7 @@ const ReturnPage = () => {
             <Card className="mb-6">
                 {/* Header Section */}
                 <CardHeader className="flex flex-row items-center justify-between pb-4">
-                    <CardTitle className="text-3xl font-bold">Dispatch Data</CardTitle>
+                    <CardTitle className="text-3xl font-bold">Return Data</CardTitle>
                     <div className="flex items-center space-x-4">
                         <Select onValueChange={handleColumnSelect} defaultValue="all">
                             <SelectTrigger className="w-[200px]">
