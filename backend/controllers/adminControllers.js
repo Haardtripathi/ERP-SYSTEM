@@ -2,6 +2,7 @@ const User = require('../models/User')
 
 const jwt = require('jsonwebtoken');
 
+const bcrypt = require('bcryptjs');
 
 
 
@@ -78,6 +79,8 @@ exports.editUserData = async (req, res) => {
             accountNumber,
             photo
         } = req.body.formData;
+        const hashedPassword = await bcrypt.hash(password, 10);
+
 
         // Create update object with mapped field names
         const updateData = {
@@ -96,7 +99,7 @@ exports.editUserData = async (req, res) => {
 
         // Only include password if it's provided
         if (password) {
-            updateData.password = password;
+            updateData.password = hashedPassword;
         }
 
         // Handle photo if provided

@@ -1,36 +1,20 @@
-
-
-"use client"
-
 import React from "react"
 import { useEffect, useState } from "react"
-import { useParams, useNavigate } from 'react-router-dom';
-
-
+import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from "react-hot-toast"
-import { Mail, Lock, Loader2, Building, MapPin, CreditCard, Image } from "lucide-react"
+import { Mail, Lock, Loader2, Building, MapPin, CreditCard, Image, User, Phone, Building2 } from "lucide-react"
 
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { getEditUserData, editUserData } from '@/services/adminService';
+import { Separator } from "@/components/ui/separator"
+import { getEditUserData, editUserData } from '@/services/adminService'
 import { register, getAgentList } from "../../services/authService"
 
 
-
-// Mock functions for demonstration purposes
-// const getEditUserData = async (id: string) => ({
-//   user: {
-//     /* mock user data */
-//   },
-// })
-// const editUserData = async (id, data) => {
-//   /* mock edit function */
-// }
-// const getAgentList = async () => ({ agentList: [{ values: ["Agent 1", "Agent 2"] }] })
 
 const EditUserData = () => {
     const { id } = useParams()
@@ -110,34 +94,6 @@ const EditUserData = () => {
         }
     }, [sameAsAddress, formData.address])
 
-    // const handleSubmit = async (e) => {
-    //     e.preventDefault()
-    //     setLoading(true)
-
-    //     const formDataToSend = new FormData()
-
-    //     Object.entries(formData).forEach(([key, value]) => {
-    //         console.log(key, value)
-    //         if (value !== undefined && value !== null) {
-    //             formDataToSend.append(key, value)
-    //         }
-    //     })
-    //     console.log(formDataToSend)
-
-    //     if (photo) {
-    //         formDataToSend.append("photo", photo)
-    //     }
-
-    //     try {
-    //         await editUserData(id, formDataToSend)
-    //         toast.success("User updated successfully")
-    //     } catch (error) {
-    //         console.error("Update failed:", error)
-    //         toast.error("Failed to update user")
-    //     } finally {
-    //         setLoading(false)
-    //     }
-    // }
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -198,262 +154,266 @@ const EditUserData = () => {
     if (!userData) return <div>User not found</div>
 
     return (
-        <div className="container mx-auto py-8">
-            <Card className="max-w-2xl mx-auto">
-                <CardHeader>
-                    <CardTitle className="text-2xl font-bold text-center">Edit User</CardTitle>
+        <div className="container mx-auto py-6">
+            <Card className="w-full">
+                <CardHeader className="pb-6">
+                    <CardTitle className="text-2xl">Edit User Profile</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* Email field */}
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    placeholder="Enter your email"
-                                    required
-                                    className="pl-10"
-                                />
-                            </div>
-                        </div>
+                    <form onSubmit={handleSubmit}>
+                        <div className="grid grid-cols-2 gap-8">
+                            {/* Left Column */}
+                            <div className="space-y-8">
+                                {/* Basic Information */}
+                                <div className="bg-slate-50 p-6 rounded-lg">
+                                    <div className="flex items-center mb-4">
+                                        <User className="h-5 w-5 mr-2" />
+                                        <h3 className="text-lg font-semibold">Basic Information</h3>
+                                    </div>
+                                    <Separator className="mb-6" />
 
-                        {/* Agent Name field */}
-                        <div className="space-y-2">
-                            <Label htmlFor="agentName">Agent Name</Label>
-                            <Select
-                                value={formData.agentName}
-                                onValueChange={(value) => setFormData((prev) => ({ ...prev, agentName: value }))}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select Agent Name" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {agentList.map((agent) => (
-                                        <SelectItem key={agent} value={agent}>
-                                            {agent}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                                            <div className="relative mt-1">
+                                                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                                <Input
+                                                    id="email"
+                                                    name="email"
+                                                    type="email"
+                                                    value={formData.email}
+                                                    onChange={handleChange}
+                                                    className="pl-10"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                                            <div className="relative mt-1">
+                                                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                                <Input
+                                                    id="password"
+                                                    name="password"
+                                                    type="password"
+                                                    value={formData.password}
+                                                    onChange={handleChange}
+                                                    className="pl-10"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                        {/* Password field */}
-                        <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    id="password"
-                                    name="password"
-                                    type="password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    placeholder="Enter your password"
-                                    className="pl-10"
-                                    required
-                                />
-                            </div>
-                        </div>
+                                {/* Agent Information */}
+                                <div className="bg-slate-50 p-6 rounded-lg">
+                                    <div className="flex items-center mb-4">
+                                        <Building2 className="h-5 w-5 mr-2" />
+                                        <h3 className="text-lg font-semibold">Agent Information</h3>
+                                    </div>
+                                    <Separator className="mb-6" />
 
-                        {/* Company and Phone Number fields */}
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <Label htmlFor="companyNumber">Company Number</Label>
-                                <div className="relative">
-                                    <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="companyNumber"
-                                        name="companyNumber"
-                                        value={formData.companyNumber}
-                                        onChange={handleChange}
-                                        placeholder="Enter company number"
-                                        required
-                                        className="pl-10"
-                                    />
+                                    <div className="space-y-4">
+                                        <div>
+                                            <Label htmlFor="agentName" className="text-sm font-medium">Agent Name</Label>
+                                            <Select
+                                                value={formData.agentName}
+                                                onValueChange={(value) => setFormData((prev) => ({ ...prev, agentName: value }))}
+                                            >
+                                                <SelectTrigger className="mt-1">
+                                                    <SelectValue placeholder="Select Agent" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {agentList.map((agent) => (
+                                                        <SelectItem key={agent} value={agent}>
+                                                            {agent}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <Label htmlFor="companyNumber" className="text-sm font-medium">Company Number</Label>
+                                                <Input
+                                                    id="companyNumber"
+                                                    name="companyNumber"
+                                                    value={formData.companyNumber}
+                                                    onChange={handleChange}
+                                                    className="mt-1"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="phoneNumber" className="text-sm font-medium">Phone Number</Label>
+                                                <Input
+                                                    id="phoneNumber"
+                                                    name="phoneNumber"
+                                                    value={formData.phoneNumber}
+                                                    onChange={handleChange}
+                                                    className="mt-1"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Profile Photo */}
+                                <div className="bg-slate-50 p-6 rounded-lg">
+                                    <div className="flex items-center mb-4">
+                                        <Image className="h-5 w-5 mr-2" />
+                                        <h3 className="text-lg font-semibold">Profile Photo</h3>
+                                    </div>
+                                    <Separator className="mb-6" />
+
+                                    <div className="flex items-center space-x-6">
+                                        <div className="flex-1">
+                                            <Label htmlFor="photo" className="text-sm font-medium">Upload Photo</Label>
+                                            <Input
+                                                id="photo"
+                                                name="photo"
+                                                type="file"
+                                                onChange={handleFileChange}
+                                                accept="image/jpeg,image/png,image/jpg"
+                                                className="mt-1"
+                                            />
+                                        </div>
+                                        {userData?.photo?.data && (
+                                            <img
+                                                src={`data:image/png;base64,${userData.photo.data}`}
+                                                alt="User Photo"
+                                                className="h-20 w-20 rounded-full object-cover"
+                                            />
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="phoneNumber">Phone Number</Label>
-                                <div className="relative">
-                                    <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="phoneNumber"
-                                        name="phoneNumber"
-                                        value={formData.phoneNumber}
-                                        onChange={handleChange}
-                                        placeholder="Enter phone number"
-                                        required
-                                        className="pl-10"
-                                    />
+
+                            {/* Right Column */}
+                            <div className="space-y-8">
+                                {/* Address Information */}
+                                <div className="bg-slate-50 p-6 rounded-lg">
+                                    <div className="flex items-center mb-4">
+                                        <MapPin className="h-5 w-5 mr-2" />
+                                        <h3 className="text-lg font-semibold">Address Information</h3>
+                                    </div>
+                                    <Separator className="mb-6" />
+
+                                    <div className="space-y-4">
+                                        <div>
+                                            <Label htmlFor="address" className="text-sm font-medium">Permanent Address</Label>
+                                            <Input
+                                                id="address"
+                                                name="address"
+                                                value={formData.address}
+                                                onChange={handleChange}
+                                                className="mt-1"
+                                            />
+                                        </div>
+
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id="sameAsAddress"
+                                                checked={sameAsAddress}
+                                                onCheckedChange={(checked) => setSameAsAddress(checked)}
+                                            />
+                                            <Label htmlFor="sameAsAddress" className="text-sm">
+                                                Local address same as permanent
+                                            </Label>
+                                        </div>
+
+                                        <div>
+                                            <Label htmlFor="localAddress" className="text-sm font-medium">Local Address</Label>
+                                            <Input
+                                                id="localAddress"
+                                                name="localAddress"
+                                                value={formData.localAddress}
+                                                onChange={handleChange}
+                                                disabled={sameAsAddress}
+                                                className="mt-1"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Bank Details */}
+                                <div className="bg-slate-50 p-6 rounded-lg">
+                                    <div className="flex items-center mb-4">
+                                        <CreditCard className="h-5 w-5 mr-2" />
+                                        <h3 className="text-lg font-semibold">Bank Details</h3>
+                                    </div>
+                                    <Separator className="mb-6" />
+
+                                    <div className="space-y-4">
+                                        <div>
+                                            <Label htmlFor="aadharNumber" className="text-sm font-medium">Aadhar Number</Label>
+                                            <Input
+                                                id="aadharNumber"
+                                                name="aadharNumber"
+                                                value={formData.aadharNumber}
+                                                onChange={handleChange}
+                                                className="mt-1"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <Label htmlFor="bankName" className="text-sm font-medium">Bank Name</Label>
+                                                <Input
+                                                    id="bankName"
+                                                    name="bankName"
+                                                    value={formData.bankName}
+                                                    onChange={handleChange}
+                                                    className="mt-1"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="bankBranch" className="text-sm font-medium">Bank Branch</Label>
+                                                <Input
+                                                    id="bankBranch"
+                                                    name="bankBranch"
+                                                    value={formData.bankBranch}
+                                                    onChange={handleChange}
+                                                    className="mt-1"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <Label htmlFor="accountNumber" className="text-sm font-medium">Account Number</Label>
+                                                <Input
+                                                    id="accountNumber"
+                                                    name="accountNumber"
+                                                    value={formData.accountNumber}
+                                                    onChange={handleChange}
+                                                    className="mt-1"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="IFSC_Code" className="text-sm font-medium">IFSC Code</Label>
+                                                <Input
+                                                    id="IFSC_Code"
+                                                    name="IFSC_Code"
+                                                    value={formData.IFSC_Code}
+                                                    onChange={handleChange}
+                                                    className="mt-1"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Address fields */}
-                        <div className="space-y-2">
-                            <Label htmlFor="address">Address</Label>
-                            <div className="relative">
-                                <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    id="address"
-                                    name="address"
-                                    value={formData.address}
-                                    onChange={handleChange}
-                                    placeholder="Enter your address"
-                                    required
-                                    className="pl-10"
-                                />
-                            </div>
+                        <div className="mt-8 flex justify-end">
+                            <Button type="submit" size="lg" disabled={loading}>
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Saving Changes...
+                                    </>
+                                ) : (
+                                    "Save Changes"
+                                )}
+                            </Button>
                         </div>
-
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="sameAsAddress"
-                                checked={sameAsAddress}
-                                onCheckedChange={(checked) => setSameAsAddress(checked)}
-                            />
-                            <Label htmlFor="sameAsAddress">Local address same as address</Label>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="localAddress">Local Address</Label>
-                            <div className="relative">
-                                <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    id="localAddress"
-                                    name="localAddress"
-                                    value={formData.localAddress}
-                                    onChange={handleChange}
-                                    placeholder="Enter your local address"
-                                    required
-                                    disabled={sameAsAddress}
-                                    className="pl-10"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Bank details fields */}
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <Label htmlFor="aadharNumber">Aadhar Number</Label>
-                                <div className="relative">
-                                    <CreditCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="aadharNumber"
-                                        name="aadharNumber"
-                                        value={formData.aadharNumber}
-                                        onChange={handleChange}
-                                        placeholder="Enter Aadhar number"
-                                        required
-                                        className="pl-10"
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="bankName">Bank Name</Label>
-                                <div className="relative">
-                                    <CreditCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="bankName"
-                                        name="bankName"
-                                        value={formData.bankName}
-                                        onChange={handleChange}
-                                        placeholder="Enter bank name"
-                                        required
-                                        className="pl-10"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <Label htmlFor="bankBranch">Bank Branch</Label>
-                                <div className="relative">
-                                    <CreditCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="bankBranch"
-                                        name="bankBranch"
-                                        value={formData.bankBranch}
-                                        onChange={handleChange}
-                                        placeholder="Enter bank branch"
-                                        required
-                                        className="pl-10"
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="accountNumber">Account Number</Label>
-                                <div className="relative">
-                                    <CreditCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="accountNumber"
-                                        name="accountNumber"
-                                        value={formData.accountNumber}
-                                        onChange={handleChange}
-                                        placeholder="Enter account number"
-                                        required
-                                        className="pl-10"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="IFSC_Code">IFSC Code</Label>
-                            <div className="relative">
-                                <CreditCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    id="IFSC_Code"
-                                    name="IFSC_Code"
-                                    value={formData.IFSC_Code}
-                                    onChange={handleChange}
-                                    placeholder="Enter IFSC code"
-                                    required
-                                    className="pl-10"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Photo upload field */}
-                        <div className="space-y-2">
-                            <Label htmlFor="photo">Photo</Label>
-                            <div className="relative">
-                                <Image className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    id="photo"
-                                    name="photo"
-                                    type="file"
-                                    onChange={handleFileChange}
-                                    accept="image/jpeg,image/png,image/jpg"
-                                    className="pl-10"
-                                    required
-                                />
-                            </div>
-                        </div>
-                        <img
-                            src={`data:image/png;base64,${userData?.photo?.data}`}
-                            alt="User Photo"
-                            className="h-44 w-44 rounded-full object-cover mt-2"
-                        />
-
-                        {/* Submit button */}
-                        <Button type="submit" className="w-full" disabled={loading}>
-                            {loading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Updating account...
-                                </>
-                            ) : (
-                                "Update User"
-                            )}
-                        </Button>
                     </form>
                 </CardContent>
             </Card>
