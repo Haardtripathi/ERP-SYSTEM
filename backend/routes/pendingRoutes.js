@@ -2,9 +2,6 @@ const express = require('express');
 const router = express.Router();
 const pendingController = require("../controllers/section2/pendingControllers")
 const { isAuthenticated } = require("../middlewares/authMiddleware")
-const multer = require("multer");
-
-const upload = multer();
 
 
 // router.post("/add-pending-data", isAuthenticated, upload.single("file"), pendingController.postAddpendingData)

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const paymentController = require("../controllers/section5/paymentControllers")
 const { isAuthenticated } = require("../middlewares/authMiddleware")
-const multer = require("multer");
+
 
 
 router.get('/get-payment-data', isAuthenticated, paymentController.getAllPaymentData);

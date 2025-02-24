@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require("body-parser")
 const mongoose = require("mongoose")
-const multer = require("multer");
+
 const fs = require("fs");
 
 const authRoutes = require('./routes/authRoutes');
@@ -38,8 +38,8 @@ app.use(cors({
     origin: ["http://localhost:5173"],
     credentials: true
 }));
-app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json({ limit: "10mb" })); // Increase JSON payload limit
+app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);

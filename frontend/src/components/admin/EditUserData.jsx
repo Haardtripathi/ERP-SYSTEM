@@ -1,27 +1,46 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { getEditUserData, editUserData } from '@/services/adminService';
+
+
+"use client"
+
+import React from "react"
+import { useEffect, useState } from "react"
+import { useParams, useNavigate } from 'react-router-dom';
+
 
 import { toast } from "react-hot-toast"
+import { Mail, Lock, Loader2, Building, MapPin, CreditCard, Image } from "lucide-react"
+
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { getEditUserData, editUserData } from '@/services/adminService';
 import { register, getAgentList } from "../../services/authService"
 
-import { Mail, Lock, Loader2, Building, MapPin, CreditCard, Image } from "lucide-react"
 
+
+// Mock functions for demonstration purposes
+// const getEditUserData = async (id: string) => ({
+//   user: {
+//     /* mock user data */
+//   },
+// })
+// const editUserData = async (id, data) => {
+//   /* mock edit function */
+// }
+// const getAgentList = async () => ({ agentList: [{ values: ["Agent 1", "Agent 2"] }] })
 
 const EditUserData = () => {
-    const { id } = useParams();
-    const [userData, setUserData] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const { id } = useParams()
+    const [userData, setUserData] = useState(null)
+    const [loading, setLoading] = useState(true)
     const [photo, setPhoto] = useState(null)
     const [agentList, setAgentList] = useState([])
-
     const [sameAsAddress, setSameAsAddress] = useState(false)
+    const navigate = useNavigate();
+
 
     const [formData, setFormData] = useState({
         email: "",
@@ -41,12 +60,9 @@ const EditUserData = () => {
     useEffect(() => {
         const fetchUserData = async () => {
             try {
-                const data = await getEditUserData(id);
-                console.log("Fetched User Data:", data);
-
+                const data = await getEditUserData(id)
                 if (data.user) {
-                    setUserData(data.user);
-
+                    setUserData(data.user)
                     setFormData({
                         email: data.user.email || "",
                         password: "",
@@ -60,32 +76,21 @@ const EditUserData = () => {
                         bankBranch: data.user.branch_name || "",
                         IFSC_Code: data.user.ifsc_code || "",
                         accountNumber: data.user.account_number || "",
-                    });
-
-                    if (data.user.photo?.data) {
-                        setPhoto(data.user.photo.data); // Set the current photo
-                    }
+                    })
                 }
             } catch (error) {
-                console.error("Error fetching user data:", error);
+                console.error("Error fetching user data:", error)
             }
-            setLoading(false);
-        };
+            setLoading(false)
+        }
 
-        fetchUserData();
-    }, [id]);
-
-
-
-
-
-
+        fetchUserData()
+    }, [id])
 
     useEffect(() => {
         const fetchAgentList = async () => {
             try {
                 const data = await getAgentList()
-
                 if (data?.agentList?.[0]?.values) {
                     setAgentList(data.agentList[0].values)
                 } else {
@@ -105,31 +110,57 @@ const EditUserData = () => {
         }
     }, [sameAsAddress, formData.address])
 
+    // const handleSubmit = async (e) => {
+    //     e.preventDefault()
+    //     setLoading(true)
+
+    //     const formDataToSend = new FormData()
+
+    //     Object.entries(formData).forEach(([key, value]) => {
+    //         console.log(key, value)
+    //         if (value !== undefined && value !== null) {
+    //             formDataToSend.append(key, value)
+    //         }
+    //     })
+    //     console.log(formDataToSend)
+
+    //     if (photo) {
+    //         formDataToSend.append("photo", photo)
+    //     }
+
+    //     try {
+    //         await editUserData(id, formDataToSend)
+    //         toast.success("User updated successfully")
+    //     } catch (error) {
+    //         console.error("Update failed:", error)
+    //         toast.error("Failed to update user")
+    //     } finally {
+    //         setLoading(false)
+    //     }
+    // }
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
-        const formDataToSend = new FormData();
+        const jsonData = {
+            ...formData,
+            photo: photo // This will now be the base64 string
+        };
 
-        Object.entries(formData).forEach(([key, value]) => {
-            if (value !== undefined && value !== null) {
-                formDataToSend.append(key, value);
+        // Remove any undefined or null values
+        Object.keys(jsonData).forEach(key => {
+            if (jsonData[key] === undefined || jsonData[key] === null) {
+                delete jsonData[key];
             }
         });
 
-        // If the photo is unchanged, append existing photo
-        if (photo && typeof photo !== "string") {
-            formDataToSend.append("photo", photo);
-        }
-
-        // Debugging: Check what is being sent
-        for (let pair of formDataToSend.entries()) {
-            console.log(pair[0], pair[1]);
-        }
+        console.log('Data being sent:', jsonData); // For debugging
 
         try {
-            await editUserData(id, formDataToSend);
+            await editUserData(id, jsonData);
             toast.success("User updated successfully");
+            navigate("/users");
+
         } catch (error) {
             console.error("Update failed:", error);
             toast.error("Failed to update user");
@@ -138,36 +169,43 @@ const EditUserData = () => {
         }
     };
 
-
-
     const handleChange = (e) => {
         const { name, value } = e.target
         setFormData((prev) => ({ ...prev, [name]: value }))
     }
 
-    const handleFileChange = (e) => {
+    const handleFileChange = async (e) => {
         if (e.target.files && e.target.files[0]) {
-            setPhoto(e.target.files[0]); // Update photo when changed
+            const file = e.target.files[0];
+            // Convert file to base64
+            const base64 = await convertToBase64(file);
+            setPhoto(base64);
         }
+
+    };
+
+    const convertToBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = (error) => reject(error);
+        });
     };
 
 
-
-    if (loading) return <div>Loading...</div>;
-    if (!userData) return <div>User not found</div>;
-
-
-
-
+    if (loading) return <div>Loading...</div>
+    if (!userData) return <div>User not found</div>
 
     return (
         <div className="container mx-auto py-8">
             <Card className="max-w-2xl mx-auto">
                 <CardHeader>
-                    <CardTitle className="text-2xl font-bold text-center">Add User</CardTitle>
+                    <CardTitle className="text-2xl font-bold text-center">Edit User</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Email field */}
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
                             <div className="relative">
@@ -185,6 +223,7 @@ const EditUserData = () => {
                             </div>
                         </div>
 
+                        {/* Agent Name field */}
                         <div className="space-y-2">
                             <Label htmlFor="agentName">Agent Name</Label>
                             <Select
@@ -204,6 +243,7 @@ const EditUserData = () => {
                             </Select>
                         </div>
 
+                        {/* Password field */}
                         <div className="space-y-2">
                             <Label htmlFor="password">Password</Label>
                             <div className="relative">
@@ -215,12 +255,13 @@ const EditUserData = () => {
                                     value={formData.password}
                                     onChange={handleChange}
                                     placeholder="Enter your password"
-                                    required
                                     className="pl-10"
+                                    required
                                 />
                             </div>
                         </div>
 
+                        {/* Company and Phone Number fields */}
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="space-y-2">
                                 <Label htmlFor="companyNumber">Company Number</Label>
@@ -237,7 +278,6 @@ const EditUserData = () => {
                                     />
                                 </div>
                             </div>
-
                             <div className="space-y-2">
                                 <Label htmlFor="phoneNumber">Phone Number</Label>
                                 <div className="relative">
@@ -255,6 +295,7 @@ const EditUserData = () => {
                             </div>
                         </div>
 
+                        {/* Address fields */}
                         <div className="space-y-2">
                             <Label htmlFor="address">Address</Label>
                             <div className="relative">
@@ -297,6 +338,7 @@ const EditUserData = () => {
                             </div>
                         </div>
 
+                        {/* Bank details fields */}
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="space-y-2">
                                 <Label htmlFor="aadharNumber">Aadhar Number</Label>
@@ -313,7 +355,6 @@ const EditUserData = () => {
                                     />
                                 </div>
                             </div>
-
                             <div className="space-y-2">
                                 <Label htmlFor="bankName">Bank Name</Label>
                                 <div className="relative">
@@ -347,7 +388,6 @@ const EditUserData = () => {
                                     />
                                 </div>
                             </div>
-
                             <div className="space-y-2">
                                 <Label htmlFor="accountNumber">Account Number</Label>
                                 <div className="relative">
@@ -381,6 +421,7 @@ const EditUserData = () => {
                             </div>
                         </div>
 
+                        {/* Photo upload field */}
                         <div className="space-y-2">
                             <Label htmlFor="photo">Photo</Label>
                             <div className="relative">
@@ -392,27 +433,25 @@ const EditUserData = () => {
                                     onChange={handleFileChange}
                                     accept="image/jpeg,image/png,image/jpg"
                                     className="pl-10"
+                                    required
                                 />
                             </div>
-
-
-                            <img
-                                src={`data:image/png;base64,${userData?.photo?.data}`}
-                                alt="User Photo"
-                                className="h-44 w-44 rounded-full object-cover mt-2"
-                            />
-
                         </div>
+                        <img
+                            src={`data:image/png;base64,${userData?.photo?.data}`}
+                            alt="User Photo"
+                            className="h-44 w-44 rounded-full object-cover mt-2"
+                        />
 
-
+                        {/* Submit button */}
                         <Button type="submit" className="w-full" disabled={loading}>
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating account...
+                                    Updating account...
                                 </>
                             ) : (
-                                "Add User"
+                                "Update User"
                             )}
                         </Button>
                     </form>
@@ -420,6 +459,7 @@ const EditUserData = () => {
             </Card>
         </div>
     )
-};
+}
 
-export default EditUserData;
+export default EditUserData
+
