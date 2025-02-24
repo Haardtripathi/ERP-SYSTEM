@@ -17,9 +17,9 @@ exports.getAllConfirmedData = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // Fetch data with pagination
-        const data = await Confirmed.find({ isDeleted: false })
+        const data = await Confirmed.find({ isDeleted: false }).sort({ createdAt: -1 });
 
-        // (data);
+
 
         // Get total count of documents
         const totalCount = await Confirmed.countDocuments({ isDeleted: false });

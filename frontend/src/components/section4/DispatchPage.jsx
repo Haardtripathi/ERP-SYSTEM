@@ -967,7 +967,7 @@ const DispatchPage = () => {
                                         <div>
                                             {item.confirmedId?.ref}
                                             <br />
-                                            {item.awb_number}
+                                            {item.confirmedId?.awb_number}
                                         </div>
                                     </TableCell>
 
@@ -1086,12 +1086,12 @@ const DispatchPage = () => {
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <Input
+                                        {/* <Input
                                             type="date"
                                             value={selectedDates[item._id] || ""}
                                             onChange={(e) => {
                                                 const newDate = e.target.value;
-                                                const itemDate = parseIndianDate(item.confirmedId.date);
+                                                const itemDate = parseIndianDate(item.date);
                                                 const lastUpdateDate = parseIndianDate(lastUpdateDates[item._id]);
                                                 const selectedDate = new Date(newDate);
 
@@ -1104,7 +1104,40 @@ const DispatchPage = () => {
                                                 }
                                             }}
                                             min={format(parseIndianDate(lastUpdateDates[item._id]), "yyyy-MM-dd")}
+                                            max={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })}
+
+                                        /> */}
+                                        <Input
+                                            type="date"
+                                            value={
+                                                selectedDates[item._id] ||
+                                                new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) // Preselect today's date in YYYY-MM-DD format
+                                            }
+                                            onChange={(e) => {
+                                                const newDate = e.target.value;
+                                                const itemDate = parseIndianDate(item.date);
+                                                const lastUpdateDate = parseIndianDate(lastUpdateDates[item._id]);
+                                                const selectedDate = new Date(newDate);
+
+                                                // Get today's date in Indian Standard Time (IST)
+                                                const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+
+                                                if (
+                                                    isAfter(selectedDate, lastUpdateDate) &&
+                                                    isAfter(selectedDate, itemDate) &&
+                                                    newDate <= today // Ensuring max date is today
+                                                ) {
+                                                    setSelectedDates({ ...selectedDates, [item._id]: newDate });
+                                                } else {
+                                                    toast.error(
+                                                        "Selected date must be later than the last update date and item creation date, and cannot be in the future."
+                                                    );
+                                                }
+                                            }}
+                                            min={format(parseIndianDate(lastUpdateDates[item._id]), "yyyy-MM-dd")}
+                                            max={new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })} // Set max date to today in IST
                                         />
+
                                         <Button
                                             onClick={() => handleUpdate(item._id)}
                                             disabled={

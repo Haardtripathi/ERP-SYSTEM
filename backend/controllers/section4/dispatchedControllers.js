@@ -6,34 +6,109 @@ const Delivered = require('../../models/Delivered')
 
 
 
+// module.exports.getAllDispatchedData = async (req, res) => {
+//     try {
+//         const page = parseInt(req.query.page, 10) || 1;
+//         const limit = parseInt(req.query.limit, 10) || 10;
+
+//         // Calculate the number of items to skip
+//         const skip = (page - 1) * limit;
+
+//         // Fetch data with pagination, including only records where awb_number is "" or null
+//         let data = await Dispatched.find({ isDeleted: false }).populate('confirmedId')
+
+//         const totalCount = await Dispatched.countDocuments({
+//             isDeleted: false
+//         });
+//         return res.status(200).json({
+//             message: "Dispatch data fetched successfully.",
+//             data,
+//             totalCount,
+//             totalPages: Math.ceil(totalCount / limit),
+//             currentPage: page,
+//         });
+//     }
+//     catch (err) {
+//         return res.status(500).json({ message: "Failed to get confirmed data" });
+//     }
+
+
+// }
+// module.exports.getAllDispatchedData = async (req, res) => {
+//     try {
+//         const page = parseInt(req.query.page, 10) || 1;
+//         const limit = parseInt(req.query.limit, 10) || 10;
+
+//         // Fetch data without sorting
+//         let data = await Dispatched.find({ isDeleted: false })
+//             .populate('confirmedId');
+
+//         // Split data into three categories
+//         let notDeliveredOrReturned = data.filter(item => !item.isDelivered && !item.isReturn);
+//         let deliveredData = data.filter(item => item.isDelivered);
+//         let returnedData = data.filter(item => item.isReturn);
+
+//         // Sort them accordingly
+//         notDeliveredOrReturned.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); // Oldest first
+//         deliveredData.sort((a, b) => new Date(b.deliveredDate) - new Date(a.deliveredDate)); // Newest first
+//         returnedData.sort((a, b) => new Date(b.returnDate) - new Date(a.returnDate)); // Newest first
+
+//         // Merge sorted data: Not Delivered/Returned → Delivered → Returned
+//         let sortedData = [...notDeliveredOrReturned, ...deliveredData, ...returnedData];
+
+//         const totalCount = await Dispatched.countDocuments({ isDeleted: false });
+
+//         return res.status(200).json({
+//             message: "Dispatch data fetched successfully.",
+//             data: sortedData,
+//             totalCount,
+//             totalPages: Math.ceil(totalCount / limit),
+//             currentPage: page,
+//         });
+//     } catch (err) {
+//         return res.status(500).json({ message: "Failed to get dispatch data" });
+//     }
+// };
+
 module.exports.getAllDispatchedData = async (req, res) => {
     try {
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
 
-        // Calculate the number of items to skip
-        const skip = (page - 1) * limit;
+        // Fetch data without sorting
+        let data = await Dispatched.find({ isDeleted: false })
+            .populate('confirmedId');
 
-        // Fetch data with pagination, including only records where awb_number is "" or null
-        let data = await Dispatched.find({ isDeleted: false }).populate('confirmedId')
+        // Split data into two categories
+        let notDeliveredOrReturned = data.filter(item => !item.isDelivered && !item.isReturn);
+        let deliveredOrReturned = data.filter(item => item.isDelivered || item.isReturn);
 
-        const totalCount = await Dispatched.countDocuments({
-            isDeleted: false
+        // Sort them accordingly
+        notDeliveredOrReturned.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); // Oldest first
+
+        deliveredOrReturned.sort((a, b) => {
+            const dateA = new Date(a.deliveredDate || a.returnDate); // Pick the available date
+            const dateB = new Date(b.deliveredDate || b.returnDate);
+            return dateB - dateA; // Newest first
         });
+
+        // Merge sorted data: Not Delivered/Returned → Delivered/Returned (Newest First)
+        let sortedData = [...notDeliveredOrReturned, ...deliveredOrReturned];
+
+        const totalCount = await Dispatched.countDocuments({ isDeleted: false });
+
         return res.status(200).json({
             message: "Dispatch data fetched successfully.",
-            data,
+            data: sortedData,
             totalCount,
             totalPages: Math.ceil(totalCount / limit),
             currentPage: page,
         });
+    } catch (err) {
+        return res.status(500).json({ message: "Failed to get dispatch data" });
     }
-    catch (err) {
-        return res.status(500).json({ message: "Failed to get confirmed data" });
-    }
+};
 
-
-}
 
 exports.dispatchedData = async (req, res) => {
     try {

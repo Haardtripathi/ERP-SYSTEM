@@ -502,7 +502,7 @@ const PendingPage = () => {
                                 <SelectItem value="cm_last_name">Last Name</SelectItem>
                                 <SelectItem value="cm_phone">Phone</SelectItem>
                                 <SelectItem value="agent_name">Agent</SelectItem>
-                                <SelectItem value="language">Language</SelectItem>
+
                                 <SelectItem value="disease">Disease</SelectItem>
                                 <SelectItem value="state">State</SelectItem>
                                 <SelectItem value="city">City</SelectItem>
@@ -971,10 +971,7 @@ const PendingPage = () => {
                                     <dt className="text-sm font-medium text-gray-600">Agent:</dt>
                                     <dd className="text-sm text-gray-800">{selectedItem.agent_name?.value}</dd>
                                 </div>
-                                <div className="flex justify-between border-b pb-1">
-                                    <dt className="text-sm font-medium text-gray-600">Language:</dt>
-                                    <dd className="text-sm text-gray-800">{selectedItem.language?.value}</dd>
-                                </div>
+
                                 <div className="flex justify-between border-b pb-1">
                                     <dt className="text-sm font-medium text-gray-600">Disease:</dt>
                                     <dd className="text-sm text-gray-800">{selectedItem.disease?.value}</dd>

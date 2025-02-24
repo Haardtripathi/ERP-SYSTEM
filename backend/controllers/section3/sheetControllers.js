@@ -16,7 +16,7 @@ module.exports.getAllSheetData = async (req, res) => {
             isCancelled: false,
             isDispatched: false,
             isHold: false
-        })
+        }).sort({ createdAt: -1 });
 
         // Get total count of filtered documents
         const totalCount = await Confirmed.countDocuments({

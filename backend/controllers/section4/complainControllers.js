@@ -12,7 +12,7 @@ module.exports.getAllComplainData = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // Fetch data with pagination, including only records where awb_number is "" or null
-        const complainData = await Complain.find({})
+        const complainData = await Complain.find({}).sort({ createdAt: -1 })
             .populate({
                 path: 'dispatchedId',
                 populate: {

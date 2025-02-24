@@ -184,11 +184,11 @@ exports.getAllIncomingData = async (req, res) => {
         let totalCount
         // const data = await Lead.find({ is_sent_to_pending: false, isDeleted: false })
         if (user == "Panchved") {
-            data = await Incoming.find({ isDeleted: false })
+            data = await Incoming.find({ isDeleted: false }).sort({ createdAt: -1 });
 
         }
         else {
-            data = await Incoming.find({ isDeleted: false, "agent_name.value": user });
+            data = await Incoming.find({ isDeleted: false, "agent_name.value": user }).sort({ createdAt: -1 });
 
         }
 

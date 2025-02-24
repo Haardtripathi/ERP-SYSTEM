@@ -15,7 +15,7 @@ module.exports.getAllLabelData = async (req, res) => {
             isDispatched: false,
             isCancelled: false,
             isHold: false
-        })
+        }).sort({ createdAt: -1 });
 
         // Get total count of filtered documents
         const totalCount = await Confirmed.countDocuments({
