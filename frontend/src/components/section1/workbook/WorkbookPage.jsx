@@ -312,6 +312,110 @@ const WorkbookPage = () => {
 
         <div className="container mx-auto p-8 bg-gray-50 min-h-screen max-w-full">
 
+            <Card className="mb-6">
+                {/* Header Section */}
+                <CardHeader className="flex flex-row items-center justify-between pb-4">
+                    <CardTitle className="text-3xl font-bold">Workbook Page</CardTitle>
+
+                    {/* Right Side Controls */}
+                    <div className="flex items-center space-x-4">
+                        {/* Refresh Label */}
+                        {/* <span className="text-l font-semibold">Refresh:</span>x` */}
+
+                        {/* Refresh Button */}
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="lg"
+                                        className="px-4 py-2 flex items-center space-x-2"
+                                        onClick={refreshData}
+                                        disabled={refreshing}
+                                    >
+                                        <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                                        Refresh
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Click to refresh the data</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        {/* Column Selection Dropdown */}
+                        <Select onValueChange={handleColumnSelect} defaultValue="all">
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Select column" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Columns</SelectItem>
+                                <SelectItem value="data">Data</SelectItem>
+                                <SelectItem value="source">Source</SelectItem>
+                                <SelectItem value="cm_first_name">First Name</SelectItem>
+                                <SelectItem value="cm_last_name">Last Name</SelectItem>
+                                <SelectItem value="cm_phone">Phone</SelectItem>
+                                <SelectItem value="agent_name">Agent</SelectItem>
+                                <SelectItem value="language">Language</SelectItem>
+                                <SelectItem value="disease">Disease</SelectItem>
+                                <SelectItem value="state">State</SelectItem>
+                                <SelectItem value="city">City</SelectItem>
+                                <SelectItem value="remark">Remark</SelectItem>
+                                <SelectItem value="comment">Comment</SelectItem>
+                                <SelectItem value="date">Date</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        {/* Search Input */}
+                        <Input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="max-w-sm"
+                        />
+                    </div>
+                </CardHeader>
+                <br />
+                {/* Content Section */}
+                <CardContent>
+
+                    <div className="flex space-x-2">
+                        <Button
+                            onClick={() => {
+                                setFilterStatus("All")
+                                setCurrentPage(1)
+                            }}
+                            variant={filterStatus === "All" ? "default" : "outline"}
+                        >
+                            All
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setFilterStatus("isSent")
+                                setCurrentPage(1)
+                            }}
+                            variant={filterStatus === "isSent" ? "default" : "outline"}
+                        >
+                            Sent to Pending
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setFilterStatus("isNotSent")
+                                setCurrentPage(1)
+                            }}
+                            variant={filterStatus === "isNotSent" ? "default" : "outline"}
+                        >
+                            Not Sent
+                        </Button>
+                    </div>
+
+
+
+
+
+                </CardContent>
+            </Card>
 
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="overflow-x-auto max-w-full">

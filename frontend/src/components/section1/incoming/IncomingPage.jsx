@@ -285,7 +285,7 @@ const IncomingPage = () => {
                         <SelectTrigger className="w-[180px]">
                             <SelectValue placeholder="Select column" />
                         </SelectTrigger>
-                        <SelectContent>
+                         <SelectContent>
                             <SelectItem value="all">All Columns</SelectItem>
                             <SelectItem value="data">Data</SelectItem>
                             <SelectItem value="source">Source</SelectItem>
