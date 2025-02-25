@@ -1086,7 +1086,7 @@ const DispatchPage = () => {
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        {/* <Input
+                                        <Input
                                             type="date"
                                             value={selectedDates[item._id] || ""}
                                             onChange={(e) => {
@@ -1104,10 +1104,10 @@ const DispatchPage = () => {
                                                 }
                                             }}
                                             min={format(parseIndianDate(lastUpdateDates[item._id]), "yyyy-MM-dd")}
-                                            max={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })}
 
-                                        /> */}
-                                        <Input
+
+                                        />
+                                        {/* <Input
                                             type="date"
                                             value={
                                                 selectedDates[item._id] ||
@@ -1135,8 +1135,8 @@ const DispatchPage = () => {
                                                 }
                                             }}
                                             min={format(parseIndianDate(lastUpdateDates[item._id]), "yyyy-MM-dd")}
-                                            max={new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })} // Set max date to today in IST
-                                        />
+                                            // max={new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })} // Set max date to today in IST
+                                        /> */}
 
                                         <Button
                                             onClick={() => handleUpdate(item._id)}

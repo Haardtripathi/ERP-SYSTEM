@@ -65,6 +65,8 @@ const DeliveredPage = () => {
     const [paginatedData, setPaginatedData] = useState([])
     const [searchColumn, setSearchColumn] = useState("all")
     const [goToPage, setGoToPage] = useState("")
+    const [sortBy, setSortBy] = useState("delivered_date") // Default sorting by Return Date
+
 
     const [returnManualInput, setReturnManualInput] = useState("")
     const [isReturnScanning, setIsReturnScanning] = useState(false)
@@ -157,6 +159,12 @@ const DeliveredPage = () => {
             setTotalPages(0)
             return
         }
+
+        results.sort((a, b) => {
+            const dateA = sortBy === "delivered_date" ? new Date(a.date) : new Date(a.dispatchedId?.date || 0)
+            const dateB = sortBy === "delivered_date" ? new Date(b.date) : new Date(b.dispatchedId?.date || 0)
+            return dateB - dateA // New → Old sorting
+        })
 
         setFilteredData(results)
         const newTotalPages = Math.ceil(results.length / itemsPerPage)
@@ -363,6 +371,21 @@ const DeliveredPage = () => {
                     </div>
 
                 </CardHeader>
+
+                <CardContent>
+                    <div className="flex items-center gap-2">
+                        <span>Sort By:</span>
+                        <Select onValueChange={setSortBy} defaultValue="delivered_date">
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Sort By" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="delivered_date">Delivered Date (New → Old)</SelectItem>
+                                <SelectItem value="dispatch_date">Dispatch Date (New → Old)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardContent>
 
             </Card>
 
