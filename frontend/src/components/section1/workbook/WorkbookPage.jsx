@@ -252,21 +252,69 @@ const WorkbookPage = () => {
         setCurrentPage(1)
     }
 
+    // useEffect(() => {
+    //     const applyFiltersAndPaginate = () => {
+    //         const filtered = workbookData
+    //             .filter((item) => {
+    //                 // console.log(item, typeof item)
+
+    //                 if (searchColumn === "all") {
+
+    //                     return Object.values(item).some(
+
+    //                         (val) =>
+    //                             (typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    //                             (typeof val === "number" && val.toString().includes(searchTerm)),
+    //                     )
+    //                 } else {
+    //                     const value = item[searchColumn]
+    //                     console.log(typeof value)
+    //                     if (typeof value === "string") {
+    //                         return value.toLowerCase().includes(searchTerm.toLowerCase())
+    //                     } else if (typeof value === "object" && value !== null && "value" in value) {
+    //                         return value.value.toLowerCase().includes(searchTerm.toLowerCase())
+    //                     } else if (typeof value === "number") {
+    //                         return value.toString().includes(searchTerm)
+    //                     }
+    //                     return false
+    //                 }
+    //             })
+    //             .filter((item) => {
+    //                 if (filterStatus === "All") return true
+    //                 if (filterStatus === "isSent") return item.is_sent_to_pending
+    //                 if (filterStatus === "isNotSent") return !item.is_sent_to_pending
+    //                 return true
+    //             })
+
+    //         setFilteredData(filtered)
+    //         const newTotalPages = Math.ceil(filtered.length / itemsPerPage)
+    //         setTotalPages(newTotalPages)
+
+    //         const startIndex = (currentPage - 1) * itemsPerPage
+    //         setPaginatedData(filtered.slice(startIndex, startIndex + itemsPerPage))
+    //     }
+
+    //     applyFiltersAndPaginate()
+    // }, [workbookData, filterStatus, searchTerm, searchColumn, currentPage, itemsPerPage])
     useEffect(() => {
         const applyFiltersAndPaginate = () => {
             const filtered = workbookData
                 .filter((item) => {
                     if (searchColumn === "all") {
-                        return Object.values(item).some(
-                            (val) =>
+                        return Object.values(item).some((val) => {
+                            if (val === null || val === undefined) return false // Handle null & undefined values safely
+                            return (
                                 (typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                                (typeof val === "number" && val.toString().includes(searchTerm)),
-                        )
+                                (typeof val === "number" && val.toString().includes(searchTerm))
+                            )
+                        })
                     } else {
                         const value = item[searchColumn]
+                        if (value === null || value === undefined) return false // Handle null & undefined safely
+
                         if (typeof value === "string") {
                             return value.toLowerCase().includes(searchTerm.toLowerCase())
-                        } else if (typeof value === "object" && value !== null && "value" in value) {
+                        } else if (typeof value === "object" && "value" in value && value.value) {
                             return value.value.toLowerCase().includes(searchTerm.toLowerCase())
                         } else if (typeof value === "number") {
                             return value.toString().includes(searchTerm)
@@ -291,6 +339,7 @@ const WorkbookPage = () => {
 
         applyFiltersAndPaginate()
     }, [workbookData, filterStatus, searchTerm, searchColumn, currentPage, itemsPerPage])
+
 
     if (isLoading) {
         return (

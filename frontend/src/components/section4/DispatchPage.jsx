@@ -140,29 +140,60 @@ const DispatchPage = () => {
         setRefreshing(false)
         toast.success("Data refreshed successfully")
     }
+    // const applyFiltersAndPaginate = useCallback(() => {
+    //     const results = dispatchData.filter((item) => {
+    //         if (searchColumn === "all") {
+    //             return Object.values(item).some(
+    //                 (val) => typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase()),
+    //             )
+    //         } else {
+    //             const value = item[searchColumn]
+    //             if (typeof value === "string") {
+    //                 return value.toLowerCase().includes(searchTerm.toLowerCase())
+    //             } else if (typeof value === "object" && value !== null && "value" in value) {
+    //                 return value.value.toLowerCase().includes(searchTerm.toLowerCase())
+    //             }
+    //             return false
+    //         }
+    //     })
+    //     setFilteredData(results)
+    //     const newTotalPages = Math.ceil(results.length / itemsPerPage)
+    //     setTotalPages(newTotalPages)
+
+    //     const startIndex = (currentPage - 1) * itemsPerPage
+    //     setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
+    // }, [dispatchData, searchTerm, searchColumn, itemsPerPage, currentPage])
     const applyFiltersAndPaginate = useCallback(() => {
         const results = dispatchData.filter((item) => {
             if (searchColumn === "all") {
                 return Object.values(item).some(
-                    (val) => typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase()),
-                )
+                    (val) =>
+                        val !== null &&
+                        val !== undefined &&
+                        typeof val === "string" &&
+                        val.toLowerCase().includes(searchTerm.toLowerCase())
+                );
             } else {
-                const value = item[searchColumn]
-                if (typeof value === "string") {
-                    return value.toLowerCase().includes(searchTerm.toLowerCase())
-                } else if (typeof value === "object" && value !== null && "value" in value) {
-                    return value.value.toLowerCase().includes(searchTerm.toLowerCase())
-                }
-                return false
-            }
-        })
-        setFilteredData(results)
-        const newTotalPages = Math.ceil(results.length / itemsPerPage)
-        setTotalPages(newTotalPages)
+                const value = item?.[searchColumn]; // Safe access using optional chaining
+                if (value === null || value === undefined) return false;
 
-        const startIndex = (currentPage - 1) * itemsPerPage
-        setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
-    }, [dispatchData, searchTerm, searchColumn, itemsPerPage, currentPage])
+                if (typeof value === "string") {
+                    return value.toLowerCase().includes(searchTerm.toLowerCase());
+                } else if (typeof value === "object" && "value" in value && typeof value.value === "string") {
+                    return value.value.toLowerCase().includes(searchTerm.toLowerCase());
+                }
+                return false;
+            }
+        });
+
+        setFilteredData(results);
+        const newTotalPages = Math.ceil(results.length / itemsPerPage);
+        setTotalPages(newTotalPages);
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage));
+    }, [dispatchData, searchTerm, searchColumn, itemsPerPage, currentPage]);
+
 
     useEffect(() => {
         applyFiltersAndPaginate()

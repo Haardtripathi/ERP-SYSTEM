@@ -110,22 +110,54 @@ const PendingPage = () => {
         setRefreshing(false)
         toast.success("Data refreshed successfully")
     }
+
+
+    // const applyFiltersAndPaginate = useCallback(() => {
+    //     const results = pendingData.filter((item) => {
+    //         if (searchColumn === "all") {
+    //             return Object.values(item).some(
+    //                 (val) => typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase()),
+    //             )
+    //         } else {
+    //             const value = item[searchColumn]
+    //             if (typeof value === "string") {
+    //                 return value.toLowerCase().includes(searchTerm.toLowerCase())
+    //             } else if (typeof value === "object" && value !== null && "value" in value) {
+    //                 return value.value.toLowerCase().includes(searchTerm.toLowerCase())
+    //             }
+    //             return false
+    //         }
+    //     })
+    //     setFilteredData(results)
+    //     const newTotalPages = Math.ceil(results.length / itemsPerPage)
+    //     setTotalPages(newTotalPages)
+
+    //     const startIndex = (currentPage - 1) * itemsPerPage
+    //     setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
+    // }, [pendingData, searchTerm, searchColumn, itemsPerPage, currentPage])
     const applyFiltersAndPaginate = useCallback(() => {
         const results = pendingData.filter((item) => {
             if (searchColumn === "all") {
                 return Object.values(item).some(
-                    (val) => typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase()),
+                    (val) =>
+                        val !== null &&
+                        val !== undefined &&
+                        typeof val === "string" &&
+                        val.toLowerCase().includes(searchTerm.toLowerCase()),
                 )
             } else {
                 const value = item[searchColumn]
+                if (value === null || value === undefined) return false // Handle null/undefined
+
                 if (typeof value === "string") {
                     return value.toLowerCase().includes(searchTerm.toLowerCase())
-                } else if (typeof value === "object" && value !== null && "value" in value) {
+                } else if (typeof value === "object" && "value" in value && typeof value.value === "string") {
                     return value.value.toLowerCase().includes(searchTerm.toLowerCase())
                 }
                 return false
             }
         })
+
         setFilteredData(results)
         const newTotalPages = Math.ceil(results.length / itemsPerPage)
         setTotalPages(newTotalPages)
@@ -133,6 +165,7 @@ const PendingPage = () => {
         const startIndex = (currentPage - 1) * itemsPerPage
         setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
     }, [pendingData, searchTerm, searchColumn, itemsPerPage, currentPage])
+
 
     useEffect(() => {
         applyFiltersAndPaginate()
@@ -502,6 +535,8 @@ const PendingPage = () => {
                                 <SelectItem value="cm_last_name">Last Name</SelectItem>
                                 <SelectItem value="cm_phone">Phone</SelectItem>
                                 <SelectItem value="agent_name">Agent</SelectItem>
+                                <SelectItem value="language">Language</SelectItem>
+
 
                                 <SelectItem value="disease">Disease</SelectItem>
                                 <SelectItem value="state">State</SelectItem>

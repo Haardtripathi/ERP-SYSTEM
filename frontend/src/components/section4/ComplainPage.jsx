@@ -100,24 +100,49 @@ const ComplainPage = () => {
         toast.success("Data refreshed successfully")
     }
 
+    // const applyFiltersAndPaginate = useCallback(() => {
+    //     const results = complainData.filter((item) => {
+    //         if (searchColumn === "all") {
+    //             return Object.values(item).some(
+    //                 (val) => typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase()),
+    //             )
+    //         } else {
+    //             const value = item[searchColumn]
+    //             return typeof value === "string" && value.toLowerCase().includes(searchTerm.toLowerCase())
+    //         }
+    //     })
+    //     setFilteredData(results)
+    //     const newTotalPages = Math.ceil(results.length / itemsPerPage)
+    //     setTotalPages(newTotalPages)
+
+    //     const startIndex = (currentPage - 1) * itemsPerPage
+    //     setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
+    // }, [complainData, searchTerm, searchColumn, itemsPerPage, currentPage])
     const applyFiltersAndPaginate = useCallback(() => {
         const results = complainData.filter((item) => {
             if (searchColumn === "all") {
                 return Object.values(item).some(
-                    (val) => typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase()),
-                )
+                    (val) =>
+                        val !== null &&
+                        val !== undefined &&
+                        typeof val === "string" &&
+                        val.toLowerCase().includes(searchTerm.toLowerCase())
+                );
             } else {
-                const value = item[searchColumn]
-                return typeof value === "string" && value.toLowerCase().includes(searchTerm.toLowerCase())
-            }
-        })
-        setFilteredData(results)
-        const newTotalPages = Math.ceil(results.length / itemsPerPage)
-        setTotalPages(newTotalPages)
+                const value = item?.[searchColumn]; // Safe access using optional chaining
+                if (value === null || value === undefined) return false;
 
-        const startIndex = (currentPage - 1) * itemsPerPage
-        setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
-    }, [complainData, searchTerm, searchColumn, itemsPerPage, currentPage])
+                return typeof value === "string" && value.toLowerCase().includes(searchTerm.toLowerCase());
+            }
+        });
+
+        setFilteredData(results);
+        const newTotalPages = Math.ceil(results.length / itemsPerPage);
+        setTotalPages(newTotalPages);
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage));
+    }, [complainData, searchTerm, searchColumn, itemsPerPage, currentPage]);
 
     useEffect(() => {
         applyFiltersAndPaginate()

@@ -104,41 +104,82 @@ const IncomingPage = () => {
         toast.success("Data refreshed successfully")
     }
 
+    // useEffect(() => {
+    //     const results = incomingData.filter((item) => {
+    //         const matchesSearch =
+    //             searchColumn === "all"
+    //                 ? Object.values(item).some(
+    //                     (val) =>
+    //                         (typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    //                         (typeof val === "number" && val.toString().includes(searchTerm)),
+    //                 )
+    //                 : (item[searchColumn] &&
+    //                     typeof item[searchColumn] === "string" &&
+    //                     item[searchColumn].toLowerCase().includes(searchTerm.toLowerCase())) ||
+    //                 (item[searchColumn] &&
+    //                     typeof item[searchColumn] === "object" &&
+    //                     item[searchColumn].value &&
+    //                     item[searchColumn].value.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    //                 (item[searchColumn] &&
+    //                     typeof item[searchColumn] === "number" &&
+    //                     item[searchColumn].toString().includes(searchTerm))
+
+    //         const matchesFilter =
+    //             filterStatus === "All" ||
+    //             (filterStatus === "isSent" && item.is_sent_to_pending) ||
+    //             (filterStatus === "isNotSent" && !item.is_sent_to_pending)
+
+    //         return matchesSearch && matchesFilter
+    //     })
+
+    //     setFilteredData(results)
+    //     setTotalPages(Math.ceil(results.length / itemsPerPage))
+    //     // Only reset currentPage when search term or column changes
+    //     if (searchTerm !== "" || searchColumn !== "all") {
+    //         setCurrentPage(1)
+    //     }
+    // }, [searchTerm, searchColumn, incomingData, itemsPerPage, filterStatus])
     useEffect(() => {
         const results = incomingData.filter((item) => {
+            const columnValue = item[searchColumn];
+
             const matchesSearch =
                 searchColumn === "all"
-                    ? Object.values(item).some(
-                        (val) =>
+                    ? Object.values(item).some((val) => {
+                        if (val === null || val === undefined) return false; // Handle null & undefined values safely
+                        return (
                             (typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                            (typeof val === "number" && val.toString().includes(searchTerm)),
-                    )
-                    : (item[searchColumn] &&
-                        typeof item[searchColumn] === "string" &&
-                        item[searchColumn].toLowerCase().includes(searchTerm.toLowerCase())) ||
-                    (item[searchColumn] &&
-                        typeof item[searchColumn] === "object" &&
-                        item[searchColumn].value &&
-                        item[searchColumn].value.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                    (item[searchColumn] &&
-                        typeof item[searchColumn] === "number" &&
-                        item[searchColumn].toString().includes(searchTerm))
+                            (typeof val === "number" && val.toString().includes(searchTerm))
+                        );
+                    })
+                    : columnValue !== null && columnValue !== undefined && ( // Ensure value is not null/undefined
+                        (typeof columnValue === "string" &&
+                            columnValue.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                        (typeof columnValue === "object" &&
+                            "value" in columnValue &&
+                            columnValue.value &&
+                            typeof columnValue.value === "string" &&
+                            columnValue.value.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                        (typeof columnValue === "number" && columnValue.toString().includes(searchTerm))
+                    );
 
             const matchesFilter =
                 filterStatus === "All" ||
                 (filterStatus === "isSent" && item.is_sent_to_pending) ||
-                (filterStatus === "isNotSent" && !item.is_sent_to_pending)
+                (filterStatus === "isNotSent" && !item.is_sent_to_pending);
 
-            return matchesSearch && matchesFilter
-        })
+            return matchesSearch && matchesFilter;
+        });
 
-        setFilteredData(results)
-        setTotalPages(Math.ceil(results.length / itemsPerPage))
-        // Only reset currentPage when search term or column changes
+        setFilteredData(results);
+        setTotalPages(Math.ceil(results.length / itemsPerPage));
+
+        // Only reset currentPage when searchTerm or searchColumn changes
         if (searchTerm !== "" || searchColumn !== "all") {
-            setCurrentPage(1)
+            setCurrentPage(1);
         }
-    }, [searchTerm, searchColumn, incomingData, itemsPerPage, filterStatus])
+    }, [searchTerm, searchColumn, incomingData, itemsPerPage, filterStatus]);
+
 
     const handleDelete = async (id) => {
         try {

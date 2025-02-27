@@ -96,43 +96,88 @@ const SheetGenerator = () => {
         fetchData()
     }, [fetchData])
 
-    // Filter and pagination logic remains the same
+    // // Filter and pagination logic remains the same
+    // const applyFiltersAndPaginate = useCallback(() => {
+    //     const results = confirmedData.filter((item) => {
+    //         const shipmentType = item.shipment_type?.value || ""
+    //         if (shipmentTypeFilter !== "all") {
+    //             if (shipmentTypeFilter === "smartship") {
+    //                 if (!["Bluedart", "Delhivery"].includes(shipmentType)) {
+    //                     return false
+    //                 }
+    //             } else if (shipmentType !== shipmentTypeFilter) {
+    //                 return false
+    //             }
+    //         }
+
+    //         if (searchColumn === "all") {
+    //             return Object.values(item).some(
+    //                 (val) => typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase()),
+    //             )
+    //         } else {
+    //             const value = item[searchColumn]
+    //             if (typeof value === "string") {
+    //                 return value.toLowerCase().includes(searchTerm.toLowerCase())
+    //             } else if (typeof value === "object" && value !== null && "value" in value) {
+    //                 return value.value.toLowerCase().includes(searchTerm.toLowerCase())
+    //             }
+    //         }
+    //         return false
+    //     })
+
+    //     setFilteredData(results)
+    //     const newTotalPages = Math.ceil(results.length / itemsPerPage)
+    //     setTotalPages(newTotalPages)
+    //     setCurrentPage((prev) => (prev > newTotalPages ? 1 : prev))
+
+    //     const startIndex = (currentPage - 1) * itemsPerPage
+    //     setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
+    // }, [confirmedData, searchTerm, searchColumn, itemsPerPage, currentPage, shipmentTypeFilter])
+
     const applyFiltersAndPaginate = useCallback(() => {
         const results = confirmedData.filter((item) => {
-            const shipmentType = item.shipment_type?.value || ""
+            const shipmentType = item?.shipment_type?.value || ""; // Ensure safe access to nested properties
+
             if (shipmentTypeFilter !== "all") {
                 if (shipmentTypeFilter === "smartship") {
                     if (!["Bluedart", "Delhivery"].includes(shipmentType)) {
-                        return false
+                        return false;
                     }
                 } else if (shipmentType !== shipmentTypeFilter) {
-                    return false
+                    return false;
                 }
             }
 
             if (searchColumn === "all") {
                 return Object.values(item).some(
-                    (val) => typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase()),
-                )
+                    (val) =>
+                        val !== null &&
+                        val !== undefined &&
+                        typeof val === "string" &&
+                        val.toLowerCase().includes(searchTerm.toLowerCase())
+                );
             } else {
-                const value = item[searchColumn]
+                const value = item?.[searchColumn]; // Ensure safe access to dynamic column values
+                if (value === null || value === undefined) return false;
+
                 if (typeof value === "string") {
-                    return value.toLowerCase().includes(searchTerm.toLowerCase())
-                } else if (typeof value === "object" && value !== null && "value" in value) {
-                    return value.value.toLowerCase().includes(searchTerm.toLowerCase())
+                    return value.toLowerCase().includes(searchTerm.toLowerCase());
+                } else if (typeof value === "object" && "value" in value && typeof value.value === "string") {
+                    return value.value.toLowerCase().includes(searchTerm.toLowerCase());
                 }
             }
-            return false
-        })
+            return false;
+        });
 
-        setFilteredData(results)
-        const newTotalPages = Math.ceil(results.length / itemsPerPage)
-        setTotalPages(newTotalPages)
-        setCurrentPage((prev) => (prev > newTotalPages ? 1 : prev))
+        setFilteredData(results);
+        const newTotalPages = Math.ceil(results.length / itemsPerPage);
+        setTotalPages(newTotalPages);
+        setCurrentPage((prev) => (prev > newTotalPages ? 1 : prev));
 
-        const startIndex = (currentPage - 1) * itemsPerPage
-        setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
-    }, [confirmedData, searchTerm, searchColumn, itemsPerPage, currentPage, shipmentTypeFilter])
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage));
+    }, [confirmedData, searchTerm, searchColumn, itemsPerPage, currentPage, shipmentTypeFilter]);
+
 
     useEffect(() => {
         applyFiltersAndPaginate()

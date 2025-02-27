@@ -77,6 +77,8 @@ const ReturnPage = () => {
 
     const fetchData = useCallback(async () => {
         try {
+            setIsLoading(true)
+
             const response = await getAllReturn()
             if (response.data?.returnData) {
                 const validData = Array.isArray(response.data.returnData) ? response.data.returnData : [response.data.returnData]
@@ -181,45 +183,101 @@ const ReturnPage = () => {
         setCurrentPage(1)
     }
 
+    // const applyFiltersAndPaginate = useCallback(() => {
+    //     if (!Array.isArray(returnData) || returnData.length === 0) {
+    //         setPaginatedData([])
+    //         setTotalPages(0)
+    //         return
+    //     }
+
+    //     // Filtering logic (only keeping items with dispatchedId.confirmedId)
+    //     let results = returnData.filter((item) => item?.dispatchedId?.confirmedId)
+
+    //     // Search logic
+    //     if (searchTerm) {
+    //         results = results.filter((item) => {
+    //             if (searchColumn === "all") {
+    //                 return Object.values(item.dispatchedId.confirmedId || {})
+    //                     .some(val => val && val.toString().toLowerCase().includes(searchTerm.toLowerCase()))
+    //             } else {
+    //                 const value = item.dispatchedId.confirmedId?.[searchColumn]
+    //                 return value && value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+    //             }
+    //         })
+    //     }
+
+    //     // Sorting logic based on selected option
+    //     results.sort((a, b) => {
+    //         const dateA = sortBy === "return_date" ? new Date(a.date) : new Date(a.dispatchedId?.date || 0)
+    //         const dateB = sortBy === "return_date" ? new Date(b.date) : new Date(b.dispatchedId?.date || 0)
+    //         return dateB - dateA // New → Old sorting
+    //     })
+
+
+    //     setFilteredData(results)
+    //     const newTotalPages = Math.ceil(results.length / itemsPerPage)
+    //     setTotalPages(newTotalPages)
+    //     setCurrentPage((prev) => Math.min(prev, newTotalPages))
+
+    //     const startIndex = (currentPage - 1) * itemsPerPage
+    //     setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
+    // }, [returnData, searchTerm, searchColumn, itemsPerPage, currentPage, sortBy])
     const applyFiltersAndPaginate = useCallback(() => {
         if (!Array.isArray(returnData) || returnData.length === 0) {
-            setPaginatedData([])
-            setTotalPages(0)
-            return
+            setPaginatedData([]);
+            setTotalPages(0);
+            return;
         }
 
         // Filtering logic (only keeping items with dispatchedId.confirmedId)
-        let results = returnData.filter((item) => item?.dispatchedId?.confirmedId)
+        let results = returnData.filter((item) => item?.dispatchedId?.confirmedId);
 
         // Search logic
         if (searchTerm) {
             results = results.filter((item) => {
                 if (searchColumn === "all") {
-                    return Object.values(item.dispatchedId.confirmedId || {})
-                        .some(val => val && val.toString().toLowerCase().includes(searchTerm.toLowerCase()))
+                    return Object.values(item?.dispatchedId?.confirmedId || {}).some(
+                        (val) =>
+                            val !== null &&
+                            val !== undefined &&
+                            typeof val.toString === "function" && // Ensuring `val` is valid before calling `.toString()`
+                            val.toString().toLowerCase().includes(searchTerm.toLowerCase())
+                    );
                 } else {
-                    const value = item.dispatchedId.confirmedId?.[searchColumn]
-                    return value && value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+                    const value = item?.dispatchedId?.confirmedId?.[searchColumn];
+                    return (
+                        value !== null &&
+                        value !== undefined &&
+                        typeof value.toString === "function" &&
+                        value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+                    );
                 }
-            })
+            });
         }
 
         // Sorting logic based on selected option
         results.sort((a, b) => {
-            const dateA = sortBy === "return_date" ? new Date(a.date) : new Date(a.dispatchedId?.date || 0)
-            const dateB = sortBy === "return_date" ? new Date(b.date) : new Date(b.dispatchedId?.date || 0)
-            return dateB - dateA // New → Old sorting
-        })
+            const dateA =
+                sortBy === "return_date"
+                    ? new Date(a?.date || 0) // Ensure safe access
+                    : new Date(a?.dispatchedId?.date || 0);
+            const dateB =
+                sortBy === "return_date"
+                    ? new Date(b?.date || 0)
+                    : new Date(b?.dispatchedId?.date || 0);
 
+            return dateB - dateA; // New → Old sorting
+        });
 
-        setFilteredData(results)
-        const newTotalPages = Math.ceil(results.length / itemsPerPage)
-        setTotalPages(newTotalPages)
-        setCurrentPage((prev) => Math.min(prev, newTotalPages))
+        setFilteredData(results);
+        const newTotalPages = Math.ceil(results.length / itemsPerPage);
+        setTotalPages(newTotalPages);
+        setCurrentPage((prev) => Math.min(prev, newTotalPages));
 
-        const startIndex = (currentPage - 1) * itemsPerPage
-        setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
-    }, [returnData, searchTerm, searchColumn, itemsPerPage, currentPage, sortBy])
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage));
+    }, [returnData, searchTerm, searchColumn, itemsPerPage, currentPage, sortBy]);
+
 
     useEffect(() => {
         applyFiltersAndPaginate()

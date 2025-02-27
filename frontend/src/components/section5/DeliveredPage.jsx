@@ -114,66 +114,140 @@ const DeliveredPage = () => {
     }
 
 
+    // const applyFiltersAndPaginate = useCallback(() => {
+    //     if (!Array.isArray(deliveredData) || deliveredData.length === 0) {
+    //         setPaginatedData([])
+    //         setTotalPages(0)
+    //         return
+    //     }
+
+    //     const results = deliveredData.filter((item) => {
+    //         if (!item?.dispatchedId?.confirmedId) return false
+
+    //         if (searchColumn === "all") {
+    //             const searchableValues = {
+    //                 ref: item.dispatchedId.confirmedId.ref,
+    //                 date: item.date,
+    //                 time: item.time,
+    //                 source: item.dispatchedId.confirmedId.source?.value,
+    //                 payment_type: item.dispatchedId.confirmedId.payment_type?.value,
+    //                 sale_type: item.dispatchedId.confirmedId.sale_type?.value,
+    //                 agent_name: item.dispatchedId.confirmedId.agent_name?.value,
+    //                 cm_first_name: item.dispatchedId.confirmedId.cm_first_name,
+    //                 cm_last_name: item.dispatchedId.confirmedId.cm_last_name,
+    //                 cm_phone: item.dispatchedId.confirmedId.cm_phone?.toString(),
+    //                 alternate_phone: item.dispatchedId.confirmedId.alternate_phone?.toString(),
+    //                 email: item.dispatchedId.confirmedId.email,
+    //             }
+
+    //             return Object.values(searchableValues).some(
+    //                 (val) => val && val.toString().toLowerCase().includes(searchTerm.toLowerCase()),
+    //             )
+    //         } else {
+    //             const value = item.dispatchedId.confirmedId[searchColumn]
+    //             if (typeof value === "object" && value?.value) {
+    //                 return value.value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+    //             } else if (value) {
+    //                 return value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+    //             }
+    //             return false
+    //         }
+    //     })
+
+    //     if (results.length === 0) {
+    //         setPaginatedData([])
+    //         setTotalPages(0)
+    //         return
+    //     }
+
+    //     results.sort((a, b) => {
+    //         const dateA = sortBy === "delivered_date" ? new Date(a.date) : new Date(a.dispatchedId?.date || 0)
+    //         const dateB = sortBy === "delivered_date" ? new Date(b.date) : new Date(b.dispatchedId?.date || 0)
+    //         return dateB - dateA // New → Old sorting
+    //     })
+
+    //     setFilteredData(results)
+    //     const newTotalPages = Math.ceil(results.length / itemsPerPage)
+    //     setTotalPages(newTotalPages)
+    //     setCurrentPage((prev) => Math.min(prev, newTotalPages))
+
+    //     const startIndex = (currentPage - 1) * itemsPerPage
+    //     setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
+    // }, [deliveredData, searchTerm, searchColumn, itemsPerPage, currentPage])
     const applyFiltersAndPaginate = useCallback(() => {
         if (!Array.isArray(deliveredData) || deliveredData.length === 0) {
-            setPaginatedData([])
-            setTotalPages(0)
-            return
+            setPaginatedData([]);
+            setTotalPages(0);
+            return;
         }
 
         const results = deliveredData.filter((item) => {
-            if (!item?.dispatchedId?.confirmedId) return false
+            if (!item?.dispatchedId?.confirmedId) return false;
 
             if (searchColumn === "all") {
                 const searchableValues = {
-                    ref: item.dispatchedId.confirmedId.ref,
-                    date: item.date,
-                    time: item.time,
-                    source: item.dispatchedId.confirmedId.source?.value,
-                    payment_type: item.dispatchedId.confirmedId.payment_type?.value,
-                    sale_type: item.dispatchedId.confirmedId.sale_type?.value,
-                    agent_name: item.dispatchedId.confirmedId.agent_name?.value,
-                    cm_first_name: item.dispatchedId.confirmedId.cm_first_name,
-                    cm_last_name: item.dispatchedId.confirmedId.cm_last_name,
-                    cm_phone: item.dispatchedId.confirmedId.cm_phone?.toString(),
-                    alternate_phone: item.dispatchedId.confirmedId.alternate_phone?.toString(),
-                    email: item.dispatchedId.confirmedId.email,
-                }
+                    ref: item?.dispatchedId?.confirmedId?.ref,
+                    date: item?.date,
+                    time: item?.time,
+                    source: item?.dispatchedId?.confirmedId?.source?.value,
+                    payment_type: item?.dispatchedId?.confirmedId?.payment_type?.value,
+                    sale_type: item?.dispatchedId?.confirmedId?.sale_type?.value,
+                    agent_name: item?.dispatchedId?.confirmedId?.agent_name?.value,
+                    cm_first_name: item?.dispatchedId?.confirmedId?.cm_first_name,
+                    cm_last_name: item?.dispatchedId?.confirmedId?.cm_last_name,
+                    cm_phone: item?.dispatchedId?.confirmedId?.cm_phone?.toString(),
+                    alternate_phone: item?.dispatchedId?.confirmedId?.alternate_phone?.toString(),
+                    email: item?.dispatchedId?.confirmedId?.email,
+                };
 
                 return Object.values(searchableValues).some(
-                    (val) => val && val.toString().toLowerCase().includes(searchTerm.toLowerCase()),
-                )
+                    (val) =>
+                        val !== null &&
+                        val !== undefined &&
+                        typeof val.toString === "function" &&
+                        val.toString().toLowerCase().includes(searchTerm.toLowerCase())
+                );
             } else {
-                const value = item.dispatchedId.confirmedId[searchColumn]
+                const value = item?.dispatchedId?.confirmedId?.[searchColumn];
+                if (value === null || value === undefined) return false;
+
                 if (typeof value === "object" && value?.value) {
-                    return value.value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-                } else if (value) {
-                    return value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+                    return typeof value.value === "string" && value.value.toLowerCase().includes(searchTerm.toLowerCase());
+                } else if (typeof value.toString === "function") {
+                    return value.toString().toLowerCase().includes(searchTerm.toLowerCase());
                 }
-                return false
+                return false;
             }
-        })
+        });
 
         if (results.length === 0) {
-            setPaginatedData([])
-            setTotalPages(0)
-            return
+            setPaginatedData([]);
+            setTotalPages(0);
+            return;
         }
 
         results.sort((a, b) => {
-            const dateA = sortBy === "delivered_date" ? new Date(a.date) : new Date(a.dispatchedId?.date || 0)
-            const dateB = sortBy === "delivered_date" ? new Date(b.date) : new Date(b.dispatchedId?.date || 0)
-            return dateB - dateA // New → Old sorting
-        })
+            const dateA =
+                sortBy === "delivered_date"
+                    ? new Date(a?.date || 0) // Safe access to avoid NaN errors
+                    : new Date(a?.dispatchedId?.date || 0);
+            const dateB =
+                sortBy === "delivered_date"
+                    ? new Date(b?.date || 0)
+                    : new Date(b?.dispatchedId?.date || 0);
 
-        setFilteredData(results)
-        const newTotalPages = Math.ceil(results.length / itemsPerPage)
-        setTotalPages(newTotalPages)
-        setCurrentPage((prev) => Math.min(prev, newTotalPages))
+            return dateB - dateA; // New → Old sorting
+        });
 
-        const startIndex = (currentPage - 1) * itemsPerPage
-        setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
-    }, [deliveredData, searchTerm, searchColumn, itemsPerPage, currentPage])
+        setFilteredData(results);
+        const newTotalPages = Math.ceil(results.length / itemsPerPage);
+        setTotalPages(newTotalPages);
+        setCurrentPage((prev) => Math.min(prev, newTotalPages));
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage));
+    }, [deliveredData, searchTerm, searchColumn, itemsPerPage, currentPage, sortBy]);
+
 
     useEffect(() => {
         applyFiltersAndPaginate()
