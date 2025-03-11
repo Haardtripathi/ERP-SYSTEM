@@ -316,35 +316,67 @@ const Sidenav = () => {
                     >
                         <span>Payments</span>
                     </NavLink>
+
                 </nav>
 
+
+
                 {isAdmin && (
-                    <div className="p-4 mt-auto border-t border-gray-200">
-                        <NavLink
-                            to="/users"
-                            className={({ isActive }) =>
-                                `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${isActive
-                                    ? "bg-blue-50 text-blue-600 font-medium"
-                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                                }`
-                            }
-                        >
-                            <Users className="w-5 h-5" />
-                            <span>Users</span>
-                        </NavLink>
-                        <NavLink
-                            to="/add-user"
-                            className={({ isActive }) =>
-                                `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${isActive
-                                    ? "bg-blue-50 text-blue-600 font-medium"
-                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                                }`
-                            }
-                        >
-                            <Users className="w-5 h-5" />
-                            <span>Add User</span>
-                        </NavLink>
-                    </div>
+
+                    <>
+                        <div className="p-4 mt-auto border-t border-gray-200">
+                            <NavLink
+                                to="/roles"
+                                className={({ isActive }) =>
+                                    `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${isActive
+                                        ? "bg-blue-50 text-blue-600 font-medium"
+                                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                    }`
+                                }
+                            >
+                                <Users className="w-5 h-5" />
+                                <span>Roles</span>
+                            </NavLink>
+                            <NavLink
+                                to="/add-role"
+                                className={({ isActive }) =>
+                                    `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${isActive
+                                        ? "bg-blue-50 text-blue-600 font-medium"
+                                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                    }`
+                                }
+                            >
+                                <Users className="w-5 h-5" />
+                                <span>Add Role</span>
+                            </NavLink>
+                        </div>
+                        <div className="p-4 mt-auto border-t border-gray-200">
+                            <NavLink
+                                to="/users"
+                                className={({ isActive }) =>
+                                    `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${isActive
+                                        ? "bg-blue-50 text-blue-600 font-medium"
+                                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                    }`
+                                }
+                            >
+                                <Users className="w-5 h-5" />
+                                <span>Users</span>
+                            </NavLink>
+                            <NavLink
+                                to="/add-user"
+                                className={({ isActive }) =>
+                                    `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${isActive
+                                        ? "bg-blue-50 text-blue-600 font-medium"
+                                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                    }`
+                                }
+                            >
+                                <Users className="w-5 h-5" />
+                                <span>Add User</span>
+                            </NavLink>
+                        </div>
+                    </>
                 )}
             </div>
         </div>

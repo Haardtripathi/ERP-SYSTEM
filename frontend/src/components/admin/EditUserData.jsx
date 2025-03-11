@@ -48,6 +48,7 @@ const EditUserData = () => {
         const fetchUserData = async () => {
             try {
                 const data = await getEditUserData(id)
+                console.log(data)
                 if (data.user) {
                     setUserData(data.user)
                     setFormData({
@@ -55,7 +56,7 @@ const EditUserData = () => {
                         password: "",
                         agentName: data.user.agent_name || "",
                         companyNumber: data.user.company_number || "",
-                        role: data.user.role.name || "",
+                        role: data.user.role || "",
                         phoneNumber: data.user.phone_number || "",
                         address: data.user.address || "",
                         localAddress: data.user.local_address || "",
@@ -227,19 +228,21 @@ const EditUserData = () => {
                                             <Label htmlFor="role">Role</Label>
                                             <Select
                                                 value={formData.role}
-                                                onValueChange={(value) => setFormData((prev) => ({ ...prev, role: value }))}
+                                                onValueChange={(value) => setFormData((prev) => ({ ...prev, role: value }))} // This updates the formData.role to the _id of the role
+                                                required
                                             >
                                                 <SelectTrigger className="w-full">
                                                     <SelectValue placeholder="Select Role" />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     {roles.map((role) => (
-                                                        <SelectItem key={role._id} value={role._id}>  {/* Send ID instead of name */}
-                                                            {role.name}
+                                                        <SelectItem key={role._id} value={role._id}>  {/* The value is the role._id */}
+                                                            {role.name}  {/* Display the role name */}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
+
 
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">

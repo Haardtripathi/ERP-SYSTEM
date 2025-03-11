@@ -69,6 +69,46 @@ exports.addRole = async (req, res) => {
 //     }
 // };
 
+// exports.getPagesAndColumns = async (req, res) => {
+//     try {
+//         // Define all sections and related database models
+//         const sections = [
+//             {
+//                 section: "Lead Management",
+//                 models: { Lead: Lead.schema.paths },
+//                 pages: ["/leads", "/add-lead-data", "/edit-lead-data/:id"],
+//             },
+//             {
+//                 section: "Incoming Management",
+//                 models: { Incoming: Incoming.schema.paths },
+//                 pages: ["/incoming", "/add-incoming-data", "/edit-incoming-data/:id"],
+//             },
+//         ];
+
+//         // Generate the response dynamically
+//         const pages = sections.map((section) => ({
+//             section: section.section,
+//             pages: [
+//                 // Fetch database models dynamically
+//                 ...Object.keys(section.models).map((page) => ({
+//                     name: page,
+//                     columns: Object.keys(section.models[page]).filter(
+//                         (col) => !["__v", "timestamps", "createdAt", "updatedAt"].includes(col)
+//                     ),
+//                 })),
+//                 // Include extra pages that don’t have models
+//                 ...section.pages.map((page) => ({ name: page, columns: [] })),
+//             ],
+//         }));
+
+//         res.status(200).json(pages);
+//     } catch (error) {
+//         console.error("Error fetching pages and columns:", error);
+//         res.status(500).json({ error: "Error fetching pages and columns" });
+//     }
+// };
+
+
 exports.getPagesAndColumns = async (req, res) => {
     try {
         // Define all sections and related database models
@@ -76,30 +116,48 @@ exports.getPagesAndColumns = async (req, res) => {
             {
                 section: "Lead Management",
                 models: { Lead: Lead.schema.paths },
-                extraPages: ["leads", "add-lead-data", "edit-lead-data"],
+                pages: ["/leads", "/add-lead-data", "/edit-lead-data/:id"],
             },
             {
                 section: "Incoming Management",
                 models: { Incoming: Incoming.schema.paths },
-                extraPages: ["incoming", "add-incoming-data", "edit-incoming-data"],
+                pages: ["/incoming", "/add-incoming-data", "/edit-incoming-data/:id"],
             },
         ];
 
         // Generate the response dynamically
-        const pages = sections.map((section) => ({
-            section: section.section,
-            pages: [
-                // Fetch database models dynamically
-                ...Object.keys(section.models).map((page) => ({
-                    name: page,
-                    columns: Object.keys(section.models[page]).filter(
-                        (col) => !["_id", "__v", "timestamps", "createdAt", "updatedAt", "isDeleted"].includes(col)
-                    ),
-                })),
-                // Include extra pages that don’t have models
-                ...section.extraPages.map((page) => ({ name: page, columns: [] })),
-            ],
-        }));
+        const pages = sections.map((section) => {
+            // First, collect all unique columns from all models in this section
+            const allColumnsInSection = new Set();
+
+            // Extract columns from all models in this section
+            Object.values(section.models).forEach(modelPaths => {
+                Object.keys(modelPaths).forEach(col => {
+                    if (!["__v", "timestamps", "createdAt", "updatedAt"].includes(col)) {
+                        allColumnsInSection.add(col);
+                    }
+                });
+            });
+
+            // Convert Set to Array for consistent ordering
+            const sectionColumns = Array.from(allColumnsInSection);
+
+            return {
+                section: section.section,
+                pages: [
+                    // Apply the same columns to all database model pages
+                    // ...Object.keys(section.models).map((page) => ({
+                    //     name: page,
+                    //     columns: sectionColumns,
+                    // })),
+                    // Include extra pages with the same columns
+                    ...section.pages.map((page) => ({
+                        name: page,
+                        columns: sectionColumns
+                    })),
+                ],
+            };
+        });
 
         res.status(200).json(pages);
     } catch (error) {
@@ -107,7 +165,6 @@ exports.getPagesAndColumns = async (req, res) => {
         res.status(500).json({ error: "Error fetching pages and columns" });
     }
 };
-
 
 exports.getAllUserData = async (req, res) => {
     try {
@@ -136,10 +193,10 @@ exports.getAllUserData = async (req, res) => {
 
 exports.getUserById = async (req, res) => {
     const { id } = req.params
-    console.log(req.params)
+    console.log(req.route.path)
 
     try {
-        const user = await User.findById(id);
+        const user = await User.findById(id).populate('role')
         if (!user) {
             return res.status(404).json({ error: 'User  not found' });
         }
