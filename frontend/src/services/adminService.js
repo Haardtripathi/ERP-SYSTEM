@@ -1,4 +1,32 @@
+import axios from 'axios';
 import axiosInstance from '../axiosInstance';
+
+
+export const getAllRoles = async () => {
+    const response = await axiosInstance.get("/admin/roles");
+    return response.data;
+};
+
+// Fetch available pages and columns
+export const getPagesAndColumns = async () => {
+    try {
+        const response = await axiosInstance.get(`/admin/pages`);
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.error || "Failed to fetch pages and columns");
+    }
+};
+
+// Add a new role
+export const addRole = async (roleData) => {
+    try {
+        console.log(roleData)
+        const response = await axiosInstance.post(`/admin/add-role`, roleData);
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.error || "Failed to add role");
+    }
+};
 
 
 export const getAllUserData = async () => {

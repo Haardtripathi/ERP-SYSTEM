@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from "react-hot-toast"
 import { Mail, Lock, Loader2, Building, MapPin, CreditCard, Image, User, Phone, Building2 } from "lucide-react"
+import { getAllRoles } from "../../services/adminService"; // Fetch roles
 
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,7 +22,6 @@ const EditUserData = () => {
     const [userData, setUserData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [photo, setPhoto] = useState(null)
-    const [agentList, setAgentList] = useState([])
     const [sameAsAddress, setSameAsAddress] = useState(false)
     const navigate = useNavigate();
 
@@ -34,12 +34,15 @@ const EditUserData = () => {
         phoneNumber: "",
         address: "",
         localAddress: "",
+        role: "",
+
         aadharNumber: "",
         bankName: "",
         bankBranch: "",
         IFSC_Code: "",
         accountNumber: "",
     })
+    const [roles, setRoles] = useState([]); // State to store roles
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -52,6 +55,7 @@ const EditUserData = () => {
                         password: "",
                         agentName: data.user.agent_name || "",
                         companyNumber: data.user.company_number || "",
+                        role: data.user.role.name || "",
                         phoneNumber: data.user.phone_number || "",
                         address: data.user.address || "",
                         localAddress: data.user.local_address || "",
@@ -72,21 +76,16 @@ const EditUserData = () => {
     }, [id])
 
     useEffect(() => {
-        const fetchAgentList = async () => {
+        const fetchRoles = async () => {
             try {
-                const data = await getAgentList()
-                if (data?.agentList?.[0]?.values) {
-                    setAgentList(data.agentList[0].values)
-                } else {
-                    toast.error("No agents found")
-                }
+                const data = await getAllRoles();
+                setRoles(data);
             } catch (error) {
-                toast.error("Failed to fetch agent list")
+                toast.error("Failed to fetch roles");
             }
-        }
-
-        fetchAgentList()
-    }, [])
+        };
+        fetchRoles();
+    }, []);
 
     useEffect(() => {
         if (sameAsAddress) {
@@ -213,23 +212,35 @@ const EditUserData = () => {
                                     <Separator className="mb-6" />
 
                                     <div className="space-y-4">
-                                        <div>
-                                            <Label htmlFor="agentName" className="text-sm font-medium">Agent Name</Label>
-                                            <Select
+                                        <div className="space-y-2">
+                                            <Label htmlFor="agentName">Agent Name</Label>
+                                            <Input
+                                                id="agentName"
+                                                name="agentName"
                                                 value={formData.agentName}
-                                                onValueChange={(value) => setFormData((prev) => ({ ...prev, agentName: value }))}
+                                                onChange={handleChange}
+                                                placeholder="Enter agent name"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="role">Role</Label>
+                                            <Select
+                                                value={formData.role}
+                                                onValueChange={(value) => setFormData((prev) => ({ ...prev, role: value }))}
                                             >
-                                                <SelectTrigger className="mt-1">
-                                                    <SelectValue placeholder="Select Agent" />
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select Role" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {agentList.map((agent) => (
-                                                        <SelectItem key={agent} value={agent}>
-                                                            {agent}
+                                                    {roles.map((role) => (
+                                                        <SelectItem key={role._id} value={role._id}>  {/* Send ID instead of name */}
+                                                            {role.name}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
+
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>

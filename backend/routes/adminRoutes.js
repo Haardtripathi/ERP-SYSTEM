@@ -1,15 +1,21 @@
 const express = require('express');
 const adminController = require('../controllers/adminControllers');
 const { isAdmin } = require("../middlewares/adminMiddleware");
+const { isAuthenticated } = require("../middlewares/authMiddleware")
+const { addRole, getPagesAndColumns, getAllRoles } = require("../controllers/adminControllers");
+
 
 const router = express.Router();
 
-router.get('/get-all-user-data', isAdmin, adminController.getAllUserData);
-router.get('/edit-user-data/:id', isAdmin, adminController.getUserById);
+router.get('/get-all-user-data', isAuthenticated, isAdmin, adminController.getAllUserData);
+router.get('/edit-user-data/:id', isAuthenticated, isAdmin, adminController.getUserById);
 
 router.post('/edit-user', isAdmin, adminController.editUserData);
 
 
+router.post("/add-role", isAuthenticated, isAdmin, addRole);
+router.get("/roles", isAuthenticated, isAdmin, getAllRoles);
 
+router.get("/pages", isAuthenticated, isAdmin, getPagesAndColumns);
 
 module.exports = router;

@@ -191,7 +191,7 @@ exports.returnData = async (req, res) => {
         });
 
         if (!confirmedRow) {
-            console.log("No matching confirmedId found");
+            console.error("No matching confirmedId found");
         } else {
             dispatchRow = await Dispatched.findOne({ confirmedId: confirmedRow._id })
                 .populate('confirmedId'); // Populate to get full Confirmed document if needed

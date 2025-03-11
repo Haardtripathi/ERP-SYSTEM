@@ -6,6 +6,7 @@ const mongoose = require("mongoose")
 const fs = require("fs");
 const jwt = require('jsonwebtoken');
 
+
 const csv = require('csv-parser')
 
 
@@ -110,47 +111,84 @@ exports.postAddLeadData = async (req, res) => {
     }
 };
 
+// exports.getAllLeadData = async (req, res) => {
+//     const token = req.header('Authorization').split(" ")[1];
+
+//     try {
+//         // Get page and limit from query parameters (default values are 1 and 10)
+//         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//         const user = decoded.role
+//         const page = parseInt(req.query.page, 10) || 1;
+//         const limit = parseInt(req.query.limit, 10) || 10;
+
+//         // Calculate the number of items to skip
+//         const skip = (page - 1) * limit;
+
+//         // Fetch data with pagination
+//         let data
+//         let totalCount
+//         // const data = await Lead.find({ is_sent_to_pending: false, isDeleted: false })
+//         if (user == "Admin") {
+//             data = await Lead.find({ isDeleted: false }).sort({ createdAt: -1 });
+
+//         }
+//         else {
+//             data = await Lead.find({ isDeleted: false, "agent_name.value": user }).sort({ createdAt: -1 });
+
+//         }
+
+//         // (data);
+
+//         // Get total count of documents
+//         if (user == "Admin") {
+//             totalCount = await Lead.countDocuments({ isDeleted: false });
+
+
+//         }
+//         else {
+//             totalCount = await Lead.countDocuments({ isDeleted: false, "agent_name.value": user });
+
+
+//         }
+
+//         return res.status(200).json({
+//             message: "Lead data fetched successfully.",
+//             data,
+//             totalCount,
+//             totalPages: Math.ceil(totalCount / limit),
+//             currentPage: page,
+//         });
+//     } catch (error) {
+//         console.error("Error fetching incoming data:", error);
+//         return res.status(500).json({
+//             message: "An error occurred while fetching incoming data.",
+//         });
+//     }
+// };
+
+
 exports.getAllLeadData = async (req, res) => {
-    const token = req.header('Authorization').split(" ")[1];
-
     try {
-        // Get page and limit from query parameters (default values are 1 and 10)
+        const token = req.header("Authorization").split(" ")[1];
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = decoded.agent_name
-        const page = parseInt(req.query.page, 10) || 1;
-        const limit = parseInt(req.query.limit, 10) || 10;
-
-        // Calculate the number of items to skip
+        const userRole = decoded.role;
+        const { page = 1, limit = 10 } = req.query;
         const skip = (page - 1) * limit;
 
-        // Fetch data with pagination
-        let data
-        let totalCount
-        // const data = await Lead.find({ is_sent_to_pending: false, isDeleted: false })
-        if (user == "Panchved") {
-            data = await Lead.find({ isDeleted: false }).sort({ createdAt: -1 });
+        // Use `req.allowedColumns` to restrict returned fields
+        const selectFields = req.allowedColumns.join(" ");
 
-        }
-        else {
-            data = await Lead.find({ isDeleted: false, "agent_name.value": user }).sort({ createdAt: -1 });
+        let data, totalCount;
 
-        }
-
-        // (data);
-
-        // Get total count of documents
-        if (user == "Panchved") {
+        if (userRole === "Admin") {
+            data = await Lead.find({ isDeleted: false }).sort({ createdAt: -1 }).select(selectFields);
             totalCount = await Lead.countDocuments({ isDeleted: false });
-
-
-        }
-        else {
-            totalCount = await Lead.countDocuments({ isDeleted: false, "agent_name.value": user });
-
-
+        } else {
+            data = await Lead.find({ isDeleted: false, "agent_name.value": userRole }).sort({ createdAt: -1 }).select(selectFields);
+            totalCount = await Lead.countDocuments({ isDeleted: false, "agent_name.value": userRole });
         }
 
-        return res.status(200).json({
+        res.status(200).json({
             message: "Lead data fetched successfully.",
             data,
             totalCount,
@@ -158,10 +196,8 @@ exports.getAllLeadData = async (req, res) => {
             currentPage: page,
         });
     } catch (error) {
-        console.error("Error fetching incoming data:", error);
-        return res.status(500).json({
-            message: "An error occurred while fetching incoming data.",
-        });
+        console.error("Error fetching lead data:", error);
+        res.status(500).json({ message: "An error occurred while fetching lead data." });
     }
 };
 

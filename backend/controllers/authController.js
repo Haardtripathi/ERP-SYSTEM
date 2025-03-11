@@ -2,6 +2,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Dropdown = require("../models/Dropdown")
+const Role = require("../models/Role")
+
 const path = require('path');
 const multer = require('multer');
 
@@ -14,6 +16,15 @@ exports.getAgentList = async (req, res) => {
     try {
         const agentList = await Dropdown.find({ name: "Agent Name" })
         res.status(200).json({ agentList })
+    } catch (error) {
+        res.status(500).json({ error: error.message })
+    }
+}
+
+exports.getRoleList = async (req, res) => {
+    try {
+        const roleList = await Role.find()
+        res.status(200).json({ roleList })
     } catch (error) {
         res.status(500).json({ error: error.message })
     }
@@ -48,7 +59,7 @@ exports.register = [
             password,
             companyNumber,
             phoneNumber,
-
+            role,
             address,
             localAddress,
             aadharNumber,
@@ -60,8 +71,8 @@ exports.register = [
         } = req.body;
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            const user = decoded.agent_name
-            if (user !== "Panchved") {
+            const user = decoded.role
+            if (user !== "Admin") {
                 return res.status(403).json({ message: 'Only Admin is allowed to register users' });
             }
 
@@ -87,7 +98,7 @@ exports.register = [
                 password: hashedPassword,
                 company_number: companyNumber,
                 phone_number: phoneNumber,
-
+                role: role,
                 address,
                 local_address: localAddress,
                 aadhar_number: aadharNumber,
@@ -114,13 +125,15 @@ exports.register = [
 ];
 exports.login = async (req, res) => {
     const { email, password } = req.body;
-
     try {
         const user = await User.findOne({ email: email });
         if (!user) return res.status(404).json({ message: 'User not found' });
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
-        const token = jwt.sign({ _id: user._id.toString(), email: user.email, agent_name: user.agent_name }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const role = await Role.findOne({ _id: user.role })
+        const userRole = role.name
+
+        const token = jwt.sign({ _id: user._id.toString(), email: user.email, agent_name: user.agent_name, role: userRole }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         res.json({ token });
     } catch (error) {

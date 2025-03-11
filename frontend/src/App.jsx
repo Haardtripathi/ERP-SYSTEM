@@ -37,6 +37,10 @@ import PaymentPage from "./components/section5/PaymentPage";
 import EditUserData from "./components/admin/EditUserData";
 
 
+import AddRole from "./components/admin/AddRole";
+import Roles from "./components/admin/Roles";
+
+
 const App = () => {
   const { checkAuth, loading, user } = useAuthStore();
 
@@ -56,7 +60,14 @@ const App = () => {
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<AuthOnlyRoute><Login /></AuthOnlyRoute>} />
                 {/* <Route path="/signup" element={<AuthOnlyRoute><Signup /></AuthOnlyRoute>} /> */}
+
                 <Route path="/add-user" element={<ProtectedRoute><AdminOnlyRoute><AddUser /></AdminOnlyRoute></ProtectedRoute>} />
+                {/* <Route path="/add-user" element={<AddUser />} /> */}
+                <Route path="/add-role" element={<ProtectedRoute><AdminOnlyRoute><AddRole /></AdminOnlyRoute></ProtectedRoute>} />
+                <Route path="/roles" element={<ProtectedRoute><AdminOnlyRoute><Roles /></AdminOnlyRoute></ProtectedRoute>} />
+
+
+
                 <Route path="/users" element={<ProtectedRoute><AdminOnlyRoute><Users /></AdminOnlyRoute></ProtectedRoute>} />
                 <Route path="/edit-user-data/:id" element={<ProtectedRoute><AdminOnlyRoute><EditUserData /></AdminOnlyRoute></ProtectedRoute>} />
 

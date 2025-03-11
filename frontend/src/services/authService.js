@@ -24,3 +24,9 @@ export const getAgentList = async () => {
     const response = await axiosInstance.get('/auth/agentList');
     return response.data;
 }
+
+
+export const getRoleList = async () => {
+    const response = await axiosInstance.get('/auth/roleList');
+    return response.data;
+}

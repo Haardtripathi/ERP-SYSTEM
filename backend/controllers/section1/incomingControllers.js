@@ -172,7 +172,7 @@ exports.getAllIncomingData = async (req, res) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = decoded.agent_name
+        const user = decoded.role
         // Get page and limit from query parameters (default values are 1 and 10)
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
@@ -183,7 +183,7 @@ exports.getAllIncomingData = async (req, res) => {
         let data
         let totalCount
         // const data = await Lead.find({ is_sent_to_pending: false, isDeleted: false })
-        if (user == "Panchved") {
+        if (user == "Admin") {
             data = await Incoming.find({ isDeleted: false }).sort({ createdAt: -1 });
 
         }
@@ -195,7 +195,7 @@ exports.getAllIncomingData = async (req, res) => {
         // (data);
 
         // Get total count of documents
-        if (user == "Panchved") {
+        if (user == "Admin") {
             totalCount = await Incoming.countDocuments({ isDeleted: false });
         }
         else {

@@ -143,6 +143,8 @@ const Users = () => {
                                 <TableHead>Agent Name</TableHead>
                                 <TableHead>Company Number</TableHead>
                                 <TableHead>Phone Number</TableHead>
+                                <TableHead>Role</TableHead>
+
                                 <TableHead className="text-center">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -159,6 +161,8 @@ const Users = () => {
                                     <TableCell className="font-semibold">{user.agent_name}</TableCell>
                                     <TableCell className="font-semibold">{user.company_number}</TableCell>
                                     <TableCell className="font-semibold">{user.phone_number}</TableCell>
+                                    <TableCell className="font-semibold">{user.role.name}</TableCell>
+
                                     <TableCell className="flex space-x-3 justify-center">
                                         <Button
                                             variant="default"
@@ -195,6 +199,10 @@ const Users = () => {
                                                             <div><strong>Phone Number:</strong> {user.phone_number}</div>
 
                                                             <Separator />
+                                                            <div><strong>Role:</strong> {user.role.name}</div>
+
+                                                            <Separator />
+
 
                                                             <div><strong>Aadhar Number:</strong> {user.aadhar_number}</div>
                                                             <div><strong>Address:</strong> {user.address}</div>
