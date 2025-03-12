@@ -1,30 +1,17 @@
 const jwt = require("jsonwebtoken");
+const Role = require("../models/Role")
 const Permission = require("../models/Permission");
 
 module.exports.checkPermission = async (req, res, next) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) {
-            return res.status(401).json({ message: "Authorization header is missing" });
-        }
 
-        const token = authHeader.split(" ")[1]; // Extract token
-        if (!token) {
-            return res.status(401).json({ message: "Token is missing" });
-        }
-
-        // Verify the token
-        const secretKey = process.env.JWT_SECRET || "yourSecretKey"; // Use your actual secret
-        const decoded = jwt.verify(token, secretKey);
-        const userRole = decoded.role; // This is now a string (e.g., "Admin")
-
+        const userRole = req.user.role; // This is now a string (e.g., "Admin")
         if (!userRole) {
             return res.status(400).json({ message: "Role not found in token" });
         }
 
-        const roleObject = await role.findOne({ name: userRole })
+        const roleObject = await Role.findOne({ name: userRole })
         const roleId = roleObject._id
-
         // 🔥 Find role permissions using the role name (string)
         const permission = await Permission.findOne({ role: roleId });
 

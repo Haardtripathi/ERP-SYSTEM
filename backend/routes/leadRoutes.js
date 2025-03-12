@@ -7,18 +7,18 @@ const { checkPermission } = require("../middlewares/permissionMiddleware")
 const upload = multer();
 
 
-router.post("/add-lead-data", isAuthenticated, checkPermission, upload.single("file"), leadController.postAddLeadData)
+router.post("/add-lead-data", isAuthenticated, upload.single("file"), leadController.postAddLeadData)
 
-router.get('/get-lead-data', isAuthenticated, checkPermission, leadController.getAllLeadData);
+router.get('/get-lead-data', isAuthenticated, leadController.getAllLeadData);
 
-router.put('/delete-lead-data/:id', isAuthenticated, checkPermission, leadController.deleteLeadData);
+router.put('/delete-lead-data/:id', isAuthenticated, leadController.deleteLeadData);
 
-router.get('/get-lead-dropdown-data', isAuthenticated, checkPermission, leadController.getLeadDropdownData)
+router.get('/get-lead-dropdown-data', isAuthenticated, leadController.getLeadDropdownData)
 
-router.get('/get-edit-lead-data/:id', isAuthenticated, checkPermission, leadController.getEditLeadData)
+router.get('/get-edit-lead-data/:id', isAuthenticated, leadController.getEditLeadData)
 
-router.put('/edit-lead-data/:id', isAuthenticated, checkPermission, leadController.putEditLeadData);
+router.put('/edit-lead-data/:id', isAuthenticated, leadController.putEditLeadData);
 
-router.post('/send-lead-data-to-pending/:id', isAuthenticated, checkPermission, leadController.sendLeadDataToPending);
+router.post('/send-lead-data-to-pending/:id', isAuthenticated, leadController.sendLeadDataToPending);
 
 module.exports = router;

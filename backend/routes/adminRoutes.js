@@ -2,8 +2,8 @@ const express = require('express');
 const adminController = require('../controllers/adminControllers');
 const { isAdmin } = require("../middlewares/adminMiddleware");
 const { isAuthenticated } = require("../middlewares/authMiddleware")
-const { addRole, getPagesAndColumns, getAllRoles } = require("../controllers/adminControllers");
-
+const { addRole, getPagesAndColumns, getAllRoles, getPermissions } = require("../controllers/adminControllers");
+const { checkPermission } = require("../middlewares/permissionMiddleware")
 
 const router = express.Router();
 
@@ -17,5 +17,8 @@ router.post("/add-role", isAuthenticated, isAdmin, addRole);
 router.get("/roles", isAuthenticated, isAdmin, getAllRoles);
 
 router.get("/pages", isAuthenticated, isAdmin, getPagesAndColumns);
+router.get("/permissions", isAuthenticated, getPermissions);
+
+
 
 module.exports = router;

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
 import { RotateCw, RefreshCcw } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-
+import useAccessControl from "../../AccessControl"
 import {
 
     AlertDialog,
@@ -78,10 +78,27 @@ const LeadPage = () => {
     const [searchColumn, setSearchColumn] = useState("all")
     const [refreshing, setRefreshing] = useState(false)
 
+    const { permissions, loading } = useAccessControl("/leads");
     const navigate = useNavigate()
+
+    useEffect(() => {
+        if (loading) return (
+            <div className="flex justify-center items-center h-screen">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            </div>
+        );
+        // Check if user has access to this page
+        const canAccessPage = permissions.some((perm) => perm.page === "/leads");
+        if (!canAccessPage) {
+            navigate("/dashboard");
+        }
+        console.log("User Permissions:", permissions);
+    }, [permissions, loading, navigate]);
+
     const fetchData = async () => {
         try {
             setIsLoading(true)
+
             const response = await getAllLead()
             setLeadData(response.data.data)
             setFilteredData(response.data.data)
@@ -105,42 +122,6 @@ const LeadPage = () => {
         setRefreshing(false)
         toast.success("Data refreshed successfully")
     }
-
-    // useEffect(() => {
-    //     const results = leadData.filter((item) => {
-    //         const matchesSearch =
-    //             searchColumn === "all"
-    //                 ? Object.values(item).some(
-    //                     (val) =>
-    //                         (typeof val === "string" && val.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    //                         (typeof val === "number" && val.toString().includes(searchTerm)),
-    //                 )
-    //                 : (item[searchColumn] &&
-    //                     typeof item[searchColumn] === "string" &&
-    //                     item[searchColumn].toLowerCase().includes(searchTerm.toLowerCase())) ||
-    //                 (item[searchColumn] &&
-    //                     typeof item[searchColumn] === "object" &&
-    //                     item[searchColumn].value &&
-    //                     item[searchColumn].value.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    //                 (item[searchColumn] &&
-    //                     typeof item[searchColumn] === "number" &&
-    //                     item[searchColumn].toString().includes(searchTerm))
-
-    //         const matchesFilter =
-    //             filterStatus === "All" ||
-    //             (filterStatus === "isSent" && item.is_sent_to_pending) ||
-    //             (filterStatus === "isNotSent" && !item.is_sent_to_pending)
-
-    //         return matchesSearch && matchesFilter
-    //     })
-
-    //     setFilteredData(results)
-    //     setTotalPages(Math.ceil(results.length / itemsPerPage))
-    //     // Only reset currentPage when search term or column changes
-    //     if (searchTerm !== "" || searchColumn !== "all") {
-    //         setCurrentPage(1)
-    //     }
-    // }, [searchTerm, searchColumn, leadData, itemsPerPage, filterStatus])
     useEffect(() => {
         const results = leadData.filter((item) => {
             const columnValue = item[searchColumn];
@@ -318,83 +299,6 @@ const LeadPage = () => {
     return (
         <div className="container mx-auto p-8 bg-gray-50 min-h-screen max-w-full">
 
-            {/* <div className="mb-6 flex items-center justify-between">
-                <h1 className="text-3xl font-semibold text-gray-800">Lead Page</h1>
-                <div className="flex items-center space-x-2">
-                    <Select onValueChange={handleColumnSelect} defaultValue="all">
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Select column" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Columns</SelectItem>
-                            <SelectItem value="data">Data</SelectItem>
-                            <SelectItem value="source">Source</SelectItem>
-                            <SelectItem value="cm_first_name">First Name</SelectItem>
-                            <SelectItem value="cm_last_name">Last Name</SelectItem>
-                            <SelectItem value="cm_phone">Phone</SelectItem>
-                            <SelectItem value="agent_name">Agent</SelectItem>
-                            <SelectItem value="language">Language</SelectItem>
-                            <SelectItem value="disease">Disease</SelectItem>
-                            <SelectItem value="state">State</SelectItem>
-                            <SelectItem value="city">City</SelectItem>
-                            <SelectItem value="remark">Remark</SelectItem>
-                            <SelectItem value="comment">Comment</SelectItem>
-                            <SelectItem value="date">Date</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Input
-                        type="text"
-                        placeholder="Search..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="max-w-sm"
-                    />
-                </div>
-            </div>
-            <div className="mb-4 flex justify-between items-center">
-                <div className="flex space-x-2">
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button variant="outline" size="icon" onClick={refreshData} disabled={refreshing}>
-                                    <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Refresh data</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                    <Button
-                        onClick={() => {
-                            setFilterStatus("All")
-                            setCurrentPage(1)
-                        }}
-                        variant={filterStatus === "All" ? "default" : "outline"}
-                    >
-                        All
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            setFilterStatus("isSent")
-                            setCurrentPage(1)
-                        }}
-                        variant={filterStatus === "isSent" ? "default" : "outline"}
-                    >
-                        Sent to Pending
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            setFilterStatus("isNotSent")
-                            setCurrentPage(1)
-                        }}
-                        variant={filterStatus === "isNotSent" ? "default" : "outline"}
-                    >
-                        Not Sent
-                    </Button>
-                </div>
-            </div> */}
-
             <Card className="mb-6">
                 {/* Header Section */}
                 <CardHeader className="flex flex-row items-center justify-between pb-4">
@@ -500,143 +404,6 @@ const LeadPage = () => {
                 </CardContent>
             </Card>
 
-
-            {/* <div className="bg-white shadow-md rounded-lg overflow-hidden">
-                <div className="overflow-x-auto max-w-full">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Send</TableHead>
-                                <TableHead>Source</TableHead>
-                                <TableHead>First Name</TableHead>
-                                <TableHead>Last Name</TableHead>
-                                <TableHead>Phone</TableHead>
-                                <TableHead>Alternate Phone</TableHead>
-                                <TableHead>Agent</TableHead>
-                                <TableHead>Language</TableHead>
-                                <TableHead>Disease</TableHead>
-                                <TableHead>State</TableHead>
-                                <TableHead>City/Town/Village</TableHead>
-                                <TableHead>Remark</TableHead>
-                                <TableHead>Comment</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Update</TableHead>
-                                <TableHead>Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {paginatedData.map((item, index) => (
-                                <TableRow
-                                    key={item._id}
-                                    className={item.is_sent_to_pending ? "bg-green-100" : index % 2 === 0 ? "bg-gray-50" : "bg-white"}
-                                >
-                                    <TableCell>
-                                        <SendHorizontal
-                                            size={20}
-                                            color={item.is_sent_to_pending ? "#28a745" : "#007BFF"}
-                                            strokeWidth={2}
-                                            style={{
-                                                cursor: item.is_sent_to_pending ? "not-allowed" : "pointer",
-                                                transition: "transform 0.2s ease",
-                                                opacity: item.is_sent_to_pending ? 0.5 : 1,
-                                            }}
-                                            onClick={() => !item.is_sent_to_pending && handleSendToPending(item._id)}
-                                        />
-                                    </TableCell>
-                                    <TableCell>{item.source?.value}</TableCell>
-                                    <TableCell>{item.cm_first_name}</TableCell>
-                                    <TableCell>{item.cm_last_name}</TableCell>
-                                    <TableCell>{item.cm_phone}</TableCell>
-                                    <TableCell>{item.alternate_phone}</TableCell>
-                                    <TableCell>{item.agent_name?.value}</TableCell>
-                                    <TableCell>{item.language?.value}</TableCell>
-                                    <TableCell>{item.disease?.value}</TableCell>
-                                    <TableCell>{item.state?.value}</TableCell>
-                                    <TableCell>{item.city}</TableCell>
-                                    <TableCell>{item.remark?.value}</TableCell>
-                                    <TableCell>{item.comment}</TableCell>
-                                    <TableCell>{item.date}</TableCell>
-                                    <TableCell>
-                                        <RotateCw
-                                            size={20}
-                                            color="#007BFF"
-                                            strokeWidth={2}
-                                            style={{
-                                                cursor: item.is_sent_to_pending ? "not-allowed" : "pointer",
-                                                transition: "transform 0.2s ease",
-                                                opacity: item.is_sent_to_pending ? 0.5 : 1,
-                                            }}
-                                            onClick={() => !item.is_sent_to_pending && handleUpdateClick(item._id, item.is_sent_to_pending)}
-                                            onMouseOver={(e) =>
-                                                !item.is_sent_to_pending && (e.currentTarget.style.transform = "rotate(90deg)")
-                                            }
-                                            onMouseOut={(e) => !item.is_sent_to_pending && (e.currentTarget.style.transform = "rotate(0deg)")}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200"
-                                                    disabled={item.is_sent_to_pending}
-                                                >
-                                                    <Trash2 className="h-5 w-5 text-red-500" />
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        This action cannot be undone. This will permanently delete the selected record.
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleDelete(item._id)}>Delete</AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            </div>
-            <div className="mt-4 flex flex-col items-center justify-center space-y-4">
-                <Pagination>
-                    <PaginationContent>
-                        <PaginationItem>
-                            <PaginationPrevious onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
-                        </PaginationItem>
-                        {[...Array(totalPages)].map((_, index) => {
-                            const pageNumber = index + 1
-                            if (
-                                pageNumber === 1 ||
-                                pageNumber === totalPages ||
-                                (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                            ) {
-                                return (
-                                    <PaginationItem key={index}>
-                                        <PaginationLink onClick={() => handlePageChange(pageNumber)} isActive={currentPage === pageNumber}>
-                                            {pageNumber}
-                                        </PaginationLink>
-                                    </PaginationItem>
-                                )
-                            } else if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
-                                return <PaginationEllipsis key={index} />
-                            }
-                            return null
-                        })}
-                        <PaginationItem>
-                            <PaginationNext onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} />
-                        </PaginationItem>
-                    </PaginationContent>
-                </Pagination>
-
-
-            </div> */}
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="overflow-x-auto max-w-full">
                     <Table>

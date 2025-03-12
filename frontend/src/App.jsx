@@ -72,8 +72,6 @@ const App = () => {
                 <Route path="/edit-user-data/:id" element={<ProtectedRoute><AdminOnlyRoute><EditUserData /></AdminOnlyRoute></ProtectedRoute>} />
 
 
-                {/* <Route path="/add-user" element={<AddUser />} /> */}
-
                 <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/incoming" element={<ProtectedRoute><IncomingPage /></ProtectedRoute>} />

@@ -3,6 +3,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Dropdown = require("../models/Dropdown")
 const Role = require("../models/Role")
+const Permission = require("../models/Permission")
+
 
 const path = require('path');
 const multer = require('multer');
@@ -52,7 +54,7 @@ exports.register = [
     async (req, res) => {
 
         const token = req.header('Authorization').split(" ")[1];
-
+        console.log(token)
         const {
             email,
             agentName,
@@ -78,20 +80,16 @@ exports.register = [
 
             const existingUser = await User.findOne({
                 $or: [
-                    { email: email },
-                    { company_number: companyNumber },
-                    { agent_name: agentName },
-                    { aadhar_number: aadharNumber }
+                    { email: email }
                 ]
             });
-
 
             if (existingUser) {
                 return res.status(400).json({ message: 'User with this email, company number, agent name, or Aadhar number already exists' });
             }
 
-            const hashedPassword = await bcrypt.hash(password, 10);
 
+            const hashedPassword = await bcrypt.hash(password, 10);
             const newUser = new User({
                 email,
                 agent_name: agentName,
@@ -115,6 +113,7 @@ exports.register = [
                     contentType: req.file.mimetype
                 };
             }
+            console.log(user)
             await newUser.save();
             res.status(201).json({ message: 'User registered successfully' });
         } catch (error) {
@@ -131,6 +130,7 @@ exports.login = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
         const role = await Role.findOne({ _id: user.role })
+        const permissions = await Permission.findOne({ role: user.role })
         const userRole = role.name
 
         const token = jwt.sign({ _id: user._id.toString(), email: user.email, agent_name: user.agent_name, role: userRole }, process.env.JWT_SECRET, { expiresIn: '1h' });

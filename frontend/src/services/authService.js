@@ -7,6 +7,7 @@ export const register = async (formData) => {
                 'Content-Type': 'multipart/form-data', // Optional, but browser usually handles this
             },
         });
+        console.log(response)
         return response.data;
     } catch (error) {
         throw new Error(error.response?.data?.message || 'Registration failed');
