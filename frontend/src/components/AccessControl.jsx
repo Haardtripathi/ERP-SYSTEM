@@ -17,8 +17,9 @@ const useAccessControl = (page) => {
                     navigate("/login"); // Redirect if no token
                     return;
                 }
-
+                console.log("ABC")
                 const response = await axiosInstance.get("/admin/permissions");
+                console.log(response)
 
                 const userPermissions = response.data; // Array of permissions from backend
 

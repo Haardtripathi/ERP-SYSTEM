@@ -12,7 +12,8 @@ const Workbook = require("../models/Workbook");
 
 exports.getPermissions = async (req, res) => {
     try {
-        const permissions = await Permissions.findOne({ "role.name": req.user.role }).populate("role");
+        console.log("ABC")
+        const permissions = await Permissions.populate("role").findOne({ "role.name": req.user.role });
         console.log(permissions)
     }
     catch (error) {
@@ -60,25 +61,6 @@ exports.addRole = async (req, res) => {
     }
 };
 
-// // Fetch available pages and columns dynamically
-// exports.getPagesAndColumns = async (req, res) => {
-//     try {
-//         const models = {
-//             Lead: Lead.schema.paths,
-//             Incoming: Incoming.schema.paths,
-
-//         };
-
-//         const pages = Object.keys(models).map((page) => ({
-//             name: page,
-//             columns: Object.keys(models[page]).filter((col) => !["_id", "__v", "timestamps", "createdAt", "updatedAt", "isDeleted"].includes(col))
-//         }));
-
-//         res.status(200).json(pages);
-//     } catch (error) {
-//         res.status(500).json({ error: "Error fetching pages and columns" });
-//     }
-// };
 
 // exports.getPagesAndColumns = async (req, res) => {
 //     try {
@@ -97,20 +79,38 @@ exports.addRole = async (req, res) => {
 //         ];
 
 //         // Generate the response dynamically
-//         const pages = sections.map((section) => ({
-//             section: section.section,
-//             pages: [
-//                 // Fetch database models dynamically
-//                 ...Object.keys(section.models).map((page) => ({
-//                     name: page,
-//                     columns: Object.keys(section.models[page]).filter(
-//                         (col) => !["__v", "timestamps", "createdAt", "updatedAt"].includes(col)
-//                     ),
-//                 })),
-//                 // Include extra pages that don’t have models
-//                 ...section.pages.map((page) => ({ name: page, columns: [] })),
-//             ],
-//         }));
+//         const pages = sections.map((section) => {
+//             // First, collect all unique columns from all models in this section
+//             const allColumnsInSection = new Set();
+
+//             // Extract columns from all models in this section
+//             Object.values(section.models).forEach(modelPaths => {
+//                 Object.keys(modelPaths).forEach(col => {
+//                     if (!["__v", "timestamps", "createdAt", "updatedAt"].includes(col)) {
+//                         allColumnsInSection.add(col);
+//                     }
+//                 });
+//             });
+
+//             // Convert Set to Array for consistent ordering
+//             const sectionColumns = Array.from(allColumnsInSection);
+
+//             return {
+//                 section: section.section,
+//                 pages: [
+//                     // Apply the same columns to all database model pages
+//                     // ...Object.keys(section.models).map((page) => ({
+//                     //     name: page,
+//                     //     columns: sectionColumns,
+//                     // })),
+//                     // Include extra pages with the same columns
+//                     ...section.pages.map((page) => ({
+//                         name: page,
+//                         columns: sectionColumns
+//                     })),
+//                 ],
+//             };
+//         });
 
 //         res.status(200).json(pages);
 //     } catch (error) {
@@ -120,6 +120,7 @@ exports.addRole = async (req, res) => {
 // };
 
 
+
 exports.getPagesAndColumns = async (req, res) => {
     try {
         // Define all sections and related database models
@@ -127,18 +128,20 @@ exports.getPagesAndColumns = async (req, res) => {
             {
                 section: "Lead Management",
                 models: { Lead: Lead.schema.paths },
-                pages: ["/leads", "/add-lead-data", "/edit-lead-data/:id"],
+                view: { pages: ["/leads"] },
+                edit: { pages: ["/add-lead-data", "/edit-lead-data/:id"] }
             },
             {
                 section: "Incoming Management",
                 models: { Incoming: Incoming.schema.paths },
-                pages: ["/incoming", "/add-incoming-data", "/edit-incoming-data/:id"],
+                view: { pages: ["/incoming"] },
+                edit: { pages: ["/add-incoming-data", "/edit-incoming-data/:id"] }
             },
         ];
 
         // Generate the response dynamically
         const pages = sections.map((section) => {
-            // First, collect all unique columns from all models in this section
+            // Collect all unique columns from all models in this section
             const allColumnsInSection = new Set();
 
             // Extract columns from all models in this section
@@ -156,16 +159,16 @@ exports.getPagesAndColumns = async (req, res) => {
             return {
                 section: section.section,
                 pages: [
-                    // Apply the same columns to all database model pages
-                    // ...Object.keys(section.models).map((page) => ({
-                    //     name: page,
-                    //     columns: sectionColumns,
-                    // })),
-                    // Include extra pages with the same columns
-                    ...section.pages.map((page) => ({
+                    ...section.view.pages.map((page) => ({
                         name: page,
+                        type: "view",
                         columns: sectionColumns
                     })),
+                    ...section.edit.pages.map((page) => ({
+                        name: page,
+                        type: "edit",
+                        columns: sectionColumns
+                    }))
                 ],
             };
         });
