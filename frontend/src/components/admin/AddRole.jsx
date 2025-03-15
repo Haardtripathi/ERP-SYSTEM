@@ -2090,6 +2090,588 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// "use client"
+
+// import { useState, useEffect } from "react"
+// import { toast } from "react-hot-toast"
+// import { addRole, getPagesAndColumns } from "@/services/adminService"
+// import { useNavigate } from "react-router-dom"
+// import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+// import { Input } from "@/components/ui/input"
+// import { Button } from "@/components/ui/button"
+// import { Badge } from "@/components/ui/badge"
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+// import { ChevronLeft, ChevronRight, Eye, Edit, X, Search, ArrowLeft } from "lucide-react"
+// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+// import { Switch } from "@/components/ui/switch"
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+// const AddRole = () => {
+//     const navigate = useNavigate()
+//     const [roleName, setRoleName] = useState("")
+//     const [permissions, setPermissions] = useState([])
+//     const [availablePages, setAvailablePages] = useState([])
+//     const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
+//     const [searchFilter, setSearchFilter] = useState("")
+//     const [loading, setLoading] = useState(true)
+//     const [activeTab, setActiveTab] = useState("view")
+//     const [showSelected, setShowSelected] = useState(false)
+
+//     useEffect(() => {
+//         // Fetch all pages & columns
+//         getPagesAndColumns()
+//             .then((data) => {
+//                 console.log("Fetched data:", data)
+//                 setAvailablePages(data)
+//                 setLoading(false)
+//             })
+//             .catch((error) => {
+//                 console.error("Error fetching pages:", error)
+//                 toast.error("Failed to load pages")
+//                 setLoading(false)
+//             })
+//     }, [])
+
+//     // Handle selecting/unselecting a single column
+//     const handlePermissionChange = (page, column) => {
+//         setPermissions((prevPermissions) => {
+//             const updatedPermissions = [...prevPermissions]
+//             const pageIndex = updatedPermissions.findIndex((p) => p.page === page)
+
+//             if (pageIndex !== -1) {
+//                 // Toggle column selection
+//                 const columnIndex = updatedPermissions[pageIndex].columns.indexOf(column)
+//                 if (columnIndex !== -1) {
+//                     // Remove the column but keep the page entry even if columns array is empty
+//                     updatedPermissions[pageIndex].columns.splice(columnIndex, 1)
+//                 } else {
+//                     updatedPermissions[pageIndex].columns.push(column)
+//                 }
+//             } else {
+//                 // Add new page with column
+//                 updatedPermissions.push({ page, columns: [column] })
+//             }
+//             return updatedPermissions
+//         })
+//     }
+
+//     // Handle "Select All" for a page
+//     const handleSelectAll = (page, columns) => {
+//         setPermissions((prevPermissions) => {
+//             const updatedPermissions = [...prevPermissions]
+//             const pageIndex = updatedPermissions.findIndex((p) => p.page === page)
+
+//             if (pageIndex !== -1) {
+//                 // Check if all columns are already selected
+//                 const allSelected = columns.every((col) => updatedPermissions[pageIndex].columns.includes(col))
+
+//                 if (allSelected) {
+//                     // If all columns are selected, deselect all
+//                     updatedPermissions[pageIndex].columns = []
+//                 } else {
+//                     // Otherwise, select all columns
+//                     updatedPermissions[pageIndex].columns = [...columns]
+//                 }
+//             } else {
+//                 // Select all columns
+//                 updatedPermissions.push({ page, columns: [...columns] })
+//             }
+//             return updatedPermissions
+//         })
+//     }
+
+//     // Handle "Select All" for an entire section and type (view or edit)
+//     const handleSelectAllByType = (sectionPages, type) => {
+//         const pagesOfType = sectionPages.filter((page) => page.type === type)
+
+//         setPermissions((prevPermissions) => {
+//             const updatedPermissions = [...prevPermissions]
+
+//             // Check if all pages of this type are already fully selected
+//             const allTypeSelected = pagesOfType.every((page) => isAllSelected(page.name, page.columns))
+
+//             if (allTypeSelected) {
+//                 // If all are selected, deselect all of this type
+//                 pagesOfType.forEach((page) => {
+//                     const pageIndex = updatedPermissions.findIndex((p) => p.page === page.name)
+//                     if (pageIndex !== -1) {
+//                         updatedPermissions[pageIndex].columns = []
+//                     }
+//                 })
+//             } else {
+//                 // Otherwise, select all columns for all pages of this type
+//                 pagesOfType.forEach((page) => {
+//                     const pageIndex = updatedPermissions.findIndex((p) => p.page === page.name)
+//                     if (pageIndex === -1) {
+//                         // If not already selected, add all columns
+//                         updatedPermissions.push({ page: page.name, columns: [...page.columns] })
+//                     } else {
+//                         // If already exists, ensure all columns are selected
+//                         updatedPermissions[pageIndex].columns = [...page.columns]
+//                     }
+//                 })
+//             }
+
+//             return updatedPermissions
+//         })
+//     }
+
+//     // Handle "Select All" for an entire section
+//     const handleSelectAllSection = (sectionPages) => {
+//         setPermissions((prevPermissions) => {
+//             const updatedPermissions = [...prevPermissions]
+
+//             // Check if all pages in the section are already fully selected
+//             const allSectionSelected = sectionPages.every((page) => isAllSelected(page.name, page.columns))
+
+//             if (allSectionSelected) {
+//                 // If all are selected, this becomes a "Deselect All" operation
+//                 sectionPages.forEach((page) => {
+//                     const pageIndex = updatedPermissions.findIndex((p) => p.page === page.name)
+//                     if (pageIndex !== -1) {
+//                         updatedPermissions[pageIndex].columns = []
+//                     }
+//                 })
+//             } else {
+//                 // Otherwise, select all columns for all pages in the section
+//                 sectionPages.forEach((page) => {
+//                     const pageIndex = updatedPermissions.findIndex((p) => p.page === page.name)
+//                     if (pageIndex === -1) {
+//                         // If not already selected, add all columns
+//                         updatedPermissions.push({ page: page.name, columns: [...page.columns] })
+//                     } else {
+//                         // If already exists, ensure all columns are selected
+//                         updatedPermissions[pageIndex].columns = [...page.columns]
+//                     }
+//                 })
+//             }
+
+//             return updatedPermissions
+//         })
+//     }
+
+//     // Check if all columns are selected for a page
+//     const isAllSelected = (page, columns) => {
+//         const pagePermissions = permissions.find((p) => p.page === page)
+//         return (
+//             pagePermissions &&
+//             columns.length > 0 &&
+//             pagePermissions.columns.length === columns.length &&
+//             columns.every((col) => pagePermissions.columns.includes(col))
+//         )
+//     }
+
+//     // Check if any columns are selected for a page
+//     const isAnySelected = (page) => {
+//         const pagePermissions = permissions.find((p) => p.page === page)
+//         return pagePermissions && pagePermissions.columns.length > 0
+//     }
+
+//     // Get count of selected columns for a page
+//     const getSelectedCount = (page, totalColumns) => {
+//         const pagePermissions = permissions.find((p) => p.page === page)
+//         return pagePermissions ? pagePermissions.columns.length : 0
+//     }
+
+//     // Check if all pages in a section are selected
+//     const isAllSectionSelected = (sectionPages) => {
+//         return sectionPages.every((page) => isAllSelected(page.name, page.columns))
+//     }
+
+//     // Check if any columns are selected in a section
+//     const isAnySectionSelected = (sectionPages) => {
+//         return sectionPages.some((page) => {
+//             const pagePermissions = permissions.find((p) => p.page === page.name)
+//             return pagePermissions && pagePermissions.columns.length > 0
+//         })
+//     }
+
+//     // Filter columns based on search term
+//     const filterColumns = (columns) => {
+//         if (!searchFilter) return columns
+//         return columns.filter((col) => col.toLowerCase().includes(searchFilter.toLowerCase()))
+//     }
+
+//     // Check if a column is selected
+//     const isColumnSelected = (page, column) => {
+//         const pagePermissions = permissions.find((p) => p.page === page)
+//         return pagePermissions && pagePermissions.columns.includes(column)
+//     }
+
+//     const handleSubmit = async (e) => {
+//         e.preventDefault()
+//         if (!roleName) {
+//             return toast.error("Role name is required")
+//         }
+
+//         // Filter out any permission entries with empty columns arrays
+//         const filteredPermissions = permissions.filter((p) => p.columns.length > 0)
+
+//         if (filteredPermissions.length === 0) {
+//             return toast.error("At least one permission is required")
+//         }
+
+//         try {
+//             await addRole({ roleName, permissions: filteredPermissions })
+//             toast.success("Role added successfully!")
+//             navigate("/roles")
+//         } catch (error) {
+//             console.error("Error adding role:", error)
+//             toast.error("Failed to add role")
+//         }
+//     }
+
+//     // Navigation between sections
+//     const goToNextSection = () => {
+//         if (currentSectionIndex < availablePages.length - 1) {
+//             setCurrentSectionIndex(currentSectionIndex + 1)
+//         }
+//     }
+
+//     const goToPreviousSection = () => {
+//         if (currentSectionIndex > 0) {
+//             setCurrentSectionIndex(currentSectionIndex - 1)
+//         }
+//     }
+
+//     // Separate pages by type (view/edit)
+//     const getPagesByType = (pages, type) => {
+//         return pages.filter((page) => page.type === type)
+//     }
+
+//     // Calculate total permissions selected
+//     const getTotalSelectedPermissions = () => {
+//         return permissions.reduce((total, page) => total + page.columns.length, 0)
+//     }
+
+//     // Calculate total available permissions
+//     const getTotalAvailablePermissions = () => {
+//         return availablePages.reduce((total, section) => {
+//             return (
+//                 total +
+//                 section.pages.reduce((pageTotal, page) => {
+//                     return pageTotal + page.columns.length
+//                 }, 0)
+//             )
+//         }, 0)
+//     }
+
+//     const totalSelected = getTotalSelectedPermissions()
+//     const totalAvailable = getTotalAvailablePermissions()
+
+//     // Get all columns for the current section and type
+//     const getAllColumnsForCurrentSection = () => {
+//         if (!availablePages[currentSectionIndex]) return []
+
+//         const pagesOfType = availablePages[currentSectionIndex].pages.filter((page) => page.type === activeTab)
+
+//         // If showing only selected, filter the pages
+//         if (showSelected) {
+//             return pagesOfType
+//                 .map((page) => {
+//                     const selectedColumns = page.columns.filter(
+//                         (col) =>
+//                             isColumnSelected(page.name, col) &&
+//                             (!searchFilter || col.toLowerCase().includes(searchFilter.toLowerCase())),
+//                     )
+//                     return { ...page, filteredColumns: selectedColumns }
+//                 })
+//                 .filter((page) => page.filteredColumns.length > 0)
+//         }
+
+//         // Otherwise, just filter by search term
+//         return pagesOfType.map((page) => {
+//             const filteredColumns = page.columns.filter(
+//                 (col) => !searchFilter || col.toLowerCase().includes(searchFilter.toLowerCase()),
+//             )
+//             return { ...page, filteredColumns }
+//         })
+//     }
+
+
+//     return (
+//         <div className="w-full max-w-6xl mx-auto p-4">
+//             <Card className="shadow-md border">
+//                 <CardHeader className="pb-4 border-b">
+//                     <div className="flex items-center justify-between">
+//                         <Button
+//                             variant="outline"
+//                             size="sm"
+//                             className="gap-2 text-base font-medium"
+//                             onClick={() => navigate("/roles")}
+//                             type="button" // Adding explicit type to prevent form submission
+//                         >
+//                             <ArrowLeft className="h-5 w-5" /> Back to Roles
+//                         </Button>
+//                         <CardTitle className="text-2xl font-bold">Add New Role</CardTitle>
+//                         <div className="w-28" /> {/* Spacer for alignment */}
+//                     </div>
+//                 </CardHeader>
+
+//                 <CardContent className="p-6">
+//                     <form onSubmit={handleSubmit} className="space-y-6">
+//                         {/* Role Name Input */}
+//                         <div className="flex items-center justify-between">
+//                             <div className="space-y-2 w-1/2">
+//                                 <label className="text-base font-semibold">Role Name</label>
+//                                 <Input
+//                                     type="text"
+//                                     value={roleName}
+//                                     onChange={(e) => setRoleName(e.target.value)}
+//                                     required
+//                                     placeholder="Enter role name"
+//                                     className="h-12 text-base px-4"
+//                                 />
+//                             </div>
+//                         </div>
+
+//                         {/* Permissions Section */}
+//                         <div className="bg-background rounded-lg border">
+//                             <div className="flex items-center justify-between p-4 border-b bg-muted/30">
+//                                 <div className="flex items-center gap-4">
+//                                     <h2 className="text-lg font-semibold">Permissions</h2>
+//                                     <Select
+//                                         value={currentSectionIndex.toString()}
+//                                         onValueChange={(value) => setCurrentSectionIndex(Number.parseInt(value))}
+//                                     >
+//                                         <SelectTrigger className="w-[200px]">
+//                                             <SelectValue placeholder="Select section" />
+//                                         </SelectTrigger>
+//                                         <SelectContent>
+//                                             {availablePages.map((section, index) => (
+//                                                 <SelectItem key={index} value={index.toString()}>
+//                                                     {section.section}
+//                                                 </SelectItem>
+//                                             ))}
+//                                         </SelectContent>
+//                                     </Select>
+//                                 </div>
+
+//                                 <div className="flex items-center gap-2">
+//                                     <Button
+//                                         type="button"
+//                                         variant="outline"
+//                                         size="sm"
+//                                         onClick={goToPreviousSection}
+//                                         disabled={currentSectionIndex === 0}
+//                                     >
+//                                         <ChevronLeft size={16} />
+//                                     </Button>
+//                                     <span className="text-sm">
+//                                         {currentSectionIndex + 1} / {availablePages.length}
+//                                     </span>
+//                                     <Button
+//                                         type="button"
+//                                         variant="outline"
+//                                         size="sm"
+//                                         onClick={goToNextSection}
+//                                         disabled={currentSectionIndex === availablePages.length - 1}
+//                                     >
+//                                         <ChevronRight size={16} />
+//                                     </Button>
+//                                 </div>
+//                             </div>
+
+//                             {/* Current Section */}
+//                             {loading ? (
+//                                 <div className="p-10 text-center">
+//                                     <div className="animate-pulse text-lg">Loading permissions...</div>
+//                                 </div>
+//                             ) : availablePages.length > 0 ? (
+//                                 <div className="p-4">
+//                                     <div className="flex items-center justify-between mb-4">
+//                                         <h3 className="text-2xl font-bold text-primary">{availablePages[currentSectionIndex]?.section}</h3>
+//                                         <div className="flex items-center gap-3">
+//                                             <div className="flex items-center space-x-2">
+//                                                 <Switch id="show-selected" checked={showSelected} onCheckedChange={setShowSelected} />
+//                                                 <label htmlFor="show-selected" className="text-sm cursor-pointer">
+//                                                     Show selected only
+//                                                 </label>
+//                                             </div>
+//                                             <Button
+//                                                 type="button" // Add explicit type to prevent form submission
+//                                                 variant="outline"
+//                                                 onClick={() => handleSelectAllSection(availablePages[currentSectionIndex]?.pages)}
+//                                                 className="h-9 text-sm"
+//                                             >
+//                                                 {isAllSectionSelected(availablePages[currentSectionIndex]?.pages)
+//                                                     ? "Deselect All"
+//                                                     : "Select All"}
+//                                             </Button>
+//                                         </div>
+//                                     </div>
+
+//                                     {/* Tabs for View/Edit separation */}
+//                                     <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+//                                         <TabsList className="grid w-full grid-cols-2 h-10">
+//                                             <TabsTrigger value="view" className="text-base flex items-center gap-2">
+//                                                 <Eye className="h-4 w-4" /> View Permissions
+//                                             </TabsTrigger>
+//                                             <TabsTrigger value="edit" className="text-base flex items-center gap-2">
+//                                                 <Edit className="h-4 w-4" /> Edit Permissions
+//                                             </TabsTrigger>
+//                                         </TabsList>
+
+//                                         <TabsContent value="view" className="mt-4">
+//                                             <PermissionsTable
+//                                                 pages={getAllColumnsForCurrentSection()}
+//                                                 handlePermissionChange={handlePermissionChange}
+//                                                 handleSelectAll={handleSelectAll}
+//                                                 isColumnSelected={isColumnSelected}
+//                                                 isAllSelected={isAllSelected}
+//                                             />
+//                                         </TabsContent>
+
+//                                         <TabsContent value="edit" className="mt-4">
+//                                             <PermissionsTable
+//                                                 pages={getAllColumnsForCurrentSection()}
+//                                                 handlePermissionChange={handlePermissionChange}
+//                                                 handleSelectAll={handleSelectAll}
+//                                                 isColumnSelected={isColumnSelected}
+//                                                 isAllSelected={isAllSelected}
+//                                             />
+//                                         </TabsContent>
+//                                     </Tabs>
+//                                 </div>
+//                             ) : (
+//                                 <div className="p-10 text-center text-muted-foreground text-lg">No permissions available</div>
+//                             )}
+//                         </div>
+//                     </form>
+//                 </CardContent>
+
+//                 <CardFooter className="border-t p-6">
+//                     <div className="flex justify-end gap-4 w-full">
+//                         <Button
+//                             type="button" // Add explicit type to prevent form submission
+//                             variant="outline"
+//                             onClick={() => navigate("/roles")}
+//                             className="h-12 px-6 text-base font-medium"
+//                         >
+//                             Cancel
+//                         </Button>
+//                         <Button
+//                             type="submit" // This is the submit button (proper use)
+//                             onClick={(e) => {
+//                                 e.preventDefault();
+//                                 handleSubmit(e);
+//                             }}
+//                             disabled={!roleName || getTotalSelectedPermissions() === 0}
+//                             className="h-12 px-6 text-base font-medium"
+//                         >
+//                             Add Role
+//                         </Button>
+//                     </div>
+//                 </CardFooter>
+//             </Card>
+//         </div>
+//     );
+// }
+
+// // Component for permissions table
+// // Component for permissions table
+// const PermissionsTable = ({ pages, handlePermissionChange, handleSelectAll, isColumnSelected, isAllSelected }) => {
+//     if (pages.length === 0) {
+//         return (
+//             <div className="text-center p-6 bg-muted/20 rounded-lg">
+//                 <p className="text-muted-foreground">No pages found with the current filters</p>
+//             </div>
+//         )
+//     }
+
+//     return (
+//         <div className="border rounded-md">
+//             <Table>
+//                 <TableHeader>
+//                     <TableRow className="bg-muted/30">
+//                         <TableHead className="w-[250px]">Page</TableHead>
+//                         <TableHead>Columns</TableHead>
+//                         <TableHead className="w-[120px] text-right">Actions</TableHead>
+//                     </TableRow>
+//                 </TableHeader>
+//                 <TableBody>
+//                     {pages.map((page) => {
+//                         // Skip pages with no filtered columns
+//                         if (page.filteredColumns.length === 0) return null
+
+//                         return (
+//                             <TableRow key={page.name}>
+//                                 <TableCell className="font-medium align-top py-4">
+//                                     <div className="flex flex-col">
+//                                         <span>{page.name}</span>
+//                                         <Badge variant="outline" className="mt-1 w-fit">
+//                                             {page.filteredColumns.length} column{page.filteredColumns.length !== 1 ? "s" : ""}
+//                                         </Badge>
+//                                     </div>
+//                                 </TableCell>
+//                                 <TableCell>
+//                                     <div className="flex flex-wrap gap-2 py-1">
+//                                         {page.filteredColumns.map((column) => (
+//                                             <Badge
+//                                                 key={column}
+//                                                 variant={isColumnSelected(page.name, column) ? "default" : "outline"}
+//                                                 className="cursor-pointer px-3 py-1.5 text-sm"
+//                                                 onClick={() => handlePermissionChange(page.name, column)}
+//                                             >
+//                                                 {column}
+//                                             </Badge>
+//                                         ))}
+//                                     </div>
+//                                 </TableCell>
+//                                 <TableCell className="text-right">
+//                                     <Button
+//                                         type="button" // Add explicit type to prevent form submission
+//                                         size="sm"
+//                                         variant={isAllSelected(page.name, page.filteredColumns) ? "default" : "outline"}
+//                                         onClick={() => handleSelectAll(page.name, page.filteredColumns)}
+//                                     >
+//                                         {isAllSelected(page.name, page.filteredColumns) ? "Deselect All" : "Select All"}
+//                                     </Button>
+//                                 </TableCell>
+//                             </TableRow>
+//                         )
+//                     })}
+//                 </TableBody>
+//             </Table>
+//         </div>
+//     )
+// }
+
+// export default AddRole
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -2101,7 +2683,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ChevronLeft, ChevronRight, Eye, Edit, X, Search, ArrowLeft } from "lucide-react"
+import { ChevronLeft, ChevronRight, Eye, Edit, X, Search, ArrowLeft, Check, Save } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -2116,6 +2698,8 @@ const AddRole = () => {
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState("view")
     const [showSelected, setShowSelected] = useState(false)
+    // Track which sections have been saved
+    const [savedSections, setSavedSections] = useState([])
 
     useEffect(() => {
         // Fetch all pages & columns
@@ -2298,6 +2882,38 @@ const AddRole = () => {
         return pagePermissions && pagePermissions.columns.includes(column)
     }
 
+    // New function to handle saving the current section
+    const handleSaveSection = () => {
+        if (!availablePages[currentSectionIndex]) return
+
+        const currentSection = availablePages[currentSectionIndex].section
+
+        // Check if any permissions were selected in this section
+        const hasSelectionsInCurrentSection = availablePages[currentSectionIndex].pages.some(page => {
+            const pagePermissions = permissions.find(p => p.page === page.name)
+            return pagePermissions && pagePermissions.columns.length > 0
+        })
+
+        // Add this section to saved sections if not already saved
+        if (!savedSections.includes(currentSection)) {
+            setSavedSections(prev => [...prev, currentSection])
+        }
+
+        toast.success(
+            hasSelectionsInCurrentSection
+                ? `Saved selections for ${currentSection}`
+                : `No selections made for ${currentSection}`,
+            { duration: 2000 }
+        )
+
+        // Auto advance to next section if not on the last section
+        if (currentSectionIndex < availablePages.length - 1) {
+            setTimeout(() => {
+                goToNextSection()
+            }, 300)
+        }
+    }
+
     const handleSubmit = async (e) => {
         e.preventDefault()
         if (!roleName) {
@@ -2356,6 +2972,22 @@ const AddRole = () => {
         }, 0)
     }
 
+    // Check if current section has any selections
+    const currentSectionHasSelections = () => {
+        if (!availablePages[currentSectionIndex]) return false
+
+        return availablePages[currentSectionIndex].pages.some(page => {
+            const pagePermissions = permissions.find(p => p.page === page.name)
+            return pagePermissions && pagePermissions.columns.length > 0
+        })
+    }
+
+    // Check if the current section has been saved
+    const isCurrentSectionSaved = () => {
+        if (!availablePages[currentSectionIndex]) return false
+        return savedSections.includes(availablePages[currentSectionIndex].section)
+    }
+
     const totalSelected = getTotalSelectedPermissions()
     const totalAvailable = getTotalAvailablePermissions()
 
@@ -2387,8 +3019,6 @@ const AddRole = () => {
             return { ...page, filteredColumns }
         })
     }
-
-
     return (
         <div className="w-full max-w-6xl mx-auto p-4">
             <Card className="shadow-md border">
@@ -2399,7 +3029,7 @@ const AddRole = () => {
                             size="sm"
                             className="gap-2 text-base font-medium"
                             onClick={() => navigate("/roles")}
-                            type="button" // Adding explicit type to prevent form submission
+                            type="button"
                         >
                             <ArrowLeft className="h-5 w-5" /> Back to Roles
                         </Button>
@@ -2423,6 +3053,17 @@ const AddRole = () => {
                                     className="h-12 text-base px-4"
                                 />
                             </div>
+
+                            <div className="text-right">
+                                <div className="text-sm text-muted-foreground mb-1">
+                                    Sections saved: {savedSections.length} / {availablePages.length}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="text-sm font-medium">
+                                        Total permissions selected: {totalSelected} / {totalAvailable}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Permissions Section */}
@@ -2441,6 +3082,7 @@ const AddRole = () => {
                                             {availablePages.map((section, index) => (
                                                 <SelectItem key={index} value={index.toString()}>
                                                     {section.section}
+                                                    {savedSections.includes(section.section) && " ✓"}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -2480,7 +3122,14 @@ const AddRole = () => {
                             ) : availablePages.length > 0 ? (
                                 <div className="p-4">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-2xl font-bold text-primary">{availablePages[currentSectionIndex]?.section}</h3>
+                                        <div className="flex items-center gap-3">
+                                            <h3 className="text-2xl font-bold text-primary">{availablePages[currentSectionIndex]?.section}</h3>
+                                            {isCurrentSectionSaved() && (
+                                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                                                    <Check className="h-3 w-3 mr-1" /> Saved
+                                                </Badge>
+                                            )}
+                                        </div>
                                         <div className="flex items-center gap-3">
                                             <div className="flex items-center space-x-2">
                                                 <Switch id="show-selected" checked={showSelected} onCheckedChange={setShowSelected} />
@@ -2489,7 +3138,7 @@ const AddRole = () => {
                                                 </label>
                                             </div>
                                             <Button
-                                                type="button" // Add explicit type to prevent form submission
+                                                type="button"
                                                 variant="outline"
                                                 onClick={() => handleSelectAllSection(availablePages[currentSectionIndex]?.pages)}
                                                 className="h-9 text-sm"
@@ -2532,6 +3181,21 @@ const AddRole = () => {
                                             />
                                         </TabsContent>
                                     </Tabs>
+
+                                    {/* Section Save Button */}
+                                    <div className="mt-6 flex justify-end">
+                                        <Button
+                                            type="button"
+                                            onClick={handleSaveSection}
+                                            className="flex items-center gap-2"
+                                            variant={isCurrentSectionSaved() ? "outline" : "default"}
+                                        >
+                                            <Save className="h-4 w-4" />
+                                            {isCurrentSectionSaved()
+                                                ? `Update ${availablePages[currentSectionIndex]?.section} Selections`
+                                                : `Save ${availablePages[currentSectionIndex]?.section} Selections`}
+                                        </Button>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="p-10 text-center text-muted-foreground text-lg">No permissions available</div>
@@ -2541,26 +3205,37 @@ const AddRole = () => {
                 </CardContent>
 
                 <CardFooter className="border-t p-6">
-                    <div className="flex justify-end gap-4 w-full">
-                        <Button
-                            type="button" // Add explicit type to prevent form submission
-                            variant="outline"
-                            onClick={() => navigate("/roles")}
-                            className="h-12 px-6 text-base font-medium"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="submit" // This is the submit button (proper use)
-                            onClick={(e) => {
-                                e.preventDefault();
-                                handleSubmit(e);
-                            }}
-                            disabled={!roleName || getTotalSelectedPermissions() === 0}
-                            className="h-12 px-6 text-base font-medium"
-                        >
-                            Add Role
-                        </Button>
+                    <div className="flex justify-between items-center w-full">
+                        <div className="text-sm text-muted-foreground">
+                            {savedSections.length === 0 ? (
+                                <span>No sections saved yet</span>
+                            ) : (
+                                <span>
+                                    {savedSections.length} section{savedSections.length !== 1 ? 's' : ''} saved
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex gap-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => navigate("/roles")}
+                                className="h-12 px-6 text-base font-medium"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    handleSubmit(e);
+                                }}
+                                disabled={!roleName || getTotalSelectedPermissions() === 0 || savedSections.length === 0}
+                                className="h-12 px-6 text-base font-medium"
+                            >
+                                Add Role
+                            </Button>
+                        </div>
                     </div>
                 </CardFooter>
             </Card>
@@ -2568,8 +3243,8 @@ const AddRole = () => {
     );
 }
 
-// Component for permissions table
-// Component for permissions table
+
+
 const PermissionsTable = ({ pages, handlePermissionChange, handleSelectAll, isColumnSelected, isAllSelected }) => {
     if (pages.length === 0) {
         return (
@@ -2638,4 +3313,6 @@ const PermissionsTable = ({ pages, handlePermissionChange, handleSelectAll, isCo
 }
 
 export default AddRole
+
+
 
