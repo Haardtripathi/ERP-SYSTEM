@@ -17,7 +17,6 @@ router.post("/add-role", isAuthenticated, isAdmin, addRole);
 router.get("/roles", isAuthenticated, isAdmin, getAllRoles);
 
 router.get("/pages", isAuthenticated, isAdmin, getPagesAndColumns);
-router.get("/permissions", isAuthenticated, getPermissions);
 
 
 

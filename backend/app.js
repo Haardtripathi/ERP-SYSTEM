@@ -23,6 +23,7 @@ const deliveredRoutes = require("./routes/deliveredRoutes")
 
 const paymentRoutes = require("./routes/paymentRoutes")
 const adminRoutes = require("./routes/adminRoutes")
+const roleRoutes = require('./routes/roleRoutes')
 
 
 
@@ -58,6 +59,8 @@ app.use('/api', profileRoutes)
 app.use('/api/delivered', deliveredRoutes)
 app.use('/api/payment', paymentRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api', roleRoutes)
+
 
 
 

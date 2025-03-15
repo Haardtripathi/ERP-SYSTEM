@@ -10,17 +10,7 @@ const Lead = require("../models/Lead");
 const Incoming = require("../models/Incoming");
 const Workbook = require("../models/Workbook");
 
-exports.getPermissions = async (req, res) => {
-    try {
-        console.log("ABC")
-        const permissions = await Permissions.populate("role").findOne({ "role.name": req.user.role });
-        console.log(permissions)
-    }
-    catch (error) {
-        res.status(500).json({ message: "Error fetching permissions", error });
 
-    }
-}
 
 exports.getAllRoles = async (req, res) => {
     try {

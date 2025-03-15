@@ -3137,7 +3137,7 @@ const AddRole = () => {
                                                     Show selected only
                                                 </label>
                                             </div>
-                                            <Button
+                                            {/* <Button
                                                 type="button"
                                                 variant="outline"
                                                 onClick={() => handleSelectAllSection(availablePages[currentSectionIndex]?.pages)}
@@ -3146,6 +3146,22 @@ const AddRole = () => {
                                                 {isAllSectionSelected(availablePages[currentSectionIndex]?.pages)
                                                     ? "Deselect All"
                                                     : "Select All"}
+                                            </Button> */}
+                                            <Button
+                                                type="button"
+                                                variant={isAllSectionSelected(availablePages[currentSectionIndex]?.pages) ? "destructive" : "default"}
+                                                onClick={() => handleSelectAllSection(availablePages[currentSectionIndex]?.pages)}
+                                                className="h-9 text-sm flex items-center gap-1"
+                                            >
+                                                {isAllSectionSelected(availablePages[currentSectionIndex]?.pages) ? (
+                                                    <>
+                                                        <X className="h-4 w-4" /> Deselect All
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        Select All
+                                                    </>
+                                                )}
                                             </Button>
                                         </div>
                                     </div>
@@ -3293,7 +3309,7 @@ const PermissionsTable = ({ pages, handlePermissionChange, handleSelectAll, isCo
                                         ))}
                                     </div>
                                 </TableCell>
-                                <TableCell className="text-right">
+                                {/* <TableCell className="text-right">
                                     <Button
                                         type="button" // Add explicit type to prevent form submission
                                         size="sm"
@@ -3301,6 +3317,25 @@ const PermissionsTable = ({ pages, handlePermissionChange, handleSelectAll, isCo
                                         onClick={() => handleSelectAll(page.name, page.filteredColumns)}
                                     >
                                         {isAllSelected(page.name, page.filteredColumns) ? "Deselect All" : "Select All"}
+                                    </Button>
+                                </TableCell> */}
+                                <TableCell className="text-right">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant={isAllSelected(page.name, page.filteredColumns) ? "destructive" : "default"}
+                                        onClick={() => handleSelectAll(page.name, page.filteredColumns)}
+                                        className="flex items-center gap-1 min-w-[90px] justify-center"
+                                    >
+                                        {isAllSelected(page.name, page.filteredColumns) ? (
+                                            <>
+                                                <X className="h-3.5 w-3.5" /> Deselect
+                                            </>
+                                        ) : (
+                                            <>
+                                                Select All
+                                            </>
+                                        )}
                                     </Button>
                                 </TableCell>
                             </TableRow>
