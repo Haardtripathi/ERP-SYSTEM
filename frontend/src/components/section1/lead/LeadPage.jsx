@@ -778,6 +778,7 @@ import { RotateCw, RefreshCcw } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 // import useAccessControl from "../../AccessControl"
 import {
+
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -1070,9 +1071,83 @@ const LeadPage = () => {
     }
 
     // Generate pagination items
+    // const renderPaginationItems = () => {
+    //     const items = []
+    //     const maxVisiblePages = 5 // Maximum number of page links to show
+
+    //     // Always show first page
+    //     items.push(
+    //         <PaginationItem key="first">
+    //             <PaginationLink onClick={() => handlePageChange(1)} isActive={currentPage === 1}>
+    //                 1
+    //             </PaginationLink>
+    //         </PaginationItem>,
+    //     )
+
+    //     // Calculate range of pages to show
+    //     let startPage = Math.max(2, currentPage - Math.floor(maxVisiblePages / 2))
+    //     const endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 3)
+
+    //     // Adjust start if we're near the end
+    //     if (endPage >= totalPages - 1) {
+    //         startPage = Math.max(2, totalPages - maxVisiblePages + 1)
+    //     }
+
+    //     // Add ellipsis after first page if needed
+    //     if (startPage > 2) {
+    //         items.push(
+    //             <PaginationItem key="ellipsis-start">
+    //                 <PaginationEllipsis />
+    //             </PaginationItem>,
+    //         )
+    //     }
+
+    //     // Add page numbers
+    //     for (let i = startPage; i <= endPage; i++) {
+    //         items.push(
+    //             <PaginationItem key={i}>
+    //                 <PaginationLink onClick={() => handlePageChange(i)} isActive={currentPage === i}>
+    //                     {i}
+    //                 </PaginationLink>
+    //             </PaginationItem>,
+    //         )
+    //     }
+
+    //     // Add ellipsis before last page if needed
+    //     if (endPage < totalPages - 1) {
+    //         items.push(
+    //             <PaginationItem key="ellipsis-end">
+    //                 <PaginationEllipsis />
+    //             </PaginationItem>,
+    //         )
+    //     }
+
+    //     // Always show last page if there is more than one page
+    //     if (totalPages > 1) {
+    //         items.push(
+    //             <PaginationItem key="last">
+    //                 <PaginationLink onClick={() => handlePageChange(totalPages)} isActive={currentPage === totalPages}>
+    //                     {totalPages}
+    //                 </PaginationLink>
+    //             </PaginationItem>,
+    //         )
+    //     }
+
+    //     return items
+    // }
+
     const renderPaginationItems = () => {
-        const items = []
-        const maxVisiblePages = 5 // Maximum number of page links to show
+        const items = [];
+        const maxVisiblePages = 3; // Only show 3 pages at a time
+        const halfVisible = Math.floor(maxVisiblePages / 2);
+
+        let startPage = Math.max(2, currentPage - halfVisible);
+        let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 1);
+
+        // Adjust startPage if at the last pages
+        if (endPage === totalPages - 1) {
+            startPage = Math.max(2, totalPages - maxVisiblePages);
+        }
 
         // Always show first page
         items.push(
@@ -1080,60 +1155,51 @@ const LeadPage = () => {
                 <PaginationLink onClick={() => handlePageChange(1)} isActive={currentPage === 1}>
                     1
                 </PaginationLink>
-            </PaginationItem>,
-        )
+            </PaginationItem>
+        );
 
-        // Calculate range of pages to show
-        let startPage = Math.max(2, currentPage - Math.floor(maxVisiblePages / 2))
-        const endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 3)
-
-        // Adjust start if we're near the end
-        if (endPage >= totalPages - 1) {
-            startPage = Math.max(2, totalPages - maxVisiblePages + 1)
-        }
-
-        // Add ellipsis after first page if needed
+        // Add ellipsis if needed
         if (startPage > 2) {
             items.push(
                 <PaginationItem key="ellipsis-start">
                     <PaginationEllipsis />
-                </PaginationItem>,
-            )
+                </PaginationItem>
+            );
         }
 
-        // Add page numbers
+        // Add middle 3 pages centered around the current page
         for (let i = startPage; i <= endPage; i++) {
             items.push(
                 <PaginationItem key={i}>
                     <PaginationLink onClick={() => handlePageChange(i)} isActive={currentPage === i}>
                         {i}
                     </PaginationLink>
-                </PaginationItem>,
-            )
+                </PaginationItem>
+            );
         }
 
-        // Add ellipsis before last page if needed
+        // Add ellipsis before the last page if needed
         if (endPage < totalPages - 1) {
             items.push(
                 <PaginationItem key="ellipsis-end">
                     <PaginationEllipsis />
-                </PaginationItem>,
-            )
+                </PaginationItem>
+            );
         }
 
-        // Always show last page if there is more than one page
+        // Always show the last page
         if (totalPages > 1) {
             items.push(
                 <PaginationItem key="last">
                     <PaginationLink onClick={() => handlePageChange(totalPages)} isActive={currentPage === totalPages}>
                         {totalPages}
                     </PaginationLink>
-                </PaginationItem>,
-            )
+                </PaginationItem>
+            );
         }
 
-        return items
-    }
+        return items;
+    };
 
     return (
         <div className="container mx-auto p-8 bg-gray-50 min-h-screen max-w-full">
@@ -1200,8 +1266,55 @@ const LeadPage = () => {
                 </CardHeader>
                 <br />
                 {/* Content Section */}
+                {/* <CardContent>
+                    <div className="flex space-x-2">
+                        <Button
+                            onClick={() => {
+                                setFilterStatus("All")
+                                fetchData(1, itemsPerPage, searchTerm, searchColumn, "All")
+                            }}
+                            variant={filterStatus === "All" ? "default" : "outline"}
+                        >
+                            All
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setFilterStatus("isSent")
+                                fetchData(1, itemsPerPage, searchTerm, searchColumn, "isSent")
+                            }}
+                            variant={filterStatus === "isSent" ? "default" : "outline"}
+                        >
+                            Sent to Pending
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setFilterStatus("isNotSent")
+                                fetchData(1, itemsPerPage, searchTerm, searchColumn, "isNotSent")
+                            }}
+                            variant={filterStatus === "isNotSent" ? "default" : "outline"}
+                        >
+                            Not Sent
+                        </Button>
+                        <div className="flex items-center space-x-2">
+                            <span className="text-sm text-gray-600">Items per page:</span>
+                            <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+                                <SelectTrigger className="w-[80px]">
+                                    <SelectValue placeholder={itemsPerPage} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="5">5</SelectItem>
+                                    <SelectItem value="10">10</SelectItem>
+                                    <SelectItem value="20">20</SelectItem>
+                                    <SelectItem value="50">50</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                </CardContent>
+                 */}
                 <CardContent>
-                    <div className="flex justify-between items-center mb-4">
+                    <div className="flex justify-between items-center">
                         <div className="flex space-x-2">
                             <Button
                                 onClick={() => {
@@ -1232,7 +1345,6 @@ const LeadPage = () => {
                             </Button>
                         </div>
 
-                        {/* Items per page selector */}
                         <div className="flex items-center space-x-2">
                             <span className="text-sm text-gray-600">Items per page:</span>
                             <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
@@ -1476,7 +1588,7 @@ const LeadPage = () => {
             </div>
 
             {/* Go to page section */}
-            <div className="flex items-center justify-center mt-4 space-x-2">
+            <div className="flex items-center space-x-2">
                 <Input
                     type="number"
                     placeholder="Go to page"
