@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
 import { RotateCw, RefreshCcw } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import useAccessControl from "../../AccessControl"
+// import useAccessControl from "../../AccessControl"
 import {
 
     AlertDialog,
@@ -78,22 +78,22 @@ const LeadPage = () => {
     const [searchColumn, setSearchColumn] = useState("all")
     const [refreshing, setRefreshing] = useState(false)
 
-    const { permissions, loading } = useAccessControl("/leads");
+    // const { permissions, loading } = useAccessControl("/leads");
     const navigate = useNavigate()
 
-    useEffect(() => {
-        if (loading) return (
-            <div className="flex justify-center items-center h-screen">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            </div>
-        );
-        // Check if user has access to this page
-        const canAccessPage = permissions.some((perm) => perm.page === "/leads");
-        if (!canAccessPage) {
-            navigate("/dashboard");
-        }
-        console.log("User Permissions:", permissions);
-    }, [permissions, loading, navigate]);
+    // useEffect(() => {
+    //     if (loading) return (
+    //         <div className="flex justify-center items-center h-screen">
+    //             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+    //         </div>
+    //     );
+    //     // Check if user has access to this page
+    //     const canAccessPage = permissions.some((perm) => perm.page === "/leads");
+    //     if (!canAccessPage) {
+    //         navigate("/dashboard");
+    //     }
+    //     console.log("User Permissions:", permissions);
+    // }, [permissions, loading, navigate]);
 
     const fetchData = async () => {
         try {
