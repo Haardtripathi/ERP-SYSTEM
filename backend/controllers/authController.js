@@ -54,7 +54,6 @@ exports.register = [
     async (req, res) => {
 
         const token = req.header('Authorization').split(" ")[1];
-        console.log(token)
         const {
             email,
             agentName,
@@ -113,7 +112,6 @@ exports.register = [
                     contentType: req.file.mimetype
                 };
             }
-            console.log(user)
             await newUser.save();
             res.status(201).json({ message: 'User registered successfully' });
         } catch (error) {

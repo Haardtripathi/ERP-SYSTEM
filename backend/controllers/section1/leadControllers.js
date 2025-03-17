@@ -176,15 +176,15 @@ exports.postAddLeadData = async (req, res) => {
 //         const skip = (page - 1) * limit;
 
 //         // Use `req.allowedColumns` to restrict returned fields
-//         const selectFields = req.allowedColumns.join(" ");
+//         // const selectFields = req.allowedColumns.join(" ");
 
 //         let data, totalCount;
 
 //         if (userRole === "Admin") {
-//             data = await Lead.find({ isDeleted: false }).sort({ createdAt: -1 }).select(selectFields);
+//             data = await Lead.find({ isDeleted: false }).sort({ createdAt: -1 })
 //             totalCount = await Lead.countDocuments({ isDeleted: false });
 //         } else {
-//             data = await Lead.find({ isDeleted: false, "agent_name.value": userRole }).sort({ createdAt: -1 }).select(selectFields);
+//             data = await Lead.find({ isDeleted: false, "agent_name.value": userRole }).sort({ createdAt: -1 })
 //             totalCount = await Lead.countDocuments({ isDeleted: false, "agent_name.value": userRole });
 //         }
 
@@ -201,84 +201,32 @@ exports.postAddLeadData = async (req, res) => {
 //     }
 // };
 
-
 exports.getAllLeadData = async (req, res) => {
-    const token = req.header("Authorization").split(" ")[1]
+    const token = req.header('Authorization').split(" ")[1];
 
     try {
-        // Get page and limit from query parameters (default values are 1 and 10)
-        const decoded = jwt.verify(token, process.env.JWT_SECRET)
-        const user = decoded.role
-        const page = Number.parseInt(req.query.page, 10) || 1
-        const limit = Number.parseInt(req.query.limit, 10) || 10
-        const search = req.query.search || ""
-        const searchColumn = req.query.searchColumn || "all"
-        const status = req.query.status // 'true' for sent to pending, 'false' for not sent
+        // Decode JWT token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = decoded;
 
-        // Calculate the number of items to skip
-        const skip = (page - 1) * limit
+        // Get page and limit from query parameters (default: page 1, limit 10)
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const skip = (page - 1) * limit;
 
-        // Build the query based on user role and filters
-        const query = { isDeleted: false }
-
-        // Add user role filter
-        if (user !== "Admin") {
-            query["agent_name.value"] = user
+        let query = { isDeleted: false };
+        if (user.role !== "Admin") {
+            query["agent_name.value"] = user.agent_name;
         }
 
-        // Add status filter if provided
-        if (status === "true") {
-            query.is_sent_to_pending = true
-        } else if (status === "false") {
-            query.is_sent_to_pending = false
-        }
-
-        // Add search filter if provided
-        if (search && search.trim() !== "") {
-            if (searchColumn === "all") {
-                // Search across multiple fields
-                query.$or = [
-                    { "source.value": { $regex: search, $options: "i" } },
-                    { cm_first_name: { $regex: search, $options: "i" } },
-                    { cm_last_name: { $regex: search, $options: "i" } },
-                    { cm_phone: { $regex: search, $options: "i" } },
-                    { "agent_name.value": { $regex: search, $options: "i" } },
-                    { "language.value": { $regex: search, $options: "i" } },
-                    { "disease.value": { $regex: search, $options: "i" } },
-                    { "state.value": { $regex: search, $options: "i" } },
-                    { city: { $regex: search, $options: "i" } },
-                    { "remark.value": { $regex: search, $options: "i" } },
-                    { comment: { $regex: search, $options: "i" } },
-                    { date: { $regex: search, $options: "i" } },
-                ]
-            } else {
-                // Search in specific column
-                // Handle nested fields like "agent_name.value"
-                if (searchColumn.includes(".")) {
-                    query[searchColumn] = { $regex: search, $options: "i" }
-                } else if (searchColumn === "data") {
-                    // Special case for data field
-                    query.data = { $regex: search, $options: "i" }
-                } else {
-                    // Handle regular fields and fields with .value
-                    const fieldParts = searchColumn.split(".")
-                    if (fieldParts.length === 1) {
-                        // Check if this field might be a nested object with .value
-                        if (["source", "agent_name", "language", "disease", "state", "remark"].includes(searchColumn)) {
-                            query[`${searchColumn}.value`] = { $regex: search, $options: "i" }
-                        } else {
-                            query[searchColumn] = { $regex: search, $options: "i" }
-                        }
-                    }
-                }
-            }
-        }
+        // Fetch paginated data
+        const data = await Lead.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
 
         // Get total count of documents matching the query
-        const totalCount = await Lead.countDocuments(query)
-
-        // Fetch data with pagination
-        const data = await Lead.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit)
+        const totalCount = await Lead.countDocuments(query);
 
         return res.status(200).json({
             message: "Lead data fetched successfully.",
@@ -286,15 +234,108 @@ exports.getAllLeadData = async (req, res) => {
             totalCount,
             totalPages: Math.ceil(totalCount / limit),
             currentPage: page,
-        })
+        });
     } catch (error) {
-        console.error("Error fetching incoming data:", error)
+        console.error("Error fetching incoming data:", error);
         return res.status(500).json({
             message: "An error occurred while fetching incoming data.",
-            error: error.message,
-        })
+        });
     }
-}
+};
+
+// exports.getAllLeadData = async (req, res) => {
+//     const token = req.header("Authorization").split(" ")[1]
+
+//     try {
+//         // Get page and limit from query parameters (default values are 1 and 10)
+//         const decoded = jwt.verify(token, process.env.JWT_SECRET)
+//         const user = decoded.role
+//         const page = Number.parseInt(req.query.page, 10) || 1
+//         const limit = Number.parseInt(req.query.limit, 10) || 10
+//         const search = req.query.search || ""
+//         const searchColumn = req.query.searchColumn || "all"
+//         const status = req.query.status // 'true' for sent to pending, 'false' for not sent
+
+//         // Calculate the number of items to skip
+//         const skip = (page - 1) * limit
+
+//         // Build the query based on user role and filters
+//         const query = { isDeleted: false }
+
+//         // Add user role filter
+//         if (user !== "Admin") {
+//             query["agent_name.value"] = user
+//         }
+
+//         // Add status filter if provided
+//         if (status === "true") {
+//             query.is_sent_to_pending = true
+//         } else if (status === "false") {
+//             query.is_sent_to_pending = false
+//         }
+
+//         // Add search filter if provided
+//         if (search && search.trim() !== "") {
+//             if (searchColumn === "all") {
+//                 // Search across multiple fields
+//                 query.$or = [
+//                     { "source.value": { $regex: search, $options: "i" } },
+//                     { cm_first_name: { $regex: search, $options: "i" } },
+//                     { cm_last_name: { $regex: search, $options: "i" } },
+//                     { cm_phone: { $regex: search, $options: "i" } },
+//                     { "agent_name.value": { $regex: search, $options: "i" } },
+//                     { "language.value": { $regex: search, $options: "i" } },
+//                     { "disease.value": { $regex: search, $options: "i" } },
+//                     { "state.value": { $regex: search, $options: "i" } },
+//                     { city: { $regex: search, $options: "i" } },
+//                     { "remark.value": { $regex: search, $options: "i" } },
+//                     { comment: { $regex: search, $options: "i" } },
+//                     { date: { $regex: search, $options: "i" } },
+//                 ]
+//             } else {
+//                 // Search in specific column
+//                 // Handle nested fields like "agent_name.value"
+//                 if (searchColumn.includes(".")) {
+//                     query[searchColumn] = { $regex: search, $options: "i" }
+//                 } else if (searchColumn === "data") {
+//                     // Special case for data field
+//                     query.data = { $regex: search, $options: "i" }
+//                 } else {
+//                     // Handle regular fields and fields with .value
+//                     const fieldParts = searchColumn.split(".")
+//                     if (fieldParts.length === 1) {
+//                         // Check if this field might be a nested object with .value
+//                         if (["source", "agent_name", "language", "disease", "state", "remark"].includes(searchColumn)) {
+//                             query[`${searchColumn}.value`] = { $regex: search, $options: "i" }
+//                         } else {
+//                             query[searchColumn] = { $regex: search, $options: "i" }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+
+//         // Get total count of documents matching the query
+//         const totalCount = await Lead.countDocuments(query)
+
+//         // Fetch data with pagination
+//         const data = await Lead.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit)
+
+//         return res.status(200).json({
+//             message: "Lead data fetched successfully.",
+//             data,
+//             totalCount,
+//             totalPages: Math.ceil(totalCount / limit),
+//             currentPage: page,
+//         })
+//     } catch (error) {
+//         console.error("Error fetching incoming data:", error)
+//         return res.status(500).json({
+//             message: "An error occurred while fetching incoming data.",
+//             error: error.message,
+//         })
+//     }
+// }
 
 
 
