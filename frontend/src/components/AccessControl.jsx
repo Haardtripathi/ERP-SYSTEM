@@ -50,11 +50,82 @@
 
 // export default useAccessControl;
 
+
+
+
+
+
+
+
+
+
+
+
+// import { useState, useEffect } from "react";
+// import { useNavigate } from "react-router-dom";
+// import axiosInstance from "../axiosInstance.js";
+
+// const useAccessControl = (page) => {
+//     const navigate = useNavigate();
+//     const [permissions, setPermissions] = useState(null);
+//     const [loading, setLoading] = useState(true);
+
+//     useEffect(() => {
+//         const fetchPermissions = async () => {
+//             try {
+//                 const token = localStorage.getItem("token");
+//                 if (!token) {
+//                     navigate("/login"); // Redirect if no token
+//                     return;
+//                 }
+//                 console.log("ABC");
+
+//                 const response = await axiosInstance.get(`/permissions?page=${page}`);
+//                 console.log(response);
+
+//                 if (response.status === 403) {
+//                     navigate("/not-authorized"); // Redirect if no access
+//                     return;
+//                 }
+
+//                 setPermissions(response.data); // Store full object
+//             } catch (error) {
+//                 console.error("Error fetching permissions:", error);
+//                 navigate("/login"); // Redirect on error
+//             } finally {
+//                 setLoading(false);
+//             }
+//         };
+
+//         fetchPermissions();
+//     }, [page, navigate]);
+
+//     return { permissions, loading };
+// };
+
+// export default useAccessControl;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../axiosInstance.js";
 
-const useAccessControl = (page) => {
+const useAccessControl = (page = null) => {
     const navigate = useNavigate();
     const [permissions, setPermissions] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -67,10 +138,10 @@ const useAccessControl = (page) => {
                     navigate("/login"); // Redirect if no token
                     return;
                 }
-                console.log("ABC");
+                console.log("Fetching permissions for:", page || "ALL");
 
-                const response = await axiosInstance.get(`/permissions?page=${page}`);
-                console.log(response);
+                const url = page ? `/permissions?page=${page}` : `/permissions`; // Handle both cases
+                const response = await axiosInstance.get(url);
 
                 if (response.status === 403) {
                     navigate("/not-authorized"); // Redirect if no access
