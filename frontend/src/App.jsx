@@ -39,6 +39,7 @@ import EditUserData from "./components/admin/EditUserData";
 
 import AddRole from "./components/admin/AddRole";
 import Roles from "./components/admin/Roles";
+import EditRolePage from "./components/admin/EditRolePage";
 
 
 const App = () => {
@@ -91,6 +92,7 @@ const App = () => {
                 <Route path="/complain" element={<ProtectedRoute><ComplainPage /></ProtectedRoute>} />
                 <Route path="/delivered" element={<ProtectedRoute><DeliveredPage /></ProtectedRoute>} />
                 <Route path="/payment" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
+                <Route path="/edit-role-data/:id" element={<ProtectedRoute><AdminOnlyRoute><EditRolePage /></AdminOnlyRoute></ProtectedRoute>} />
 
 
               </Routes>

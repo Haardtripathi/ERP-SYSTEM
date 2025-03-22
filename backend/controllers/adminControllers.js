@@ -110,6 +110,42 @@ exports.addRole = async (req, res) => {
 // };
 
 
+exports.getUpdateRole = async (req, res) => {
+    console.log()
+    const { id } = req.params
+    const role = await Role.find({ _id: id }).lean();
+
+    const rolesWithPermissions = await Promise.all(
+        role.map(async (role) => {
+            const permissions = await Permission.findOne({ role: role._id }).lean();
+            return { ...role, permissions: permissions ? permissions.permissions : [] };
+        })
+    );
+
+    console.log(rolesWithPermissions)
+    res.status(200).json(rolesWithPermissions);
+}
+
+exports.postUpdateRole = async (req, res) => {
+    const roleData = req.body
+    console.log(roleData)
+    const roleName = roleData.name
+    const rolePermissions = roleData.permissions
+    console.log(roleName, rolePermissions)
+    const role = await Role.findOne({ _id: roleData._id })
+    role.name = roleName
+    await role.save()
+
+    const permission = await Permission.findOne({ role: roleData._id })
+    permission.permissions = rolePermissions
+
+    await permission.save()
+
+    res.status(201).json({ message: "Role updated successfully" });
+
+
+}
+
 
 exports.getPagesAndColumns = async (req, res) => {
     try {

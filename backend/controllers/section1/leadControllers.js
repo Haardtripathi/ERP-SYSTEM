@@ -242,8 +242,6 @@ exports.postAddLeadData = async (req, res) => {
 //         });
 //     }
 // };
-const jwt = require("jsonwebtoken")
-const Lead = require("../models/Lead")
 
 exports.getAllLeadData = async (req, res) => {
     const token = req.header("Authorization").split(" ")[1]

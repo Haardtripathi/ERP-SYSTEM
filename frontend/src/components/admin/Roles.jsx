@@ -62,11 +62,13 @@ import { ChevronDown, ChevronUp, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { getAllRoles } from "@/services/adminService";
+import { useNavigate } from "react-router-dom";
 
 const Roles = () => {
     const [roles, setRoles] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [expandedRoles, setExpandedRoles] = useState({});
+    const navigate = useNavigate();
 
     useEffect(() => {
         // Fetch roles from the service
@@ -82,6 +84,10 @@ const Roles = () => {
             })
             .catch(() => toast.error("Failed to load roles"));
     }, []);
+
+    const handleEditClick = (id) => {
+        navigate(`/edit-role-data/${id}`);
+    };
 
     const toggleRoleExpansion = (roleId) => {
         setExpandedRoles((prev) => ({
@@ -149,10 +155,16 @@ const Roles = () => {
                                                 </Badge>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <Button variant="outline" size="sm" className="h-8 px-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-8 px-2"
+                                                    onClick={() => handleEditClick(role._id)}
+                                                >
                                                     <Edit className="h-4 w-4" />
                                                     <span className="sr-only md:not-sr-only md:ml-2">Edit</span>
                                                 </Button>
+
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
