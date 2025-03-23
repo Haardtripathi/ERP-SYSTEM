@@ -124,6 +124,7 @@ const Users = () => {
     useEffect(() => {
         const fetchUserData = async () => {
             const data = await getAllUserData();
+            console.log(data)
             setUserData(data.users);
         };
         fetchUserData();
@@ -161,7 +162,15 @@ const Users = () => {
                                     <TableCell className="font-semibold">{user.agent_name}</TableCell>
                                     <TableCell className="font-semibold">{user.company_number}</TableCell>
                                     <TableCell className="font-semibold">{user.phone_number}</TableCell>
-                                    <TableCell className="font-semibold">{user.role.name}</TableCell>
+                                    {/* <TableCell className="font-semibold">{user.role?.name || ""}</TableCell> */}
+                                    <TableCell
+                                        className={`font-semibold ${!user.role?.name ? "bg-red-100 text-red-700 rounded px-2 py-1" : ""
+                                            }`}
+                                    >
+                                        {user.role?.name || "Not Assigned"}
+                                    </TableCell>
+                                    ``
+
 
                                     <TableCell className="flex space-x-3 justify-center">
                                         <Button
@@ -199,7 +208,8 @@ const Users = () => {
                                                             <div><strong>Phone Number:</strong> {user.phone_number}</div>
 
                                                             <Separator />
-                                                            <div><strong>Role:</strong> {user.role.name}</div>
+                                                            <div><strong>Role:</strong> {user.role?.name || "Not Assigned"}</div>
+
 
                                                             <Separator />
 

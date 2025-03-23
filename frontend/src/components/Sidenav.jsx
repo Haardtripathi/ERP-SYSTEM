@@ -384,3 +384,64 @@ const Sidenav = () => {
 };
 
 export default Sidenav;
+
+
+
+
+
+
+
+// import React from "react";
+// import { NavLink } from "react-router-dom";
+// import useAuthStore from "@/store/authStore";
+
+// // Optional label mapping (or fallback to route)
+// const routeLabels = {
+//     "/workbook": "Workbook",
+//     "/lead": "Lead",
+//     "/incoming": "Incoming",
+//     "/pending": "Pending",
+//     "/confirmed": "Confirmed",
+//     "/sheet-generator": "Sheets",
+//     "/labels-generator": "Labels",
+//     "/dispatched": "Dispatched",
+//     "/complain": "Complain",
+//     "/return": "Return",
+//     "/delivered": "Delivered",
+//     "/payment": "Payments",
+//     "/roles": "Roles",
+//     "/add-role": "Add Role",
+//     "/users": "Users",
+//     "/add-user": "Add User"
+// };
+
+// const Sidenav = () => {
+//     const { permissions } = useAuthStore();
+
+//     const pages = permissions.map((p) => p.page);
+
+//     return (
+//         <div className="fixed top-16 left-0 h-[calc(100vh-4rem)] bg-white/80 backdrop-blur-sm border-r border-gray-200 w-64 lg:w-56 md:w-48 sm:w-40">
+//             <div className="flex flex-col h-full">
+//                 <nav className="flex-1 p-4 overflow-y-auto space-y-2">
+//                     {pages.map((path) => (
+//                         <NavLink
+//                             key={path}
+//                             to={path}
+//                             className={({ isActive }) =>
+//                                 `block px-4 py-2 rounded-lg transition-all duration-200 ${isActive
+//                                     ? "bg-blue-50 text-blue-600 font-medium"
+//                                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+//                                 }`
+//                             }
+//                         >
+//                             {routeLabels[path] || path.replace("/", "").replace(/-/g, " ").toUpperCase()}
+//                         </NavLink>
+//                     ))}
+//                 </nav>
+//             </div>
+//         </div>
+//     );
+// };
+
+// export default Sidenav;

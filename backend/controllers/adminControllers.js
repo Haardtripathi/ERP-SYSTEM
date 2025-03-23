@@ -12,7 +12,7 @@ const Workbook = require("../models/Workbook");
 
 
 
-exports.getAllRoles = async (req, res) => {
+exports.getAllRolesAndPermissions = async (req, res) => {
     try {
         const roles = await Role.find().lean();
 
@@ -22,12 +22,39 @@ exports.getAllRoles = async (req, res) => {
                 return { ...role, permissions: permissions ? permissions.permissions : [] };
             })
         );
+        // console.log(rolesWithPermissions)
+        console.log("ABC")
+        const roleName = req.user.role
+
+        const userRole = await Role.findOne({ name: roleName })
+        const permissions = await Permission.findOne({ role: userRole._id })
+
+        console.log(permissions)
 
         res.status(200).json(rolesWithPermissions);
     } catch (error) {
         res.status(500).json({ message: "Error fetching roles", error });
     }
 };
+
+exports.getAllPermissionsOfRole = async (req, res) => {
+    try {
+        const roleName = req.user.role
+
+        const userRole = await Role.findOne({ name: roleName })
+
+        const permissions = await Permission.findOne({ role: userRole._id })
+
+        res.status(200).json(permissions)
+    }
+    catch (error) {
+        res.status(500).json({ message: "Error fetching permissions", error });
+
+    }
+}
+
+
+
 
 // Add a new role
 exports.addRole = async (req, res) => {
@@ -111,7 +138,6 @@ exports.addRole = async (req, res) => {
 
 
 exports.getUpdateRole = async (req, res) => {
-    console.log()
     const { id } = req.params
     const role = await Role.find({ _id: id }).lean();
 
@@ -122,16 +148,15 @@ exports.getUpdateRole = async (req, res) => {
         })
     );
 
-    console.log(rolesWithPermissions)
     res.status(200).json(rolesWithPermissions);
 }
 
 exports.postUpdateRole = async (req, res) => {
     const roleData = req.body
-    console.log(roleData)
+    // console.log(roleData)
     const roleName = roleData.name
     const rolePermissions = roleData.permissions
-    console.log(roleName, rolePermissions)
+    // console.log(roleName, rolePermissions)
     const role = await Role.findOne({ _id: roleData._id })
     role.name = roleName
     await role.save()

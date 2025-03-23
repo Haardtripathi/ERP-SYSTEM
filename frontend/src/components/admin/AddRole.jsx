@@ -3080,7 +3080,11 @@ const AddRole = () => {
                                         </SelectTrigger>
                                         <SelectContent>
                                             {availablePages.map((section, index) => (
-                                                <SelectItem key={index} value={index.toString()}>
+                                                <SelectItem
+                                                    key={index}
+                                                    value={index.toString()}
+                                                    className={savedSections.includes(section.section) ? "bg-green-100" : ""}
+                                                >
                                                     {section.section}
                                                     {savedSections.includes(section.section) && " ✓"}
                                                 </SelectItem>
