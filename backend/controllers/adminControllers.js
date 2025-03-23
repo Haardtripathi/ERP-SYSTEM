@@ -147,6 +147,34 @@ exports.postUpdateRole = async (req, res) => {
 }
 
 
+exports.deleteRole = async (req, res) => {
+    console.log(req.body)
+    try {
+        const { roleID } = req.body;
+
+        if (!roleID) {
+            return res.status(400).json({ success: false, message: "Role ID is required" });
+        }
+        console.log("ABc")
+
+        const roleResult = await Role.deleteOne({ _id: roleID });
+        console.log("ABc")
+
+        const permissionResult = await Permission.deleteOne({ role: roleID });
+
+        console.log("ABc")
+
+        res.status(200).json({
+            success: true,
+            message: "Role and its permissions deleted successfully",
+        });
+    } catch (error) {
+        console.error("Error deleting role:", error);
+        res.status(500).json({ success: false, message: "Server error while deleting role" });
+    }
+};
+
+
 exports.getPagesAndColumns = async (req, res) => {
     try {
         // Define all sections and related database models

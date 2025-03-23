@@ -61,7 +61,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { getAllRoles } from "@/services/adminService";
+import { getAllRoles, deleteRole } from "@/services/adminService";
 import { useNavigate } from "react-router-dom";
 
 const Roles = () => {
@@ -70,23 +70,45 @@ const Roles = () => {
     const [expandedRoles, setExpandedRoles] = useState({});
     const navigate = useNavigate();
 
-    useEffect(() => {
-        // Fetch roles from the service
+    const fetchRoles = () => {
         getAllRoles()
             .then((data) => {
                 setRoles(data);
-                // Initialize all roles as expanded
                 const expanded = {};
                 data.forEach((role) => {
-                    expanded[role._id] = true;
+                    expanded[role._id] = false;
                 });
                 setExpandedRoles(expanded);
             })
             .catch(() => toast.error("Failed to load roles"));
+    };
+
+    useEffect(() => {
+        fetchRoles();
     }, []);
+
 
     const handleEditClick = (id) => {
         navigate(`/edit-role-data/${id}`);
+    };
+
+    const handleDeleteClick = async (id) => {
+        try {
+            const confirmDelete = window.confirm("Are you sure you want to delete this role?");
+            if (!confirmDelete) return;
+
+            const res = await deleteRole(id); // assuming backend expects { id } in body
+            console.log(res)
+            if (res.success) {
+                toast.success("Role deleted successfully");
+                fetchRoles(); // call it again to refresh the list
+            } else {
+                toast.error("Failed to delete role");
+            }
+        } catch (error) {
+            console.error("Error deleting role:", error);
+            toast.error("Something went wrong while deleting");
+        }
     };
 
     const toggleRoleExpansion = (roleId) => {
@@ -120,7 +142,7 @@ const Roles = () => {
     };
 
     return (
-        <div className="container mx-auto p-4 md:p-8">
+        <div className="container mx-auto p-4 md:p-8 overflow-auto">
             <Card className="shadow-lg border-0">
                 <CardContent className="p-0">
                     <div className="px-6 pt-4 border-b">
@@ -169,7 +191,9 @@ const Roles = () => {
                                                     variant="outline"
                                                     size="sm"
                                                     className="h-8 px-2 text-destructive hover:text-destructive"
+                                                    onClick={() => handleDeleteClick(role._id)}
                                                 >
+
                                                     <Trash2 className="h-4 w-4" />
                                                     <span className="sr-only md:not-sr-only md:ml-2">Delete</span>
                                                 </Button>
