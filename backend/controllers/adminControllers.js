@@ -9,6 +9,18 @@ const Permission = require("../models/Permission");
 const Lead = require("../models/Lead");
 const Incoming = require("../models/Incoming");
 const Workbook = require("../models/Workbook");
+const Pending = require("../models/Pending");
+const Confirmed = require("../models/Confirmed");
+// const SheetGenerator = require("../models/Confirmed");
+// const LabelGenerator = require("../models/Confirmed");
+const Dispatched = require("../models/Dispatched");
+const Complain = require("../models/Complain");
+const Return = require("../models/Return");
+const Delivered = require("../models/Delivered");
+const Payment = require("../models/Payment");
+
+
+
 
 
 
@@ -216,6 +228,38 @@ exports.getPagesAndColumns = async (req, res) => {
                 view: { pages: ["/incoming"] },
                 edit: { pages: ["/add-incoming-data", "/edit-incoming-data/:id"] }
             },
+            {
+                section: "Workbook Management",
+                models: {
+                    // Workbook fields (including nested 'data')
+                    Workbook: Object.keys(Workbook.schema.paths).filter(key =>
+                        !["__v", "createdAt", "updatedAt"].includes(key)
+                    ),
+
+                    // Lead fields (shared with Incoming)
+                    Lead: Object.keys(Lead.schema.paths).filter(key =>
+                        !["__v", "createdAt", "updatedAt"].includes(key)
+                    )
+                },
+                view: { pages: ["/workbook"] },
+                edit: { pages: [] }
+            },
+            {
+                section: "Pending Management",
+                models: {
+                    Pending: Object.keys(Pending.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                    )
+                },
+                view: {
+                    pages: ["/pending"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: ["/edit-pending/:id", "/add-pending"] // ✅ Optional: add more here
+                }
+            }
+
+
         ];
 
         // Generate the response dynamically
@@ -224,13 +268,18 @@ exports.getPagesAndColumns = async (req, res) => {
             const allColumnsInSection = new Set();
 
             // Extract columns from all models in this section
-            Object.values(section.models).forEach(modelPaths => {
-                Object.keys(modelPaths).forEach(col => {
-                    if (!["__v", "timestamps", "createdAt", "updatedAt"].includes(col)) {
-                        allColumnsInSection.add(col);
-                    }
-                });
+            Object.values(section.models).forEach((model) => {
+                if (Array.isArray(model)) {
+                    model.forEach((col) => allColumnsInSection.add(col));
+                } else {
+                    Object.keys(model).forEach((col) => {
+                        if (!["__v", "timestamps", "createdAt", "updatedAt"].includes(col)) {
+                            allColumnsInSection.add(col);
+                        }
+                    });
+                }
             });
+
 
             // Convert Set to Array for consistent ordering
             const sectionColumns = Array.from(allColumnsInSection);
