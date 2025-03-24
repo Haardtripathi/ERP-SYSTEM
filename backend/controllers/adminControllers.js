@@ -255,14 +255,14 @@ exports.getPagesAndColumns = async (req, res) => {
                     pages: ["/pending"] // ✅ Add more if needed
                 },
                 edit: {
-                    pages: ["/edit-pending-data/:id", "/send-lead-data-to-pending/:id", "/send-lead-data-to-pending/:id"] // ✅ Optional: add more here
+                    pages: ["/edit-pending-data/:id", "/send-lead-data-to-pending/:id", "/send-incoming-data-to-pending/:id"] // ✅ Optional: add more here
                 }
             },
             {
                 section: "Confirmed Management",
                 models: {
                     Confirmed: Object.keys(Confirmed.schema.paths).filter(
-                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                        key => !["__v", "createdAt", "updatedAt", "location_and_date"].includes(key)
                     )
                 },
                 view: {
@@ -276,7 +276,7 @@ exports.getPagesAndColumns = async (req, res) => {
                 section: "Sheet Generator Management",
                 models: {
                     Confirmed: Object.keys(Confirmed.schema.paths).filter(
-                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                        key => !["__v", "createdAt", "updatedAt", "isHold", "isCancelled", "isDispatched", "location_and_date", "awb_number"].includes(key)
                     )
                 },
                 view: {
@@ -290,7 +290,7 @@ exports.getPagesAndColumns = async (req, res) => {
                 section: "Label Generator Management",
                 models: {
                     Confirmed: Object.keys(Confirmed.schema.paths).filter(
-                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                        key => !["__v", "createdAt", "updatedAt", "isHold", "isCancelled", "isDispatched", "location_and_date"].includes(key)
                     )
                 },
                 view: {
@@ -303,16 +303,18 @@ exports.getPagesAndColumns = async (req, res) => {
             {
                 section: "Dispatched Management",
                 models: {
-                    Dispatched: Object.keys(Dispatched.schema.paths).filter(
-                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                    // Workbook fields (including nested 'data')
+                    Dispatched: Object.keys(Dispatched.schema.paths).filter(key =>
+                        !["__v", "createdAt", "updatedAt"].includes(key)
+                    ),
+
+                    // Lead fields (shared with Incoming)
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(key =>
+                        !["__v", "createdAt", "updatedAt", "isHold", "isCancelled",].includes(key)
                     )
                 },
-                view: {
-                    pages: ["/dispatched"] // ✅ Add more if needed
-                },
-                edit: {
-                    pages: [] // ✅ Optional: add more here
-                }
+                view: { pages: ["/confirmed"] },
+                edit: { pages: [] }
             },
             {
                 section: "Complain Management",
