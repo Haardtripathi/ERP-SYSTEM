@@ -255,9 +255,123 @@ exports.getPagesAndColumns = async (req, res) => {
                     pages: ["/pending"] // ✅ Add more if needed
                 },
                 edit: {
-                    pages: ["/edit-pending/:id", "/add-pending"] // ✅ Optional: add more here
+                    pages: ["/edit-pending-data/:id", "/send-lead-data-to-pending/:id", "/send-lead-data-to-pending/:id"] // ✅ Optional: add more here
                 }
-            }
+            },
+            {
+                section: "Confirmed Management",
+                models: {
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                    )
+                },
+                view: {
+                    pages: ["/confirmed"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: [] // ✅ Optional: add more here
+                }
+            },
+            {
+                section: "Sheet Generator Management",
+                models: {
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                    )
+                },
+                view: {
+                    pages: ["/sheet-generator"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: [] // ✅ Optional: add more here
+                }
+            },
+            {
+                section: "Label Generator Management",
+                models: {
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                    )
+                },
+                view: {
+                    pages: ["/labels-generator"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: [] // ✅ Optional: add more here
+                }
+            },
+            {
+                section: "Dispatched Management",
+                models: {
+                    Dispatched: Object.keys(Dispatched.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                    )
+                },
+                view: {
+                    pages: ["/dispatched"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: [] // ✅ Optional: add more here
+                }
+            },
+            {
+                section: "Complain Management",
+                models: {
+                    Complain: Object.keys(Complain.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                    )
+                },
+                view: {
+                    pages: ["/complain"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: [] // ✅ Optional: add more here
+                }
+            },
+            {
+                section: "Return Management",
+                models: {
+                    Return: Object.keys(Return.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                    )
+                },
+                view: {
+                    pages: ["/return"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: [] // ✅ Optional: add more here
+                }
+            },
+            {
+                section: "Delivered Management",
+                models: {
+                    Delivered: Object.keys(Delivered.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                    )
+                },
+                view: {
+                    pages: ["/delivered"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: [] // ✅ Optional: add more here
+                }
+            },
+            {
+                section: "Payment Management",
+                models: {
+                    Payment: Object.keys(Payment.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                    )
+                },
+                view: {
+                    pages: ["/payment"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: [] // ✅ Optional: add more here
+                }
+            },
+
+
 
 
         ];
