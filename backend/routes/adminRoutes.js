@@ -24,7 +24,7 @@ router.delete("/delete-role", isAuthenticated, isAdmin, deleteRole);
 
 router.get("/roles", isAuthenticated, isAdmin, getAllRolesAndPermissions);
 
-router.get("/permissions", isAuthenticated, isAdmin, getAllPermissionsOfRole);
+router.get("/permissions", isAuthenticated, getAllPermissionsOfRole);
 
 
 router.get("/pages", isAuthenticated, isAdmin, getPagesAndColumns);

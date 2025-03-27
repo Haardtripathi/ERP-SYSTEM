@@ -2687,7 +2687,10 @@ import { ChevronLeft, ChevronRight, Eye, Edit, X, Search, ArrowLeft, Check, Save
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
+const highlightedColumns = [
+    "_id", "dispatchedId", "dataId", "isDispatched", "isHold", "isCancelled",
+    "payment_received", "confirmedId", "isDelivered", "isComplain", "isReturn", "is_sent_to_pending"
+]
 const AddRole = () => {
     const navigate = useNavigate()
     const [roleName, setRoleName] = useState("")
@@ -2700,6 +2703,8 @@ const AddRole = () => {
     const [showSelected, setShowSelected] = useState(false)
     // Track which sections have been saved
     const [savedSections, setSavedSections] = useState([])
+
+
 
     useEffect(() => {
         // Fetch all pages & columns
@@ -3304,12 +3309,18 @@ const PermissionsTable = ({ pages, handlePermissionChange, handleSelectAll, isCo
                                         {page.filteredColumns.map((column) => (
                                             <Badge
                                                 key={column}
-                                                variant={isColumnSelected(page.name, column) ? "default" : "outline"}
-                                                className="cursor-pointer px-3 py-1.5 text-sm"
+                                                className={`cursor-pointer px-3 py-1.5 text-sm border ${isColumnSelected(page.name, column)
+                                                        ? 'bg-green-100 text-green-800 border-green-300'
+                                                        : highlightedColumns.includes(column)
+                                                            ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                                                            : 'bg-white text-gray-800 border-gray-300'
+                                                    }`}
                                                 onClick={() => handlePermissionChange(page.name, column)}
                                             >
                                                 {column}
                                             </Badge>
+
+
                                         ))}
                                     </div>
                                 </TableCell>
