@@ -192,14 +192,14 @@ exports.deleteRole = async (req, res) => {
         if (!roleID) {
             return res.status(400).json({ success: false, message: "Role ID is required" });
         }
-        console.log("ABc")
+        // // console.log("ABc")
 
         const roleResult = await Role.deleteOne({ _id: roleID });
-        console.log("ABc")
+        // console.log("ABc")
 
         const permissionResult = await Permission.deleteOne({ role: roleID });
 
-        console.log("ABc")
+        // console.log("ABc")
 
         res.status(200).json({
             success: true,
