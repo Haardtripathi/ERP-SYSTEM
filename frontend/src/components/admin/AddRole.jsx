@@ -2691,6 +2691,21 @@ const highlightedColumns = [
     "_id", "dispatchedId", "dataId", "isDispatched", "isHold", "isCancelled",
     "payment_received", "confirmedId", "isDelivered", "isComplain", "isReturn", "is_sent_to_pending"
 ]
+const pageToActionsMap = {
+    "/leads": ["send", "update", "delete"],
+    "/incoming": ["send", "update", "delete"],
+    "/workbook": ["send", "update", "delete"],
+    "/pending": ["send", "update", "delete"],
+    "/confirmed": ["action", "delete"],
+    "/sheet-generator": ["download", "delete"],
+    "/labels-generator": ["generate_label", "delete"],
+    "/dispatched": ["update_location", "delete", "delivered"],
+    "/delivered": ["delete"],
+    "/complain": ["delete"],
+    "/return": ["delete"],
+    "/payment": ["delete"]
+};
+
 const AddRole = () => {
     const navigate = useNavigate()
     const [roleName, setRoleName] = useState("")
@@ -2998,32 +3013,47 @@ const AddRole = () => {
 
     // Get all columns for the current section and type
     const getAllColumnsForCurrentSection = () => {
-        if (!availablePages[currentSectionIndex]) return []
+        if (!availablePages[currentSectionIndex]) return [];
 
-        const pagesOfType = availablePages[currentSectionIndex].pages.filter((page) => page.type === activeTab)
+        const pagesOfType = availablePages[currentSectionIndex].pages.filter(
+            (page) => page.type === activeTab
+        );
 
-        // If showing only selected, filter the pages
+        // If showing only selected columns
         if (showSelected) {
             return pagesOfType
                 .map((page) => {
                     const selectedColumns = page.columns.filter(
                         (col) =>
                             isColumnSelected(page.name, col) &&
-                            (!searchFilter || col.toLowerCase().includes(searchFilter.toLowerCase())),
-                    )
-                    return { ...page, filteredColumns: selectedColumns }
+                            (!searchFilter ||
+                                col.toLowerCase().includes(searchFilter.toLowerCase()))
+                    );
+                    // Get action columns from the map, if available
+                    const actionColumns = pageToActionsMap[page.name] || [];
+                    // Merge selected columns with action columns (remove duplicates)
+                    const mergedColumns = Array.from(
+                        new Set([...selectedColumns, ...actionColumns])
+                    );
+                    return { ...page, filteredColumns: mergedColumns };
                 })
-                .filter((page) => page.filteredColumns.length > 0)
+                .filter((page) => page.filteredColumns.length > 0);
         }
 
-        // Otherwise, just filter by search term
+        // Otherwise, just get filtered columns and merge with action columns
         return pagesOfType.map((page) => {
             const filteredColumns = page.columns.filter(
-                (col) => !searchFilter || col.toLowerCase().includes(searchFilter.toLowerCase()),
-            )
-            return { ...page, filteredColumns }
-        })
-    }
+                (col) => !searchFilter || col.toLowerCase().includes(searchFilter.toLowerCase())
+            );
+            // Get action columns from the map, if available
+            const actionColumns = pageToActionsMap[page.name] || [];
+            // Merge filteredColumns with actionColumns (remove duplicates)
+            const mergedColumns = Array.from(
+                new Set([...filteredColumns, ...actionColumns])
+            );
+            return { ...page, filteredColumns: mergedColumns };
+        });
+    };
     return (
         <div className="w-full max-w-6xl mx-auto p-4">
             <Card className="shadow-md border">
@@ -3310,18 +3340,19 @@ const PermissionsTable = ({ pages, handlePermissionChange, handleSelectAll, isCo
                                             <Badge
                                                 key={column}
                                                 className={`cursor-pointer px-3 py-1.5 text-sm border ${isColumnSelected(page.name, column)
-                                                        ? 'bg-green-100 text-green-800 border-green-300'
-                                                        : highlightedColumns.includes(column)
-                                                            ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                                                    ? 'bg-green-100 text-green-800 border-green-800'
+                                                    : highlightedColumns.includes(column)
+                                                        ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                                                        : pageToActionsMap[page.name] && pageToActionsMap[page.name].includes(column)
+                                                            ? 'bg-red-100 text-red-800 border-red-300'
                                                             : 'bg-white text-gray-800 border-gray-300'
                                                     }`}
                                                 onClick={() => handlePermissionChange(page.name, column)}
                                             >
                                                 {column}
                                             </Badge>
-
-
                                         ))}
+
                                     </div>
                                 </TableCell>
                                 {/* <TableCell className="text-right">

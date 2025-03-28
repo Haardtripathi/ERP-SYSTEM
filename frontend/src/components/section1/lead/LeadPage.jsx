@@ -3539,9 +3539,9 @@ const LeadPage = () => {
                                                 color="#007BFF"
                                                 strokeWidth={2}
                                                 style={{
-                                                    cursor: item.is_sent_to_pending || !permissions?.canUpdate ? "not-allowed" : "pointer",
+                                                    cursor: item.is_sent_to_pending ? "not-allowed" : "pointer",
                                                     transition: "transform 0.2s ease",
-                                                    opacity: item.is_sent_to_pending || !permissions?.canUpdate ? 0.5 : 1,
+                                                    opacity: item.is_sent_to_pending  ? 0.5 : 1,
                                                 }}
                                                 onClick={() =>
                                                     !item.is_sent_to_pending &&

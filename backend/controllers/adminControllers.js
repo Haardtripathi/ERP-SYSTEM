@@ -218,7 +218,7 @@ exports.getPagesAndColumns = async (req, res) => {
         const sections = [
             {
                 section: "Lead Management",
-                models: { Lead: Lead.schema.paths },
+                models: { Lead: Lead.schema.paths, },
                 view: { pages: ["/leads"] },
                 edit: { pages: ["/add-lead-data", "/edit-lead-data/:id"] }
             },
@@ -255,7 +255,7 @@ exports.getPagesAndColumns = async (req, res) => {
                     pages: ["/pending"] // ✅ Add more if needed
                 },
                 edit: {
-                    pages: ["/edit-pending-data/:id", "/send-lead-data-to-pending/:id", "/send-incoming-data-to-pending/:id"] // ✅ Optional: add more here
+                    pages: ["/edit-pending-data/:id"] // ✅ Optional: add more here
                 }
             },
             {
@@ -395,6 +395,10 @@ exports.getPagesAndColumns = async (req, res) => {
                     });
                 }
             });
+            // allColumnsInSection.add("delete");
+            // allColumnsInSection.add("update");
+
+
 
 
             // Convert Set to Array for consistent ordering
