@@ -321,7 +321,51 @@ exports.getPagesAndColumns = async (req, res) => {
                 models: {
                     Complain: Object.keys(Complain.schema.paths).filter(
                         key => !["__v", "createdAt", "updatedAt"].includes(key)
-                    )
+                    ),
+
+                    Dispatched: Object.keys(Dispatched.schema.paths).filter(
+                        key => !["__v",
+                            "createdAt",
+                            "updatedAt",
+                            "confirmedId",
+                            "date",
+                            "time",
+                            "location_and_date",
+                            "isDeleted",
+                            "isDelivered",
+                            "deliveredDate",
+                            "returnDate",
+                            "isComplain",
+                            "isReturn"].includes(key)
+                    ),
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(
+                        key => !["__v",
+                            "createdAt",
+                            "updatedAt",
+                            "dataId",
+                            "date",
+                            "time",
+                            "data",
+                            "source",
+                            "payment_type",
+                            "sale_type",
+                            "agent_name",
+                            "email",
+                            "status",
+                            "remark",
+                            "comment",
+                            "shipment_type",
+                            "post_type",
+                            "post",
+                            "disease",
+                            "amount",
+                            "products",
+                            "isDispatched",
+                            "isHold",
+                            "isCancelled",
+                            "isDeleted",
+                            "location_and_date"].includes(key)
+                    ),
                 },
                 view: {
                     pages: ["/complain"] // ✅ Add more if needed
@@ -335,7 +379,44 @@ exports.getPagesAndColumns = async (req, res) => {
                 models: {
                     Return: Object.keys(Return.schema.paths).filter(
                         key => !["__v", "createdAt", "updatedAt"].includes(key)
-                    )
+                    ),
+                    Dispatched: Object.keys(Dispatched.schema.paths).filter(
+                        key => !["__v",
+                            "createdAt",
+                            "updatedAt",
+                            "confirmedId",
+                            "date",
+                            "time",
+                            "location_and_date",
+                            "isDeleted",
+                            "isDelivered",
+                            "deliveredDate",
+                            "returnDate",
+                            "isComplain",
+                            "isReturn"].includes(key)
+                    ),
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(
+                        key => !["__v",
+                            "createdAt",
+                            "updatedAt",
+                            "dataId",
+                            "date",
+                            "time",
+                            "data",
+                            "source",
+                            "email",
+                            "status",
+                            "remark",
+                            "comment",
+                            "post_type",
+                            "post",
+                            "disease",
+                            "isDispatched",
+                            "isHold",
+                            "isCancelled",
+                            "isDeleted",
+                            "location_and_date"].includes(key)
+                    ),
                 },
                 view: {
                     pages: ["/return"] // ✅ Add more if needed
@@ -349,7 +430,44 @@ exports.getPagesAndColumns = async (req, res) => {
                 models: {
                     Delivered: Object.keys(Delivered.schema.paths).filter(
                         key => !["__v", "createdAt", "updatedAt"].includes(key)
-                    )
+                    ),
+                    Dispatched: Object.keys(Dispatched.schema.paths).filter(
+                        key => !["__v",
+                            "createdAt",
+                            "updatedAt",
+                            "confirmedId",
+                            "date",
+                            "time",
+                            "location_and_date",
+                            "isDeleted",
+                            "isDelivered",
+                            "deliveredDate",
+                            "returnDate",
+                            "isComplain",
+                            "isReturn"].includes(key)
+                    ),
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(
+                        key => !["__v",
+                            "createdAt",
+                            "updatedAt",
+                            "dataId",
+                            "date",
+                            "time",
+                            "data",
+                            "source",
+                            "email",
+                            "status",
+                            "remark",
+                            "comment",
+                            "post_type",
+                            "post",
+                            "disease",
+                            "isDispatched",
+                            "isHold",
+                            "isCancelled",
+                            "isDeleted",
+                            "location_and_date"].includes(key)
+                    ),
                 },
                 view: {
                     pages: ["/delivered"] // ✅ Add more if needed
@@ -363,7 +481,29 @@ exports.getPagesAndColumns = async (req, res) => {
                 models: {
                     Payment: Object.keys(Payment.schema.paths).filter(
                         key => !["__v", "createdAt", "updatedAt"].includes(key)
-                    )
+                    ),
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(
+                        key => !["__v",
+                            "createdAt",
+                            "updatedAt",
+                            "dataId",
+                            "date",
+                            "time",
+                            "data",
+                            "source",
+                            "email",
+                            "status",
+                            "remark",
+                            "comment",
+                            "post_type",
+                            "post",
+                            "disease",
+                            "isDispatched",
+                            "isHold",
+                            "isCancelled",
+                            "isDeleted",
+                            "location_and_date"].includes(key)
+                    ),
                 },
                 view: {
                     pages: ["/payment"] // ✅ Add more if needed

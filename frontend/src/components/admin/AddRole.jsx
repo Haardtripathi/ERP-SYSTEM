@@ -2709,7 +2709,7 @@ const pageToActionsMap = {
     "/delivered": [],
     "/complain": [],
     "/return": [],
-    "/payment": []
+    "/payment": ["Payment"]
 };
 
 const AddRole = () => {

@@ -76,7 +76,7 @@ const dispatchedSchema = new Schema(
             required: true,
             ref: 'Confirmed',
         },
-        date: {
+        date_dispatched: {
             type: String,
             default: () => {
                 const now = new Date();
