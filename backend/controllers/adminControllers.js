@@ -303,17 +303,17 @@ exports.getPagesAndColumns = async (req, res) => {
             {
                 section: "Dispatched Management",
                 models: {
-                    // Workbook fields (including nested 'data')
+
                     Dispatched: Object.keys(Dispatched.schema.paths).filter(key =>
                         !["__v", "createdAt", "updatedAt"].includes(key)
                     ),
 
-                    // Lead fields (shared with Incoming)
+
                     Confirmed: Object.keys(Confirmed.schema.paths).filter(key =>
                         !["__v", "createdAt", "updatedAt", "isHold", "isCancelled",].includes(key)
                     )
                 },
-                view: { pages: ["/confirmed"] },
+                view: { pages: ["/dispatched"] },
                 edit: { pages: [] }
             },
             {

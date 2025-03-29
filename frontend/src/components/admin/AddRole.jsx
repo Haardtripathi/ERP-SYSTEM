@@ -2698,12 +2698,18 @@ const pageToActionsMap = {
     "/pending": ["send", "update", "delete"],
     "/confirmed": ["action", "delete"],
     "/sheet-generator": ["download", "delete"],
-    "/labels-generator": ["generate_label", "delete"],
+    // "/labels-generator": ["generate_label", "delete"],
+    "/labels-generator": ["generate_label"],
+
     "/dispatched": ["update_location", "delete", "delivered"],
-    "/delivered": ["delete"],
-    "/complain": ["delete"],
-    "/return": ["delete"],
-    "/payment": ["delete"]
+    // "/delivered": ["delete"],
+    // "/complain": ["delete"],
+    // "/return": ["delete"],
+    // "/payment": ["delete"]
+    "/delivered": [],
+    "/complain": [],
+    "/return": [],
+    "/payment": []
 };
 
 const AddRole = () => {
