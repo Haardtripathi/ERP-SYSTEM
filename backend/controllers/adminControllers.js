@@ -73,7 +73,7 @@ exports.addRole = async (req, res) => {
     try {
 
         const { roleName, permissions } = req.body;
-
+        console.log(roleName, permissions)
         // Create a new role
         const role = new Role({ name: roleName });
         await role.save();
