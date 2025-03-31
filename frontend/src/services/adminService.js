@@ -4,6 +4,7 @@ import axiosInstance from '../axiosInstance';
 
 export const getAllRoles = async () => {
     const response = await axiosInstance.get("/admin/roles");
+    console.log(response)
     return response.data;
 };
 

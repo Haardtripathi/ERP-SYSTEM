@@ -35,13 +35,13 @@ exports.getAllRolesAndPermissions = async (req, res) => {
             })
         );
         // console.log(rolesWithPermissions)
-        console.log("ABC")
-        const roleName = req.user.role
+        // console.log("ABC")
+        // const roleName = req.user.role
 
-        const userRole = await Role.findOne({ name: roleName })
-        const permissions = await Permission.findOne({ role: userRole._id })
+        // const userRole = await Role.findOne({ name: roleName })
+        // const permissions = await Permission.findOne({ role: userRole._id })
 
-        console.log(permissions)
+        // console.log(permissions)
 
         res.status(200).json(rolesWithPermissions);
     } catch (error) {

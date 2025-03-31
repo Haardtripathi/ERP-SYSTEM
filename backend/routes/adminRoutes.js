@@ -13,9 +13,7 @@ router.get('/edit-user-data/:id', isAuthenticated, isAdmin, adminController.getU
 router.post('/edit-user', isAdmin, adminController.editUserData);
 
 
-// router.post("/add-role", isAuthenticated, isAdmin, addRole);
 router.post("/add-role", isAuthenticated, isAdmin, addRole);
-
 router.get("/edit-role-data/:id", isAuthenticated, isAdmin, getUpdateRole);
 
 router.post("/edit-role-data", isAuthenticated, isAdmin, postUpdateRole);

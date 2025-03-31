@@ -12,9 +12,8 @@ export const postAddIncoming = async (data) => {
     return response;
 };
 
-
-export const getAllIncoming = async () => {
-    const response = await axiosInstance.get(`/incoming/get-incoming-data`);
+export const getAllIncoming = async (queryString = "") => {
+    const response = await axiosInstance.get(`/incoming/get-incoming-data?${queryString}`,);
     return response;
 };
 
