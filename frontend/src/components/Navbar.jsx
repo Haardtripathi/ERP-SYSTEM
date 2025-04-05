@@ -31,7 +31,7 @@ const Navbar = () => {
             <h1 className="text-lg font-semibold text-gray-800">
                 <Link to="/" className="flex items-center">
                     <Home className="mr-2 text-gray-600" size={20} />
-                    App
+                    ERP System
                 </Link>
             </h1>
 

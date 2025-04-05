@@ -343,6 +343,7 @@ const EditRolePage = () => {
         }
 
         try {
+            console.log(id, { roleName, permissions: filteredPermissions })
             await updateRole(id, { roleName, permissions: filteredPermissions })
             toast.success("Role updated successfully!")
             navigate("/roles")

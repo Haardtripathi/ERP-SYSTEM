@@ -165,15 +165,15 @@ exports.getUpdateRole = async (req, res) => {
 
 exports.postUpdateRole = async (req, res) => {
     const roleData = req.body
-    // console.log(roleData)
-    const roleName = roleData.name
-    const rolePermissions = roleData.permissions
-    // console.log(roleName, rolePermissions)
-    const role = await Role.findOne({ _id: roleData._id })
+    console.log(roleData)
+    const roleName = roleData.data.roleName
+    const rolePermissions = roleData.data.permissions
+    console.log(roleName, rolePermissions)
+    const role = await Role.findOne({ _id: roleData.id })
     role.name = roleName
     await role.save()
 
-    const permission = await Permission.findOne({ role: roleData._id })
+    const permission = await Permission.findOne({ role: roleData.id })
     permission.permissions = rolePermissions
 
     await permission.save()

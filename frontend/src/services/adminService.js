@@ -22,9 +22,10 @@ export const deleteRole = async (id) => {
     return response.data;
 };
 
-export const updateRole = async (data) => {
-    const response = await axiosInstance.post(`/admin/edit-role-data`, { data });
-    // return response.data;
+export const updateRole = async (id, data) => {
+    console.log(data)
+    const response = await axiosInstance.post(`/admin/edit-role-data`, { id, data });
+    return response.data;
 }
 
 // Fetch available pages and columns
