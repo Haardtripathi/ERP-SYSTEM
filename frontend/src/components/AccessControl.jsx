@@ -142,7 +142,7 @@ const useAccessControl = (page = null) => {
 
                 const url = page ? `/permissions?page=${page}` : `/permissions`; // Handle both cases
                 const response = await axiosInstance.get(url);
-
+                console.log(response)
                 if (response.status === 403) {
                     navigate("/not-authorized"); // Redirect if no access
                     return;

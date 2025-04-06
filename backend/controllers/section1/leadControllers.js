@@ -112,7 +112,6 @@ exports.postAddLeadData = async (req, res) => {
 };
 
 exports.getAllLeadData = async (req, res) => {
-    console.log(req.query)
     const token = req.header("Authorization").split(" ")[1]
 
     try {
