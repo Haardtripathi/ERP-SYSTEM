@@ -112,6 +112,7 @@ exports.postAddLeadData = async (req, res) => {
 };
 
 exports.getAllLeadData = async (req, res) => {
+    console.log(req.query)
     const token = req.header("Authorization").split(" ")[1]
 
     try {
@@ -119,13 +120,16 @@ exports.getAllLeadData = async (req, res) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET)
         const user = decoded
 
+
+
+
         // Get page and limit from query parameters (default: page 1, limit 10)
         const page = Number.parseInt(req.query.page, 10) || 1
         const limit = Number.parseInt(req.query.limit, 10) || 10
         const skip = (page - 1) * limit
 
         // Get filter from query parameters (default: all)
-        const filter = req.query.filter || "all"
+        const filter = req.query.status
 
         const query = { isDeleted: false }
 
@@ -135,11 +139,12 @@ exports.getAllLeadData = async (req, res) => {
         }
 
         // Apply filter based on sent status
-        if (filter === "issent") {
-            query.isSent = true
-        } else if (filter === "isnotsent") {
-            query.isSent = false
+        if (filter === "true") {
+            query.is_sent_to_pending = true;
+        } else if (filter === "false") {
+            query.is_sent_to_pending = false;
         }
+
         // For "all", we don't add any additional filter
 
         // Fetch paginated data

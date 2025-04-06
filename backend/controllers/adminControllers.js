@@ -73,7 +73,6 @@ exports.addRole = async (req, res) => {
     try {
 
         const { roleName, permissions } = req.body;
-        console.log(roleName, permissions)
         // Create a new role
         const role = new Role({ name: roleName });
         await role.save();
@@ -165,10 +164,8 @@ exports.getUpdateRole = async (req, res) => {
 
 exports.postUpdateRole = async (req, res) => {
     const roleData = req.body
-    console.log(roleData)
     const roleName = roleData.data.roleName
     const rolePermissions = roleData.data.permissions
-    console.log(roleName, rolePermissions)
     const role = await Role.findOne({ _id: roleData.id })
     role.name = roleName
     await role.save()
@@ -185,7 +182,6 @@ exports.postUpdateRole = async (req, res) => {
 
 
 exports.deleteRole = async (req, res) => {
-    console.log(req.body)
     try {
         const { roleID } = req.body;
 
