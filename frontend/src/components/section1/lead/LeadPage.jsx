@@ -158,7 +158,7 @@ const LeadPage = () => {
             // console.log(`API call URL params: ${queryString}`)
 
             // Make the API call with the constructed query parameters
-            const response = await getAllLead(queryString)
+            const response = await getAllLead(queryString,)
             // console.log("API Response:", response)
 
             // Store debug info
@@ -813,33 +813,36 @@ const LeadPage = () => {
                                             </TableCell>
                                         )}
                                         {/* Actions */}
-                                        <TableCell>
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200"
-                                                        disabled={item.is_sent_to_pending || !permissions?.delete}
-                                                    >
-                                                        <Trash2 className="h-5 w-5 text-red-500" />
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            This action cannot be undone. This will permanently delete the selected record.
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => permissions?.canDelete && handleDelete(item._id)}>
-                                                            Delete
-                                                        </AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        </TableCell>
+                                        {hasColumnPermission("delete") && (
+                                            <TableCell>
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200"
+                                                            disabled={item.is_sent_to_pending}
+                                                        >
+                                                            <Trash2 className="h-5 w-5 text-red-500" />
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                This action cannot be undone. This will permanently delete the selected record.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => permissions?.canDelete && handleDelete(item._id)}>
+                                                                Delete
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </TableCell>
+
+                                        )}
                                     </TableRow>
                                 ))
                             )}
