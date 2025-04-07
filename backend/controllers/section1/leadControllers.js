@@ -111,46 +111,72 @@ exports.postAddLeadData = async (req, res) => {
     }
 };
 
+// Escape regex characters to avoid MongoDB crash
+const escapeRegex = (input) => {
+    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 exports.getAllLeadData = async (req, res) => {
-    const token = req.header("Authorization").split(" ")[1]
+    const token = req.header("Authorization").split(" ")[1];
 
     try {
-        // Decode JWT token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET)
-        const user = decoded
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = decoded;
 
+        const page = Number.parseInt(req.query.page, 10) || 1;
+        const limit = Number.parseInt(req.query.limit, 10) || 10;
+        const skip = (page - 1) * limit;
 
+        const filter = req.query.status;
+        const rawSearch = req.query.search || "";
+        const searchColumn = req.query.searchColumn || "";
+        const isNumeric = !isNaN(rawSearch);
+        const regexSafeSearch = escapeRegex(rawSearch);
 
+        const query = { isDeleted: false };
 
-        // Get page and limit from query parameters (default: page 1, limit 10)
-        const page = Number.parseInt(req.query.page, 10) || 1
-        const limit = Number.parseInt(req.query.limit, 10) || 10
-        const skip = (page - 1) * limit
-
-        // Get filter from query parameters (default: all)
-        const filter = req.query.status
-
-        const query = { isDeleted: false }
-
-        // Apply user role-based filtering
         if (user.role !== "Admin") {
-            query["agent_name.value"] = user.agent_name
+            query["agent_name.value"] = user.agent_name;
         }
 
-        // Apply filter based on sent status
-        if (filter === "true") {
-            query.is_sent_to_pending = true;
-        } else if (filter === "false") {
-            query.is_sent_to_pending = false;
+        if (filter === "true") query.is_sent_to_pending = true;
+        else if (filter === "false") query.is_sent_to_pending = false;
+
+        // Apply search conditions
+        if (rawSearch) {
+            if (searchColumn) {
+                const isNested = ["agent_name", "state", "language", "disease", "remark", "source"].includes(searchColumn);
+                const searchField = isNested ? `${searchColumn}.value` : searchColumn;
+
+                if (["cm_phone", "alternate_phone", "age", "height", "weight"].includes(searchField) && isNumeric) {
+                    query[searchField] = Number(rawSearch);
+                } else {
+                    query[searchField] = { $regex: regexSafeSearch, $options: "i" };
+                }
+            } else {
+                query["$or"] = [
+                    { "cm_first_name": { $regex: regexSafeSearch, $options: "i" } },
+                    { "cm_last_name": { $regex: regexSafeSearch, $options: "i" } },
+                    ...(isNumeric ? [{ "cm_phone": Number(rawSearch) }] : []),
+                    ...(isNumeric ? [{ "alternate_phone": Number(rawSearch) }] : []),
+                    { "agent_name.value": { $regex: regexSafeSearch, $options: "i" } },
+                    { "language.value": { $regex: regexSafeSearch, $options: "i" } },
+                    { "disease.value": { $regex: regexSafeSearch, $options: "i" } },
+                    ...(isNumeric ? [{ "age": Number(rawSearch) }] : []),
+                    ...(isNumeric ? [{ "height": Number(rawSearch) }] : []),
+                    ...(isNumeric ? [{ "weight": Number(rawSearch) }] : []),
+                    { "state.value": { $regex: regexSafeSearch, $options: "i" } },
+                    { "city": { $regex: regexSafeSearch, $options: "i" } },
+                    { "remark.value": { $regex: regexSafeSearch, $options: "i" } },
+                    { "comment": { $regex: regexSafeSearch, $options: "i" } },
+                    { "date": { $regex: regexSafeSearch, $options: "i" } },
+                    { "source.value": { $regex: regexSafeSearch, $options: "i" } }
+                ];
+            }
         }
 
-        // For "all", we don't add any additional filter
-
-        // Fetch paginated data
-        const data = await Lead.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit)
-
-        // Get total count of documents matching the query
-        const totalCount = await Lead.countDocuments(query)
+        const data = await Lead.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit);
+        const totalCount = await Lead.countDocuments(query);
 
         return res.status(200).json({
             message: "Lead data fetched successfully.",
@@ -158,15 +184,20 @@ exports.getAllLeadData = async (req, res) => {
             totalCount,
             totalPages: Math.ceil(totalCount / limit),
             currentPage: page,
-            filter: filter, // Include the current filter in the response
-        })
+            filter: filter || null,
+            search: rawSearch,
+            searchColumn: searchColumn || null,
+        });
+
     } catch (error) {
-        console.error("Error fetching lead data:", error)
+        console.error("Error fetching lead data:", error);
         return res.status(500).json({
             message: "An error occurred while fetching lead data.",
-        })
+        });
     }
-}
+};
+
+
 
 
 

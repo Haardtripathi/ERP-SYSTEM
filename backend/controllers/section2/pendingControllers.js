@@ -47,65 +47,70 @@ const jwt = require('jsonwebtoken');
 //     }
 // }
 
+// Regex sanitizer
+const escapeRegex = (input) => {
+    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 exports.getAllPendingData = async (req, res) => {
     try {
-        console.log(req.query)
+        console.log(req.query);
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
         const skip = (page - 1) * limit;
 
-        const { search, searchColumn } = req.query;
+        const rawSearch = req.query.search || "";
+        const searchColumn = req.query.searchColumn || "";
+        const isNumeric = !isNaN(rawSearch);
+        const regexSafeSearch = escapeRegex(rawSearch);
 
         let query = { isDeleted: false };
 
-        // 🔍 Plain string fields (safe for regex)
+        // Fields categorized by type
         const plainStringFields = [
             'cm_first_name', 'cm_last_name', 'email', 'comment',
-            'address', 'post', 'district', 'city', 'pincode'
+            'address', 'post', 'district', 'city', 'pincode', "ref"
         ];
 
-        // 🔄 Object dropdowns — require `.value` in DB
         const dropdownFields = [
             'agent_name', 'source', 'data', 'remark', 'status',
             'state', 'disease', 'post_type', 'payment_type',
-            'sale_type', 'amount'
+            'sale_type'
         ];
 
-        const numberFields = ['cm_phone', 'alternate_phone'];
+        const numberFields = ['cm_phone', 'alternate_phone', 'amount'];
 
-        // Build search query
-        if (search) {
+        // 🔍 Build search
+        if (rawSearch) {
             if (searchColumn) {
                 let dbField = searchColumn;
-
                 if (dropdownFields.includes(searchColumn)) {
-                    dbField = `${searchColumn}.value`; // map to nested field
+                    dbField = `${searchColumn}.value`;
                 }
 
                 if (plainStringFields.includes(searchColumn) || dropdownFields.includes(searchColumn)) {
-                    query[dbField] = { $regex: search, $options: 'i' };
+                    query[dbField] = { $regex: regexSafeSearch, $options: 'i' };
                 } else if (numberFields.includes(searchColumn)) {
-                    const num = Number(search);
+                    const num = Number(rawSearch);
                     if (!isNaN(num)) query[dbField] = num;
                 }
             } else {
                 query.$or = [];
 
-                // Add plain string field searches
+                // String fields (regex safe)
                 plainStringFields.forEach(field => {
-                    query.$or.push({ [field]: { $regex: search, $options: 'i' } });
+                    query.$or.push({ [field]: { $regex: regexSafeSearch, $options: 'i' } });
                 });
 
-                // Add dropdown fields (.value)
+                // Dropdowns
                 dropdownFields.forEach(field => {
-                    query.$or.push({ [`${field}.value`]: { $regex: search, $options: 'i' } });
+                    query.$or.push({ [`${field}.value`]: { $regex: regexSafeSearch, $options: 'i' } });
                 });
 
-                // Add number field exact match
-                const num = Number(search);
-                if (!isNaN(num)) {
+                // Number fields
+                if (isNumeric) {
                     numberFields.forEach(field => {
-                        query.$or.push({ [field]: num });
+                        query.$or.push({ [field]: Number(rawSearch) });
                     });
                 }
             }
@@ -124,6 +129,8 @@ exports.getAllPendingData = async (req, res) => {
             totalCount,
             totalPages: Math.ceil(totalCount / limit),
             currentPage: page,
+            search: rawSearch,
+            searchColumn: searchColumn || null,
         });
 
     } catch (err) {
@@ -131,7 +138,6 @@ exports.getAllPendingData = async (req, res) => {
         return res.status(500).json({ message: "Failed to get pending data" });
     }
 };
-
 
 
 exports.getEditPendingData = async (req, res) => {

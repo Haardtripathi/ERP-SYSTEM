@@ -158,7 +158,7 @@ const LeadPage = () => {
             // console.log(`API call URL params: ${queryString}`)
 
             // Make the API call with the constructed query parameters
-            const response = await getAllLead(queryString,)
+            const response = await getAllLead(queryString)
             // console.log("API Response:", response)
 
             // Store debug info
@@ -234,7 +234,7 @@ const LeadPage = () => {
                 clearTimeout(searchTimeout)
             }
         }
-    }, [searchTerm, searchColumn])
+    }, [searchTerm]) // Only depend on searchTerm, not searchColumn
 
     const refreshData = async () => {
         setRefreshing(true)
@@ -375,8 +375,7 @@ const LeadPage = () => {
 
     const handleColumnSelect = (value) => {
         setSearchColumn(value)
-        // Reset to page 1 when changing search column
-        fetchData(1, itemsPerPage, searchTerm, value, filterStatus)
+        // Don't trigger a fetch here, let the search term effect handle it
     }
 
     const handleItemsPerPageChange = (value) => {
@@ -522,7 +521,7 @@ const LeadPage = () => {
                         </TooltipProvider>
 
                         {/* Column Selection Dropdown */}
-                        <Select onValueChange={handleColumnSelect} defaultValue="all">
+                        <Select value={searchColumn} onValueChange={handleColumnSelect} defaultValue="all">
                             <SelectTrigger className="w-[200px]">
                                 <SelectValue placeholder="Select column" />
                             </SelectTrigger>
@@ -679,14 +678,8 @@ const LeadPage = () => {
                                         </div>
                                     </TableHead>
                                 )}
-                                {hasColumnPermission("update") && (
-                                    <TableHead>Update</TableHead>
-
-                                )}
-                                {hasColumnPermission("delete") && (
-                                    <TableHead>Actions</TableHead>
-
-                                )}
+                                {hasColumnPermission("update") && <TableHead>Update</TableHead>}
+                                {hasColumnPermission("delete") && <TableHead>Actions</TableHead>}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -779,10 +772,7 @@ const LeadPage = () => {
                                         {/* Date & Time */}
                                         {hasColumnPermission("date") && (
                                             <TableCell>
-                                                <div>
-                                                    {item.date || ""}
-
-                                                </div>
+                                                <div>{item.date || ""}</div>
                                             </TableCell>
                                         )}
                                         {/* Update */}
@@ -798,16 +788,13 @@ const LeadPage = () => {
                                                         opacity: item.is_sent_to_pending ? 0.5 : 1,
                                                     }}
                                                     onClick={() =>
-                                                        !item.is_sent_to_pending &&
-                                                        handleUpdateClick(item._id, item.is_sent_to_pending)
+                                                        !item.is_sent_to_pending && handleUpdateClick(item._id, item.is_sent_to_pending)
                                                     }
                                                     onMouseOver={(e) =>
-                                                        !item.is_sent_to_pending &&
-                                                        (e.currentTarget.style.transform = "rotate(90deg)")
+                                                        !item.is_sent_to_pending && (e.currentTarget.style.transform = "rotate(90deg)")
                                                     }
                                                     onMouseOut={(e) =>
-                                                        !item.is_sent_to_pending &&
-                                                        (e.currentTarget.style.transform = "rotate(0deg)")
+                                                        !item.is_sent_to_pending && (e.currentTarget.style.transform = "rotate(0deg)")
                                                     }
                                                 />
                                             </TableCell>
@@ -841,7 +828,6 @@ const LeadPage = () => {
                                                     </AlertDialogContent>
                                                 </AlertDialog>
                                             </TableCell>
-
                                         )}
                                     </TableRow>
                                 ))
@@ -999,5 +985,4 @@ const LeadPage = () => {
 }
 
 export default LeadPage
-
 
