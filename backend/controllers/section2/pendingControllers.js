@@ -7,32 +7,117 @@ const Pending = require('../../models/Pending')
 const mongoose = require("mongoose")
 const jwt = require('jsonwebtoken');
 
+// exports.getAllPendingData = async (req, res) => {
+//     // const token = req.header('Authorization').split(" ")[1];
+//     try {
+//         console.log(req.query)
+//         // const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//         // const user = decoded.agent_name
+//         const page = parseInt(req.query.page, 10) || 1;
+//         const limit = parseInt(req.query.limit, 10) || 10;
+//         const skip = (page - 1) * limit;
+//         const data = await Pending.find({ isDeleted: false }).sort({ createdAt: -1 });
+
+//         // let data
+//         // let totalCount
+//         // if (user == "Panchved") {
+//         //     data = await Pending.find({ isDeleted: false })
+//         // }
+//         // else {
+//         //     data = await Pending.find({ isDeleted: false, "agent_name.value": user });
+//         // }
+//         const totalCount = await Pending.countDocuments({ isDeleted: false });
+
+//         // if (user == "Panchved") {
+//         //     totalCount = await Pending.countDocuments({ isDeleted: false });
+//         // }
+//         // else {
+//         //     totalCount = await Pending.countDocuments({ isDeleted: false, "agent_name.value": user })
+//         // }
+//         return res.status(200).json({
+//             message: "Pending data fetched successfully.",
+//             data,
+//             totalCount,
+//             totalPages: Math.ceil(totalCount / limit),
+//             currentPage: page,
+//         });
+//     }
+//     catch (err) {
+//         return res.status(500).json({ message: "Failed to get pending data" })
+//     }
+// }
+
 exports.getAllPendingData = async (req, res) => {
-    // const token = req.header('Authorization').split(" ")[1];
     try {
-        // const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        // const user = decoded.agent_name
+        console.log(req.query)
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
         const skip = (page - 1) * limit;
-        const data = await Pending.find({ isDeleted: false }).sort({ createdAt: -1 });
 
-        // let data
-        // let totalCount
-        // if (user == "Panchved") {
-        //     data = await Pending.find({ isDeleted: false })
-        // }
-        // else {
-        //     data = await Pending.find({ isDeleted: false, "agent_name.value": user });
-        // }
-        const totalCount = await Pending.countDocuments({ isDeleted: false });
+        const { search, searchColumn } = req.query;
 
-        // if (user == "Panchved") {
-        //     totalCount = await Pending.countDocuments({ isDeleted: false });
-        // }
-        // else {
-        //     totalCount = await Pending.countDocuments({ isDeleted: false, "agent_name.value": user })
-        // }
+        let query = { isDeleted: false };
+
+        // 🔍 Plain string fields (safe for regex)
+        const plainStringFields = [
+            'cm_first_name', 'cm_last_name', 'email', 'comment',
+            'address', 'post', 'district', 'city', 'pincode'
+        ];
+
+        // 🔄 Object dropdowns — require `.value` in DB
+        const dropdownFields = [
+            'agent_name', 'source', 'data', 'remark', 'status',
+            'state', 'disease', 'post_type', 'payment_type',
+            'sale_type', 'amount'
+        ];
+
+        const numberFields = ['cm_phone', 'alternate_phone'];
+
+        // Build search query
+        if (search) {
+            if (searchColumn) {
+                let dbField = searchColumn;
+
+                if (dropdownFields.includes(searchColumn)) {
+                    dbField = `${searchColumn}.value`; // map to nested field
+                }
+
+                if (plainStringFields.includes(searchColumn) || dropdownFields.includes(searchColumn)) {
+                    query[dbField] = { $regex: search, $options: 'i' };
+                } else if (numberFields.includes(searchColumn)) {
+                    const num = Number(search);
+                    if (!isNaN(num)) query[dbField] = num;
+                }
+            } else {
+                query.$or = [];
+
+                // Add plain string field searches
+                plainStringFields.forEach(field => {
+                    query.$or.push({ [field]: { $regex: search, $options: 'i' } });
+                });
+
+                // Add dropdown fields (.value)
+                dropdownFields.forEach(field => {
+                    query.$or.push({ [`${field}.value`]: { $regex: search, $options: 'i' } });
+                });
+
+                // Add number field exact match
+                const num = Number(search);
+                if (!isNaN(num)) {
+                    numberFields.forEach(field => {
+                        query.$or.push({ [field]: num });
+                    });
+                }
+            }
+        }
+
+        const totalCount = await Pending.countDocuments(query);
+
+        const data = await Pending.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
         return res.status(200).json({
             message: "Pending data fetched successfully.",
             data,
@@ -40,11 +125,14 @@ exports.getAllPendingData = async (req, res) => {
             totalPages: Math.ceil(totalCount / limit),
             currentPage: page,
         });
+
+    } catch (err) {
+        console.error("Error in getAllPendingData:", err);
+        return res.status(500).json({ message: "Failed to get pending data" });
     }
-    catch (err) {
-        return res.status(500).json({ message: "Failed to get pending data" })
-    }
-}
+};
+
+
 
 exports.getEditPendingData = async (req, res) => {
     const id = req.params.id

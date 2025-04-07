@@ -1,7 +1,7 @@
 import axiosInstance from '../axiosInstance'
 
-export const getAllPending = async () => {
-    const response = await axiosInstance.get(`/pending/get-pending-data`);
+export const getAllPending = async (queryString = "") => {
+    const response = await axiosInstance.get(`/pending/get-pending-data?${queryString}`);
     return response;
 };
 
