@@ -53,7 +53,7 @@
 
 // const SheetGenerator = () => {
 //     // State declarations remain the same
-//     const [confirmedData, setConfirmedData] = useState([])
+//     const [sheetData, setSheetData] = useState([])
 //     const [filteredData, setFilteredData] = useState([])
 //     const [currentPage, setCurrentPage] = useState(1)
 //     const [itemsPerPage] = useState(10)
@@ -73,7 +73,7 @@
 //         try {
 //             setIsLoading(true)
 //             const response = await getAllSheetsGenerator()
-//             setConfirmedData(response.data.data)
+//             setSheetData(response.data.data)
 //             setFilteredData(response.data.data)
 //             setTotalPages(Math.ceil(response.data.data.length / itemsPerPage))
 //         } catch (error) {
@@ -98,7 +98,7 @@
 
 //     // // Filter and pagination logic remains the same
 //     // const applyFiltersAndPaginate = useCallback(() => {
-//     //     const results = confirmedData.filter((item) => {
+//     //     const results = sheetData.filter((item) => {
 //     //         const shipmentType = item.shipment_type?.value || ""
 //     //         if (shipmentTypeFilter !== "all") {
 //     //             if (shipmentTypeFilter === "smartship") {
@@ -132,10 +132,10 @@
 
 //     //     const startIndex = (currentPage - 1) * itemsPerPage
 //     //     setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
-//     // }, [confirmedData, searchTerm, searchColumn, itemsPerPage, currentPage, shipmentTypeFilter])
+//     // }, [sheetData, searchTerm, searchColumn, itemsPerPage, currentPage, shipmentTypeFilter])
 
 //     const applyFiltersAndPaginate = useCallback(() => {
-//         const results = confirmedData.filter((item) => {
+//         const results = sheetData.filter((item) => {
 //             const shipmentType = item?.shipment_type?.value || ""; // Ensure safe access to nested properties
 
 //             if (shipmentTypeFilter !== "all") {
@@ -176,7 +176,7 @@
 
 //         const startIndex = (currentPage - 1) * itemsPerPage;
 //         setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage));
-//     }, [confirmedData, searchTerm, searchColumn, itemsPerPage, currentPage, shipmentTypeFilter]);
+//     }, [sheetData, searchTerm, searchColumn, itemsPerPage, currentPage, shipmentTypeFilter]);
 
 
 //     useEffect(() => {
@@ -786,10 +786,9 @@ const TableCell = ({ children, className }) => (
 
 const SheetGenerator = () => {
     // State declarations remain the same
-    const [confirmedData, setConfirmedData] = useState([])
+    const [sheetData, setSheetData] = useState([])
     const [filteredData, setFilteredData] = useState([])
     const [currentPage, setCurrentPage] = useState(1)
-    const [itemsPerPage] = useState(10)
     const [totalPages, setTotalPages] = useState(1)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -800,6 +799,7 @@ const SheetGenerator = () => {
     const [shipmentTypeFilter, setShipmentTypeFilter] = useState("all")
     const [isDownloading, setIsDownloading] = useState(false)
     const [refreshing, setRefreshing] = useState(false)
+    const [itemsPerPage, setItemsPerPage] = useState(10)
 
     // Add these state variables in the component
     const [columnPermissions, setColumnPermissions] = useState([])
@@ -841,7 +841,7 @@ const SheetGenerator = () => {
                 console.log("API Response:", response)
 
                 if (response.data && response.data.data) {
-                    setConfirmedData(response.data.data)
+                    setSheetData(response.data.data)
                     setFilteredData(response.data.data)
 
                     // Ensure totalCount is a number
@@ -859,14 +859,14 @@ const SheetGenerator = () => {
                     console.log(`Total count: ${count}, Total pages: ${pages}, Current page: ${responsePage}`)
                 } else {
                     console.error("Invalid response format:", response)
-                    setConfirmedData([])
+                    setSheetData([])
                     setFilteredData([])
                     setError("Invalid data format received from server")
                 }
             } catch (error) {
                 console.error("Error fetching sheet data:", error)
                 setError("Failed to fetch data. Please try again later.")
-                setConfirmedData([])
+                setSheetData([])
                 setFilteredData([])
             } finally {
                 setIsLoading(false)
@@ -945,10 +945,16 @@ const SheetGenerator = () => {
         // Check if the column name is in the permissions array
         return permissions.columns.includes(columnName)
     }
+    const handleItemsPerPageChange = (value) => {
+        const newItemsPerPage = Number.parseInt(value, 10)
+        setItemsPerPage(newItemsPerPage)
+        // Reset to page 1 when changing items per page
+        fetchData(1, newItemsPerPage, searchTerm, searchColumn)
+    }
 
     // // Filter and pagination logic remains the same
     // const applyFiltersAndPaginate = useCallback(() => {
-    //     const results = confirmedData.filter((item) => {
+    //     const results = sheetData.filter((item) => {
     //         const shipmentType = item.shipment_type?.value || ""
     //         if (shipmentTypeFilter !== "all") {
     //             if (shipmentTypeFilter === "smartship") {
@@ -982,10 +988,10 @@ const SheetGenerator = () => {
 
     //     const startIndex = (currentPage - 1) * itemsPerPage
     //     setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
-    // }, [confirmedData, searchTerm, searchColumn, itemsPerPage, currentPage, shipmentTypeFilter])
+    // }, [sheetData, searchTerm, searchColumn, itemsPerPage, currentPage, shipmentTypeFilter])
 
     const applyFiltersAndPaginate = useCallback(() => {
-        const results = confirmedData.filter((item) => {
+        const results = sheetData.filter((item) => {
             const shipmentType = item?.shipment_type?.value || "" // Ensure safe access to nested properties
 
             if (shipmentTypeFilter !== "all") {
@@ -1026,7 +1032,7 @@ const SheetGenerator = () => {
 
         const startIndex = (currentPage - 1) * itemsPerPage
         setPaginatedData(results.slice(startIndex, startIndex + itemsPerPage))
-    }, [confirmedData, searchTerm, searchColumn, itemsPerPage, currentPage, shipmentTypeFilter])
+    }, [sheetData, searchTerm, searchColumn, itemsPerPage, currentPage, shipmentTypeFilter])
 
     useEffect(() => {
         applyFiltersAndPaginate()
@@ -1313,7 +1319,7 @@ const SheetGenerator = () => {
     }
 
     // Update the initial loading check to include permissions loading
-    if (isLoading || loading) {
+    if (isLoading || sheetData.length == 0) {
         return (
             <div className="flex justify-center items-center h-screen">
                 <div className="text-center">
@@ -1422,7 +1428,6 @@ const SheetGenerator = () => {
                     <div className="flex items-center justify-between mb-4">
                         {/* Left Side: Filter Dropdown & Record Count */}
                         <div className="flex items-center space-x-2">
-                            {/* Shipment Type Filter */}
                             <Select onValueChange={handleShipmentTypeFilter} defaultValue="all">
                                 <SelectTrigger className="w-[180px]">
                                     <SelectValue placeholder="Filter" />
@@ -1434,41 +1439,69 @@ const SheetGenerator = () => {
                                     <SelectItem value="F2F">F2F</SelectItem>
                                 </SelectContent>
                             </Select>
-
-                            {/* Record Count Badge */}
                             <Badge variant="outline" className="mb-2">
                                 {filteredData.length} records found
                             </Badge>
                         </div>
 
-                        {/* Right Side: Download Buttons */}
-                        <div className="flex space-x-2">
-                            {shipmentTypeFilter === "Indian Post" && hasColumnPermission("download") && (
-                                <Button
-                                    onClick={() => downloadCSV("indian_post")}
-                                    className="flex items-center gap-2"
-                                    disabled={isDownloading || filteredData.length === 0}
-                                    variant="outline"
+                        {/* Right Side: Download Buttons & Rows per Page Dropdown */}
+                        <div className="flex items-center space-x-4">
+                            {/* Download Buttons */}
+                            <div className="flex space-x-2">
+                                {shipmentTypeFilter === "Indian Post" && hasColumnPermission("download") && (
+                                    <Button
+                                        onClick={() => downloadCSV("indian_post")}
+                                        className="flex items-center gap-2"
+                                        disabled={isDownloading || filteredData.length === 0}
+                                        variant="outline"
+                                    >
+                                        {isDownloading ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Download className="h-4 w-4" />
+                                        )}
+                                        Download Indian Post CSV
+                                    </Button>
+                                )}
+                                {shipmentTypeFilter === "smartship" && hasColumnPermission("download") && (
+                                    <Button
+                                        onClick={() => downloadCSV("smart_ship")}
+                                        className="flex items-center gap-2"
+                                        disabled={isDownloading || filteredData.length === 0}
+                                        variant="outline"
+                                    >
+                                        {isDownloading ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Download className="h-4 w-4" />
+                                        )}
+                                        Download SmartShip CSV
+                                    </Button>
+                                )}
+                            </div>
+                            {/* Rows-per-page Dropdown */}
+                            <div className="flex items-center space-x-1">
+                                <span className="text-sm text-gray-600">Rows per page:</span>
+                                <Select
+                                    onValueChange={handleItemsPerPageChange}
+                                    value={String(itemsPerPage)}
+                                    defaultValue="10"
                                 >
-                                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                                    Download Indian Post CSV
-                                </Button>
-                            )}
-
-                            {shipmentTypeFilter === "smartship" && hasColumnPermission("download") && (
-                                <Button
-                                    onClick={() => downloadCSV("smart_ship")}
-                                    className="flex items-center gap-2"
-                                    disabled={isDownloading || filteredData.length === 0}
-                                    variant="outline"
-                                >
-                                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                                    Download SmartShip CSV
-                                </Button>
-                            )}
+                                    <SelectTrigger className="w-[80px]">
+                                        <SelectValue>{itemsPerPage}</SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="5">5</SelectItem>
+                                        <SelectItem value="10">10</SelectItem>
+                                        <SelectItem value="20">20</SelectItem>
+                                        <SelectItem value="50">50</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </div>
                 </CardContent>
+
             </Card>
 
             {/* <Card>

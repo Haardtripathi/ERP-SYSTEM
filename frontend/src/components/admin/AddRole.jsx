@@ -2701,7 +2701,7 @@ const pageToActionsMap = {
     // "/labels-generator": ["generate_label", "delete"],
     "/labels-generator": ["generate_label"],
 
-    "/dispatched": ["update_location", "delete", "delivered"],
+    "/dispatched": ["update_location", "delete", "delivered", "raise_complain"],
     // "/delivered": ["delete"],
     // "/complain": ["delete"],
     // "/return": ["delete"],
@@ -3348,14 +3348,14 @@ const PermissionsTable = ({ pages, handlePermissionChange, handleSelectAll, isCo
                                             <Badge
                                                 key={column}
                                                 className={`cursor-pointer px-3 py-1.5 text-sm border ${isDeletedColumns.includes(column)
-                                                        ? 'bg-red-100 text-red-800 border-red-300'
-                                                        : isColumnSelected(page.name, column)
-                                                            ? 'bg-green-100 text-green-800 border-green-800'
-                                                            : pageToActionsMap[page.name] && pageToActionsMap[page.name].includes(column)
-                                                                ? 'bg-blue-100 text-blue-800 border-blue-300'
-                                                                : highlightedColumns.includes(column)
-                                                                    ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                                                                    : 'bg-white text-gray-800 border-gray-300'
+                                                    ? 'bg-red-100 text-red-800 border-red-300'
+                                                    : isColumnSelected(page.name, column)
+                                                        ? 'bg-green-100 text-green-800 border-green-800'
+                                                        : pageToActionsMap[page.name] && pageToActionsMap[page.name].includes(column)
+                                                            ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                                            : highlightedColumns.includes(column)
+                                                                ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                                                                : 'bg-white text-gray-800 border-gray-300'
                                                     }`}
                                                 onClick={() => handlePermissionChange(page.name, column)}
                                             >

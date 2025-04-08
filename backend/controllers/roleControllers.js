@@ -57,7 +57,7 @@ const Workbook = require("../models/Workbook");
 exports.getPermissions = async (req, res) => {
     try {
         const page = req.query.page; // Get page parameter from request
-
+        // console.log(page)
         // Find the role associated with the current user
         const role = await Role.findOne({ name: req.user.role });
 
@@ -67,7 +67,7 @@ exports.getPermissions = async (req, res) => {
 
         // Find all permissions for this role
         const permissionsDoc = await Permission.findOne({ role: role._id });
-
+        // console.log(permissionsDoc)
         if (!permissionsDoc) {
             return res.status(403).json({ message: "No permissions found for this role" });
         }
@@ -75,7 +75,7 @@ exports.getPermissions = async (req, res) => {
         // If a specific page is requested, filter for that page
         if (page) {
             const pagePermissions = permissionsDoc.permissions.find(p => p.page === page);
-
+            console.log(pagePermissions)
             if (!pagePermissions) {
                 return res.status(403).json({ message: "No permissions found for this page" });
             }

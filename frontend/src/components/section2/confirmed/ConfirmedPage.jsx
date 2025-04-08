@@ -1185,10 +1185,10 @@ const ConfirmedPage = () => {
     }
 
     const handleStateChange = async (id, ref, value) => {
-        if (!hasColumnPermission("update")) {
-            toast.error("You don't have permission to update confirmed items")
-            return
-        }
+        // if (!hasColumnPermission("update")) {
+        //     toast.error("You don't have permission to update confirmed items")
+        //     return
+        // }
 
         try {
             // If the current state is already cancelled, do nothing
@@ -1221,10 +1221,10 @@ const ConfirmedPage = () => {
     }
 
     const handleEditAwb = (id, currentAwb) => {
-        if (!hasColumnPermission("update")) {
-            toast.error("You don't have permission to update AWB numbers")
-            return
-        }
+        // if (!hasColumnPermission("update")) {
+        //     toast.error("You don't have permission to update AWB numbers")
+        //     return
+        // }
 
         // Prevent editing AWB if the row is cancelled or on hold
         const currentItem = confirmedData.find(item => item._id === id)
@@ -1235,10 +1235,10 @@ const ConfirmedPage = () => {
     }
 
     const handleAddAwb = async (id, ref) => {
-        if (!hasColumnPermission("update")) {
-            toast.error("You don't have permission to update AWB numbers")
-            return
-        }
+        // if (!hasColumnPermission("awb_number")) {
+        //     toast.error("You don't have permission to update AWB numbers")
+        //     return
+        // }
 
         // Prevent adding AWB if the row is cancelled or on hold
         const currentItem = confirmedData.find(item => item._id === id)
@@ -1300,7 +1300,7 @@ const ConfirmedPage = () => {
     }
 
     const renderAwbNumberColumn = (item) => {
-        if (!hasColumnPermission("update")) {
+        if (!hasColumnPermission("awb_number")) {
             return <span className="text-sm">{item.awb_number || "N/A"}</span>
         }
 

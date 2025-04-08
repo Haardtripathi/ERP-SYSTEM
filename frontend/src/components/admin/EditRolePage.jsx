@@ -829,7 +829,7 @@ const pageToActionsMap = {
     // "/labels-generator": ["generate_label", "delete"],
     "/labels-generator": ["generate_label"],
 
-    "/dispatched": ["update_location", "delete", "delivered"],
+    "/dispatched": ["update_location", "delete", "delivered", "raise_complain"],
     // "/delivered": ["delete"],
     // "/complain": ["delete"],
     // "/return": ["delete"],
