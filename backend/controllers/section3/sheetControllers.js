@@ -2,6 +2,7 @@ const Confirmed = require('../../models/Confirmed')
 
 
 module.exports.getAllSheetData = async (req, res) => {
+    console.log(req.query)
     try {
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;

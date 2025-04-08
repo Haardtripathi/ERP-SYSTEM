@@ -54,7 +54,6 @@ const escapeRegex = (input) => {
 
 exports.getAllPendingData = async (req, res) => {
     try {
-        console.log(req.query);
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
         const skip = (page - 1) * limit;
@@ -64,29 +63,17 @@ exports.getAllPendingData = async (req, res) => {
         const isNumeric = !isNaN(rawSearch);
         const regexSafeSearch = escapeRegex(rawSearch);
 
-        let query = { isDeleted: false };
-
-        // Fields categorized by type
-        const plainStringFields = [
-            'cm_first_name', 'cm_last_name', 'email', 'comment',
-            'address', 'post', 'district', 'city', 'pincode', "ref"
-        ];
-
-        const dropdownFields = [
-            'agent_name', 'source', 'data', 'remark', 'status',
-            'state', 'disease', 'post_type', 'payment_type',
-            'sale_type'
-        ];
-
+        const plainStringFields = ['cm_first_name', 'cm_last_name', 'email', 'comment', 'address', 'post', 'district', 'city', 'pincode', 'ref'];
+        const dropdownFields = ['agent_name', 'source', 'data', 'remark', 'status', 'state', 'disease', 'post_type', 'payment_type', 'sale_type'];
         const numberFields = ['cm_phone', 'alternate_phone', 'amount'];
 
-        // 🔍 Build search
+        let query = { isDeleted: false };
+
         if (rawSearch) {
             if (searchColumn) {
-                let dbField = searchColumn;
-                if (dropdownFields.includes(searchColumn)) {
-                    dbField = `${searchColumn}.value`;
-                }
+                let dbField = dropdownFields.includes(searchColumn)
+                    ? `${searchColumn}.value`
+                    : searchColumn;
 
                 if (plainStringFields.includes(searchColumn) || dropdownFields.includes(searchColumn)) {
                     query[dbField] = { $regex: regexSafeSearch, $options: 'i' };
@@ -97,22 +84,23 @@ exports.getAllPendingData = async (req, res) => {
             } else {
                 query.$or = [];
 
-                // String fields (regex safe)
                 plainStringFields.forEach(field => {
                     query.$or.push({ [field]: { $regex: regexSafeSearch, $options: 'i' } });
                 });
 
-                // Dropdowns
                 dropdownFields.forEach(field => {
                     query.$or.push({ [`${field}.value`]: { $regex: regexSafeSearch, $options: 'i' } });
                 });
 
-                // Number fields
                 if (isNumeric) {
                     numberFields.forEach(field => {
                         query.$or.push({ [field]: Number(rawSearch) });
                     });
                 }
+
+                // Product-based search (array of objects)
+                query.$or.push({ "products.value": { $elemMatch: { product: { $regex: regexSafeSearch, $options: 'i' } } } });
+                query.$or.push({ "products.value": { $elemMatch: { product_id: { $regex: regexSafeSearch, $options: 'i' } } } });
             }
         }
 
@@ -138,6 +126,7 @@ exports.getAllPendingData = async (req, res) => {
         return res.status(500).json({ message: "Failed to get pending data" });
     }
 };
+
 
 
 exports.getEditPendingData = async (req, res) => {
