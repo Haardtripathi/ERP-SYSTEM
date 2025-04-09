@@ -1319,7 +1319,7 @@ const SheetGenerator = () => {
     }
 
     // Update the initial loading check to include permissions loading
-    if (isLoading || sheetData.length == 0) {
+    if (isLoading && sheetData.length == 0) {
         return (
             <div className="flex justify-center items-center h-screen">
                 <div className="text-center">

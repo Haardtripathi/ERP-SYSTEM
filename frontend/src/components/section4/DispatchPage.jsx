@@ -2254,13 +2254,7 @@ const DispatchPage = () => {
                                                             </div>
                                                         ))}
                                                         {item.location_and_date["CITY"] && !item.isReturn && hasColumnPermission("delivered") && (
-                                                            <Button
-                                                                variant="default"
-                                                                size="sm"
-                                                                className="mt-2 bg-blue-500 hover:bg-blue-600 text-white"
-                                                                onClick={() => handleDelivered(item._id)}
-                                                                disabled={item.isDelivered}
-                                                            >
+                                                            <Button variant="default" size="sm" className="mt-2 bg-blue-500 hover:bg-blue-600 text-white" onClick={() => handleDelivered(item._id)} disabled={item.isDelivered} >
                                                                 Delivered
                                                             </Button>
                                                         )}

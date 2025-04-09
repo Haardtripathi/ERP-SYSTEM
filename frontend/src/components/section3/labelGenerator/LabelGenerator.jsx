@@ -1709,7 +1709,7 @@ const LabelGenerator = () => {
     }
 
     // Update the initial loading check to include permissions loading
-    if (isLoading || labelData.length == 0) {
+    if (isLoading && labelData.length == 0) {
         return (
             <div className="flex justify-center items-center h-screen">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-500" />

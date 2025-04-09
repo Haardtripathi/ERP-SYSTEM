@@ -1,8 +1,8 @@
 import axiosInstance from '../axiosInstance'
 
 
-export const getAllComplain = async () => {
-    const response = await axiosInstance.get(`/complain/get-complain-data`);
+export const getAllComplain = async (queryString = "") => {
+    const response = await axiosInstance.get(`/complain/get-complain-data?${queryString}`);
     return response;
 };
 
