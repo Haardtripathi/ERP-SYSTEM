@@ -2,7 +2,7 @@ const express = require('express');
 const adminController = require('../controllers/adminControllers');
 const { isAdmin } = require("../middlewares/adminMiddleware");
 const { isAuthenticated } = require("../middlewares/authMiddleware")
-const { addRole, getPagesAndColumns, deleteRole, getAllRolesAndPermissions, getAllPermissionsOfRole, getPermissions, postUpdateRole, getUpdateRole } = require("../controllers/adminControllers");
+const { addRole, getPagesAndColumns, deleteRole, getUserAccessPages, getAllRolesAndPermissions, getAllPermissionsOfRole, getPermissions, postUpdateRole, getUpdateRole } = require("../controllers/adminControllers");
 const { checkPermission } = require("../middlewares/permissionMiddleware")
 
 const router = express.Router();
@@ -25,6 +25,9 @@ router.delete("/delete-role", isAuthenticated, isAdmin, deleteRole);
 router.get("/roles", isAuthenticated, isAdmin, getAllRolesAndPermissions);
 
 router.get("/permissions", isAuthenticated, getAllPermissionsOfRole);
+
+router.get("/get-user-access-pages", isAuthenticated, getUserAccessPages);
+
 
 
 router.get("/pages", isAuthenticated, isAdmin, getPagesAndColumns);

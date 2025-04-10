@@ -78,7 +78,7 @@ const App = () => {
                 <Route path="/incoming" element={<ProtectedRoute><IncomingPage /></ProtectedRoute>} />
                 <Route path="/add-incoming-data" element={<ProtectedRoute><AddIncomingData /></ProtectedRoute>} />
                 <Route path="/edit-incoming-data/:id" element={<ProtectedRoute><EditIncomingData /></ProtectedRoute>} />
-                <Route path="/lead" element={<ProtectedRoute><LeadPage /></ProtectedRoute>} />
+                <Route path="/leads" element={<ProtectedRoute><LeadPage /></ProtectedRoute>} />
                 <Route path="/add-lead-data" element={<ProtectedRoute><AddLeadData /></ProtectedRoute>} />
                 <Route path="/edit-lead-data/:id" element={<ProtectedRoute><EditLeadData /></ProtectedRoute>} />
                 <Route path="/workbook" element={<ProtectedRoute><WorkbookPage /></ProtectedRoute>} />

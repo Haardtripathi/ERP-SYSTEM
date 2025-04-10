@@ -268,7 +268,7 @@ const LeadPage = () => {
 
         if (is_sent_to_pending) {
             toast.error("Already sent to pending")
-            navigate(`/lead`)
+            navigate(`/leads`)
         }
         navigate(`/edit-lead-data/${id}`)
     }

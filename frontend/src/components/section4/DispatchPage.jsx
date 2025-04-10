@@ -1282,7 +1282,7 @@ import {
 } from "@/components/ui/pagination"
 import { Loader2, Scan, RefreshCcw } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { format, isAfter } from "date-fns"
+import { isAfter, isEqual, startOfDay, format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { useNavigate } from "react-router-dom"
@@ -2285,27 +2285,58 @@ const DispatchPage = () => {
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
+                                                {/* <Input
+                                                        type="date"
+                                                        value={selectedDates[item._id] || ""}
+                                                        onChange={(e) => {
+                                                            const newDate = e.target.value
+                                                            const itemDate = parseIndianDate(item.date)
+                                                            const lastUpdateDate = parseIndianDate(lastUpdateDates[item._id])
+                                                            const selectedDate = new Date(newDate)
+
+                                                            if (isAfter(selectedDate, lastUpdateDate) && isAfter(selectedDate, itemDate)) {
+                                                                setSelectedDates({ ...selectedDates, [item._id]: newDate })
+                                                            } else {
+                                                                toast.error(
+                                                                    "Selected date must be later than the last update date and item creation date",
+                                                                )
+                                                            }
+                                                        }}
+                                                        min={
+                                                            lastUpdateDates[item._id]
+                                                                ? format(parseIndianDate(lastUpdateDates[item._id]), "yyyy-MM-dd")
+                                                                : format(new Date(), "yyyy-MM-dd")
+                                                        }
+                                                        disabled={!hasColumnPermission("update_location")}
+                                                    /> */}
                                                 <Input
                                                     type="date"
                                                     value={selectedDates[item._id] || ""}
                                                     onChange={(e) => {
-                                                        const newDate = e.target.value
-                                                        const itemDate = parseIndianDate(item.date)
-                                                        const lastUpdateDate = parseIndianDate(lastUpdateDates[item._id])
-                                                        const selectedDate = new Date(newDate)
+                                                        const newDate = e.target.value;
+                                                        // Convert all dates to the start of the day to ignore time differences
+                                                        const itemDate = startOfDay(parseIndianDate(item.date));
+                                                        const lastUpdateDate = lastUpdateDates[item._id]
+                                                            ? startOfDay(parseIndianDate(lastUpdateDates[item._id]))
+                                                            : startOfDay(new Date());
+                                                        const selectedDate = startOfDay(new Date(newDate));
 
-                                                        if (isAfter(selectedDate, lastUpdateDate) && isAfter(selectedDate, itemDate)) {
-                                                            setSelectedDates({ ...selectedDates, [item._id]: newDate })
+                                                        // Allow the selected date to be equal to or after both the last update and item creation dates
+                                                        if (
+                                                            (isAfter(selectedDate, lastUpdateDate) || isEqual(selectedDate, lastUpdateDate)) &&
+                                                            (isAfter(selectedDate, itemDate) || isEqual(selectedDate, itemDate))
+                                                        ) {
+                                                            setSelectedDates({ ...selectedDates, [item._id]: newDate });
                                                         } else {
                                                             toast.error(
-                                                                "Selected date must be later than the last update date and item creation date",
-                                                            )
+                                                                "Selected date must be later than or equal to the last update date and item creation date"
+                                                            );
                                                         }
                                                     }}
                                                     min={
                                                         lastUpdateDates[item._id]
-                                                            ? format(parseIndianDate(lastUpdateDates[item._id]), "yyyy-MM-dd")
-                                                            : format(new Date(), "yyyy-MM-dd")
+                                                            ? format(startOfDay(parseIndianDate(lastUpdateDates[item._id])), "yyyy-MM-dd")
+                                                            : format(startOfDay(new Date()), "yyyy-MM-dd")
                                                     }
                                                     disabled={!hasColumnPermission("update_location")}
                                                 />

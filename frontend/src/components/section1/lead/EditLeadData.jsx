@@ -53,7 +53,7 @@ const EditLeadData = () => {
                 const editData = editDataForm.data.data
 
                 if (editData.is_sent_to_pending) {
-                    navigate(`/lead`)
+                    navigate(`/leads`)
 
                 }
                 // Map response to formData structure
@@ -216,7 +216,7 @@ const EditLeadData = () => {
         try {
             const response = await updateEditLead(id, formData)
             toast.success("Data updated successfully!");
-            navigate('/lead');
+            navigate('/leads');
         } catch (error) {
             toast.error("Error submitting form");
         } finally {

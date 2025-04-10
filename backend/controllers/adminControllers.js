@@ -712,3 +712,36 @@ exports.editUserData = async (req, res) => {
         });
     }
 };
+
+
+
+
+
+
+exports.getUserAccessPages = async (req, res) => {
+    try {
+        const roleName = req.user.role;
+
+        // Step 1: Find the role object
+        const userRole = await Role.findOne({ name: roleName });
+        if (!userRole) {
+            return res.status(404).json({ message: "Role not found" });
+        }
+
+        // Step 2: Find the permission doc
+        const permissionDoc = await Permission.findOne({ role: userRole._id });
+        if (!permissionDoc || !Array.isArray(permissionDoc.permissions)) {
+            return res.status(404).json({ message: "No permissions found for this role" });
+        }
+
+        // Step 3: Extract the "page" values
+        const pageList = permissionDoc.permissions
+            .map((perm) => perm.page)
+            .filter((page) => typeof page === "string"); // safety check
+
+        return res.status(200).json({ pages: pageList });
+    } catch (error) {
+        console.error("Error fetching permission pages:", error);
+        res.status(500).json({ message: "Error fetching permission pages", error });
+    }
+}

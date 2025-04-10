@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getAllLead, deleteLead, sendLeadToPending } from "@/services/leadService"
+import { getAllIncoming, deleteIncoming, sendIncomingToPending } from "@/services/incomingService"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
@@ -158,7 +158,7 @@ const IncomingPage = () => {
             // console.log(`API call URL params: ${queryString}`)
 
             // Make the API call with the constructed query parameters
-            const response = await getAllLead(queryString)
+            const response = await getAllIncoming(queryString)
             // console.log("API Response:", response)
 
             // Store debug info
@@ -250,7 +250,7 @@ const IncomingPage = () => {
         }
 
         try {
-            await deleteLead(id)
+            await deleteIncoming(id)
             toast.success("Data deleted successfully")
             // Refresh the current page after deletion
             fetchData(currentPage, itemsPerPage, searchTerm, searchColumn, filterStatus)
@@ -349,7 +349,7 @@ const IncomingPage = () => {
                 if (!isValid) {
                     return
                 }
-                await sendLeadToPending(selectedItem._id)
+                await sendIncomingToPending(selectedItem._id)
                 toast.success("Incoming sent to pending successfully")
 
                 // Refresh the current page after sending to pending

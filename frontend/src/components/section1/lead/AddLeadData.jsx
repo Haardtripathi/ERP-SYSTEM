@@ -163,7 +163,7 @@ const AddLeadData = () => {
 
     useEffect(() => {
         if (uploadSuccess) {
-            navigate('/lead')
+            navigate('/leads')
             setTimeout(() => setUploadSuccess(false), 500)
         }
     }, [uploadSuccess, navigate])

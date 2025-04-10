@@ -834,10 +834,10 @@ const pageToActionsMap = {
     // "/complain": ["delete"],
     // "/return": ["delete"],
     // "/payment": ["delete"]
-    "/delivered": [],
+    "/delivered": ["Add Payment"],
     "/complain": [],
     "/return": [],
-    "/payment": ["Payment"],
+    "/payment": ["Payment"]
 }
 
 const isDeletedColumns = ["isDeleted"]

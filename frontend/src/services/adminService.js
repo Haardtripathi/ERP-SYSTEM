@@ -8,6 +8,12 @@ export const getAllRoles = async () => {
     return response.data;
 };
 
+export const getAuthUserAccessPages = async () => {
+    const response = await axiosInstance.get("/admin/get-user-access-pages");
+    console.log(response)
+    return response.data;
+}
+
 export const getEditRoleData = async (id) => {
     const response = await axiosInstance.get(`/admin/edit-role-data/${id}`);
     return response.data;

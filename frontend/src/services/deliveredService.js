@@ -3,7 +3,7 @@
 import axiosInstance from '../axiosInstance'
 
 
-export const delivered = async () => {
-    const response = await axiosInstance.get(`/delivered/delivered-data`);
+export const delivered = async (queryString = "") => {
+    const response = await axiosInstance.get(`/delivered/delivered-data?${queryString}`);
     return response;
 };

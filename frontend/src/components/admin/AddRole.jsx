@@ -2702,14 +2702,15 @@ const pageToActionsMap = {
     "/labels-generator": ["generate_label"],
 
     "/dispatched": ["update_location", "delete", "delivered", "raise_complain"],
+    "/delivered": ["Add Payment"],
+    "/complain": [],
+    "/return": [],
+    "/payment": ["Payment"]
     // "/delivered": ["delete"],
     // "/complain": ["delete"],
     // "/return": ["delete"],
     // "/payment": ["delete"]
-    "/delivered": [],
-    "/complain": [],
-    "/return": [],
-    "/payment": ["Payment"]
+
 };
 
 const isDeletedColumns = ["isDeleted"]

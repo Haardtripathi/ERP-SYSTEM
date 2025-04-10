@@ -1674,7 +1674,7 @@ const ConfirmedPage = () => {
                                             <div>
                                                 {hasColumnPermission("ref") && item.ref}
                                                 {hasColumnPermission("ref") && hasColumnPermission("awb_number") && <br />}
-                                                {hasColumnPermission("awb_number") && renderAwbNumberColumn(item)}
+                                                {hasColumnPermission("awb_number") && !item.isDispatched && renderAwbNumberColumn(item)}
                                             </div>
                                         </TableCell>
                                         {/* (Date, Time) */}
