@@ -188,13 +188,18 @@ module.exports.getAllComplainData = async (req, res) => {
 exports.editComplainId = async (req, res) => {
     try {
         const data = req.body.data
+        console.log(data)
         const complainData = await Complain.findOne({ _id: data.id })
+        // console.log(complainData)
         if (!complainData) {
             return res.status(404).json({ message: "Complain not found." })
         }
 
         complainData.complain_id = data.editValue
+        // console.log(complainData)
         await complainData.save()
+        console.log("ABC")
+        console.log(complainData)
         return res.status(200).json({ message: "Complain ID updated successfully." })
     }
     catch (err) {

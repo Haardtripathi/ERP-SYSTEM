@@ -26,7 +26,7 @@ router.get("/roles", isAuthenticated, isAdmin, getAllRolesAndPermissions);
 
 router.get("/permissions", isAuthenticated, getAllPermissionsOfRole);
 
-router.get("/get-user-access-pages", isAuthenticated, getUserAccessPages);
+router.get("/get-user-access-pages", getUserAccessPages);
 
 
 

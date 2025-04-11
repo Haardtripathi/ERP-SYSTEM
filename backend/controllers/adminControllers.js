@@ -720,7 +720,24 @@ exports.editUserData = async (req, res) => {
 
 exports.getUserAccessPages = async (req, res) => {
     try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            return res.status(401).json({ message: "Authorization header is missing" });
+        }
+
+        const token = authHeader.split(" ")[1]; // Extract the token (e.g., "Bearer <token>")
+        if (!token) {
+            return res.status(401).json({ message: "Token is missing" });
+        }
+
+        // Verify the token
+        const secretKey = process.env.JWT_SECRET || "yourSecretKey"; // Use your secret key
+        const decoded = jwt.verify(token, secretKey);
+
+        // Attach user data to the request for further use
+        req.user = decoded;
         const roleName = req.user.role;
+        // console.log(role)
 
         // Step 1: Find the role object
         const userRole = await Role.findOne({ name: roleName });
