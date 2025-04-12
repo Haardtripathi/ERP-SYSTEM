@@ -1,0 +1,17 @@
+{
+    "window.titleBarStyle": "custom",
+    "workbench.colorCustomizations": {
+      // Title Bar
+      "titleBar.activeBackground": "#c48f2f",
+      "titleBar.activeForeground": "#FFFFFF",
+      "titleBar.inactiveBackground": "#946161",
+      "titleBar.inactiveForeground": "#CCCCCC",
+  
+      // Activity Bar (leftmost panel)
+    //   "activityBar.background": "#5a5750",
+      "activityBar.foreground": "#ffffff",
+      "activityBar.activeBorder": "#ffffff",
+      "activityBar.inactiveForeground": "#fca5a5"
+    }
+  }
+  

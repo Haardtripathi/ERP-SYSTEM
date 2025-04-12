@@ -621,7 +621,7 @@ const LeadPage = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                {hasColumnPermission("is_sent_to_pending") && <TableHead>Send</TableHead>}
+                                {hasColumnPermission("is_sent_to_pending") && hasColumnPermission("send") && <TableHead>Send</TableHead>}
                                 {hasColumnPermission("source") && <TableHead>Source</TableHead>}
                                 {(hasColumnPermission("cm_first_name") || hasColumnPermission("cm_last_name")) && (
                                     <TableHead>
@@ -696,7 +696,7 @@ const LeadPage = () => {
                                         className={item.is_sent_to_pending ? "bg-green-100" : index % 2 === 0 ? "bg-gray-50" : "bg-white"}
                                     >
                                         {/* Send */}
-                                        {hasColumnPermission("is_sent_to_pending") && (
+                                        {hasColumnPermission("is_sent_to_pending") && hasColumnPermission("send") && (
                                             <TableCell>
                                                 <SendHorizontal
                                                     size={20}

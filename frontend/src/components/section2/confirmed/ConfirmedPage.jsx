@@ -1256,7 +1256,7 @@ const ConfirmedPage = () => {
     }
 
     const renderStateColumn = (item) => {
-        if (!hasColumnPermission("update")) {
+        if (!hasColumnPermission("action")) {
             return <span className="text-gray-500">No permission</span>
         }
 
@@ -1595,7 +1595,7 @@ const ConfirmedPage = () => {
                     <Table>
                         <TableHeader>
                             <tr className="bg-gray-200">
-                                {hasColumnPermission("update") && <TableHead>ACTION</TableHead>}
+                                {hasColumnPermission("action") && <TableHead>ACTION</TableHead>}
                                 <TableHead>
                                     <div>
                                         {hasColumnPermission("ref") && <span>Ref</span>}
@@ -1668,7 +1668,7 @@ const ConfirmedPage = () => {
                                 confirmedData.map((item) => (
                                     <TableRow key={item._id} item={item}>
                                         {/* ACTION */}
-                                        {hasColumnPermission("update") && <TableCell>{renderStateColumn(item)}</TableCell>}
+                                        {hasColumnPermission("action") && <TableCell>{renderStateColumn(item)}</TableCell>}
                                         {/* (Ref, AWB Number) */}
                                         <TableCell>
                                             <div>

@@ -121,9 +121,10 @@ exports.getAllWorkbookData = async (req, res) => {
         // Apply search
         if (rawSearch) {
             if (searchColumn) {
+                console.log(searchColumn)
                 const isNested = ["agent_name", "state", "language", "disease", "remark", "source"].includes(searchColumn);
                 const field = isNested ? `${searchColumn}.value` : searchColumn;
-
+                console.log("FIELD", field)
                 if (["cm_phone", "alternate_phone", "age", "height", "weight"].includes(field) && isNumeric) {
                     query[field] = Number(rawSearch);
                 } else {
@@ -150,7 +151,7 @@ exports.getAllWorkbookData = async (req, res) => {
                 ];
             }
         }
-
+        console.log(query)
         const workbookData = await Workbook.find()
             .populate({
                 path: 'dataId',

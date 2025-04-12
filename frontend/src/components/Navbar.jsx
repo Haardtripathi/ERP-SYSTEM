@@ -147,6 +147,7 @@ const Navbar = () => {
 
     // Fetch allowed pages on mount
     useEffect(() => {
+        if (!user) return; // 🚫 Don't run if no user
         const fetchPages = async () => {
             try {
                 const response = await getAuthUserAccessPages();

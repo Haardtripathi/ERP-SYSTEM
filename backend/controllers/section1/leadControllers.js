@@ -130,11 +130,12 @@ exports.getAllLeadData = async (req, res) => {
         const filter = req.query.status;
         const rawSearch = req.query.search || "";
         const searchColumn = req.query.searchColumn || "";
-        const isNumeric = !isNaN(rawSearch);
+        // Instead of doing a numeric check, treat all as strings since we store phone and similar as strings
         const regexSafeSearch = escapeRegex(rawSearch);
 
         const query = { isDeleted: false };
 
+        // If user is not an Admin, filter by the agent's name
         if (user.role !== "Admin") {
             query["agent_name.value"] = user.agent_name;
         }
@@ -142,29 +143,33 @@ exports.getAllLeadData = async (req, res) => {
         if (filter === "true") query.is_sent_to_pending = true;
         else if (filter === "false") query.is_sent_to_pending = false;
 
-        // Apply search conditions
         if (rawSearch) {
             if (searchColumn) {
+                // Determine if the field is nested so we can reference the correct property
                 const isNested = ["agent_name", "state", "language", "disease", "remark", "source"].includes(searchColumn);
                 const searchField = isNested ? `${searchColumn}.value` : searchColumn;
 
-                if (["cm_phone", "alternate_phone", "age", "height", "weight"].includes(searchField) && isNumeric) {
-                    query[searchField] = Number(rawSearch);
+                // For columns that were previously numeric but are now strings, use regex for partial matches.
+                if (["cm_phone", "alternate_phone", "age", "height", "weight"].includes(searchField)) {
+                    query[searchField] = { $regex: regexSafeSearch, $options: "i" };
                 } else {
+                    // Regular regex search for non-numeric fields.
                     query[searchField] = { $regex: regexSafeSearch, $options: "i" };
                 }
             } else {
+                // When no specific search column is provided, search multiple fields using $or
                 query["$or"] = [
                     { "cm_first_name": { $regex: regexSafeSearch, $options: "i" } },
                     { "cm_last_name": { $regex: regexSafeSearch, $options: "i" } },
-                    ...(isNumeric ? [{ "cm_phone": Number(rawSearch) }] : []),
-                    ...(isNumeric ? [{ "alternate_phone": Number(rawSearch) }] : []),
+                    // For phone and similar fields, assume stored as strings for partial matching
+                    { "cm_phone": { $regex: regexSafeSearch, $options: "i" } },
+                    { "alternate_phone": { $regex: regexSafeSearch, $options: "i" } },
                     { "agent_name.value": { $regex: regexSafeSearch, $options: "i" } },
                     { "language.value": { $regex: regexSafeSearch, $options: "i" } },
                     { "disease.value": { $regex: regexSafeSearch, $options: "i" } },
-                    ...(isNumeric ? [{ "age": Number(rawSearch) }] : []),
-                    ...(isNumeric ? [{ "height": Number(rawSearch) }] : []),
-                    ...(isNumeric ? [{ "weight": Number(rawSearch) }] : []),
+                    { "age": { $regex: regexSafeSearch, $options: "i" } },
+                    { "height": { $regex: regexSafeSearch, $options: "i" } },
+                    { "weight": { $regex: regexSafeSearch, $options: "i" } },
                     { "state.value": { $regex: regexSafeSearch, $options: "i" } },
                     { "city": { $regex: regexSafeSearch, $options: "i" } },
                     { "remark.value": { $regex: regexSafeSearch, $options: "i" } },

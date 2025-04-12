@@ -3,8 +3,8 @@
 import axiosInstance from '../axiosInstance'
 
 
-export const getAllDispatched = async () => {
-    const response = await axiosInstance.get(`/dispatched/get-dispatched-data`);
+export const getAllDispatched = async (queryString = "") => {
+    const response = await axiosInstance.get(`/dispatched/get-dispatched-data?${queryString}`);
     return response;
 };
 
