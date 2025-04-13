@@ -4,6 +4,9 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require("body-parser")
 const mongoose = require("mongoose")
+const http = require("http");
+const { Server } = require("socket.io");
+
 
 const fs = require("fs");
 
@@ -24,7 +27,7 @@ const deliveredRoutes = require("./routes/deliveredRoutes")
 const paymentRoutes = require("./routes/paymentRoutes")
 const adminRoutes = require("./routes/adminRoutes")
 const roleRoutes = require('./routes/roleRoutes')
-
+const chatRoutes = require('./routes/chatRoutes');
 
 
 
@@ -33,6 +36,14 @@ const MONGODB_URI = process.env.MONGODB_URI;
 
 
 const app = express();
+const server = http.createServer(app); // ⬅️ Required for Socket.IO
+const io = new Server(server, {
+    cors: {
+        origin: ["http://localhost:5173"],
+        methods: ["GET", "POST"],
+        credentials: true
+    }
+});
 
 // Middleware
 app.use(cors({
@@ -61,7 +72,11 @@ app.use('/api/payment', paymentRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api', roleRoutes)
 
+app.use('/api/chat', chatRoutes); // ⬅️ Add this too
 
+// Socket.io logic
+const registerSocketHandlers = require('./services/socketService');
+registerSocketHandlers(io); // ⬅️ Init socket logic
 
 
 
@@ -78,7 +93,7 @@ mongoose
     .connect(MONGODB_URI)
     .then((result) => {
         console.log("Connection established");
-        app.listen(5001, () => console.log("Server running on port 5001"));
+        server.listen(5001, () => console.log("Server running on port 5001"));
     })
     .catch((err) => {
         console.error(err);
