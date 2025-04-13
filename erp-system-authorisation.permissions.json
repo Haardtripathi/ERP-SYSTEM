@@ -1,0 +1,936 @@
+[{
+  "_id": {
+    "$oid": "67f6d92b60e28c84289b08da"
+  },
+  "role": {
+    "$oid": "67f6d92b60e28c84289b08d8"
+  },
+  "permissions": [
+    {
+      "page": "/leads",
+      "columns": [
+        "source",
+        "date",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "agent_name",
+        "language",
+        "disease",
+        "age",
+        "height",
+        "weight",
+        "state",
+        "city",
+        "remark",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id",
+        "send",
+        "update",
+        "delete"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f40"
+      }
+    },
+    {
+      "page": "/add-lead-data",
+      "columns": [
+        "source",
+        "date",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "agent_name",
+        "language",
+        "disease",
+        "age",
+        "height",
+        "weight",
+        "state",
+        "city",
+        "remark",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f41"
+      }
+    },
+    {
+      "page": "/edit-lead-data/:id",
+      "columns": [
+        "source",
+        "date",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "agent_name",
+        "language",
+        "disease",
+        "age",
+        "height",
+        "weight",
+        "state",
+        "city",
+        "remark",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f42"
+      }
+    },
+    {
+      "page": "/incoming",
+      "columns": [
+        "source",
+        "date",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "agent_name",
+        "language",
+        "disease",
+        "age",
+        "height",
+        "weight",
+        "state",
+        "city",
+        "remark",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id",
+        "send",
+        "update",
+        "delete"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f43"
+      }
+    },
+    {
+      "page": "/add-incoming-data",
+      "columns": [
+        "source",
+        "date",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "agent_name",
+        "language",
+        "disease",
+        "age",
+        "height",
+        "weight",
+        "state",
+        "city",
+        "remark",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f44"
+      }
+    },
+    {
+      "page": "/edit-incoming-data/:id",
+      "columns": [
+        "source",
+        "date",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "agent_name",
+        "language",
+        "disease",
+        "age",
+        "height",
+        "weight",
+        "state",
+        "city",
+        "remark",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f45"
+      }
+    },
+    {
+      "page": "/workbook",
+      "columns": [
+        "data",
+        "dataId",
+        "_id",
+        "source",
+        "date",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "agent_name",
+        "language",
+        "disease",
+        "age",
+        "height",
+        "weight",
+        "state",
+        "city",
+        "remark",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "send",
+        "update",
+        "delete"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f46"
+      }
+    },
+    {
+      "page": "/pending",
+      "columns": [
+        "dataId",
+        "ref",
+        "date",
+        "time",
+        "data",
+        "source",
+        "payment_type",
+        "sale_type",
+        "agent_name",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "email",
+        "status",
+        "remark",
+        "comment",
+        "shipment_type",
+        "address",
+        "post_type",
+        "post",
+        "district",
+        "city",
+        "pincode",
+        "state",
+        "disease",
+        "amount",
+        "products",
+        "isDeleted",
+        "_id",
+        "delete",
+        "update",
+        "send"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f47"
+      }
+    },
+    {
+      "page": "/edit-pending-data/:id",
+      "columns": [
+        "dataId",
+        "ref",
+        "date",
+        "time",
+        "data",
+        "source",
+        "payment_type",
+        "sale_type",
+        "agent_name",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "email",
+        "status",
+        "remark",
+        "comment",
+        "shipment_type",
+        "address",
+        "post_type",
+        "post",
+        "district",
+        "city",
+        "pincode",
+        "state",
+        "disease",
+        "amount",
+        "products",
+        "isDeleted",
+        "_id"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f48"
+      }
+    },
+    {
+      "page": "/confirmed",
+      "columns": [
+        "dataId",
+        "ref",
+        "date",
+        "time",
+        "data",
+        "source",
+        "payment_type",
+        "sale_type",
+        "agent_name",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "email",
+        "status",
+        "remark",
+        "comment",
+        "shipment_type",
+        "address",
+        "post_type",
+        "awb_number",
+        "post",
+        "district",
+        "city",
+        "pincode",
+        "state",
+        "disease",
+        "amount",
+        "products",
+        "isDispatched",
+        "isHold",
+        "isCancelled",
+        "isDeleted",
+        "_id",
+        "action",
+        "delete"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f49"
+      }
+    },
+    {
+      "page": "/sheet-generator",
+      "columns": [
+        "dataId",
+        "ref",
+        "date",
+        "time",
+        "data",
+        "source",
+        "payment_type",
+        "sale_type",
+        "agent_name",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "email",
+        "status",
+        "remark",
+        "comment",
+        "shipment_type",
+        "address",
+        "post_type",
+        "post",
+        "district",
+        "city",
+        "pincode",
+        "state",
+        "disease",
+        "amount",
+        "products",
+        "isDeleted",
+        "_id",
+        "download",
+        "delete"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f4a"
+      }
+    },
+    {
+      "page": "/labels-generator",
+      "columns": [
+        "dataId",
+        "ref",
+        "date",
+        "time",
+        "data",
+        "source",
+        "payment_type",
+        "sale_type",
+        "agent_name",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "email",
+        "status",
+        "remark",
+        "comment",
+        "shipment_type",
+        "address",
+        "post_type",
+        "awb_number",
+        "post",
+        "district",
+        "city",
+        "pincode",
+        "state",
+        "disease",
+        "amount",
+        "products",
+        "isDeleted",
+        "_id",
+        "generate_label"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f4b"
+      }
+    },
+    {
+      "page": "/dispatched",
+      "columns": [
+        "confirmedId",
+        "date_dispatched",
+        "time",
+        "location_and_date",
+        "isDeleted",
+        "isDelivered",
+        "deliveredDate",
+        "returnDate",
+        "isComplain",
+        "isReturn",
+        "_id",
+        "dataId",
+        "ref",
+        "date",
+        "data",
+        "source",
+        "payment_type",
+        "sale_type",
+        "agent_name",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "email",
+        "status",
+        "remark",
+        "comment",
+        "shipment_type",
+        "address",
+        "post_type",
+        "awb_number",
+        "post",
+        "district",
+        "city",
+        "pincode",
+        "state",
+        "disease",
+        "amount",
+        "products",
+        "isDispatched",
+        "update_location",
+        "delete",
+        "delivered",
+        "raise_complain"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f4c"
+      }
+    },
+    {
+      "page": "/complain",
+      "columns": [
+        "date",
+        "dispatchedId",
+        "complain_id",
+        "complain_detail",
+        "complain_comment",
+        "isDeleted",
+        "_id",
+        "date_dispatched",
+        "ref",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "address",
+        "awb_number",
+        "district",
+        "city",
+        "pincode",
+        "state"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f4d"
+      }
+    },
+    {
+      "page": "/return",
+      "columns": [
+        "dispatchedId",
+        "date",
+        "time",
+        "isDeleted",
+        "_id",
+        "date_dispatched",
+        "ref",
+        "payment_type",
+        "sale_type",
+        "agent_name",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "shipment_type",
+        "address",
+        "awb_number",
+        "district",
+        "city",
+        "pincode",
+        "state",
+        "amount",
+        "products"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f4e"
+      }
+    },
+    {
+      "page": "/delivered",
+      "columns": [
+        "date",
+        "time",
+        "payment_received",
+        "isDeleted",
+        "_id",
+        "ref",
+        "payment_type",
+        "sale_type",
+        "agent_name",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "shipment_type",
+        "address",
+        "awb_number",
+        "district",
+        "city",
+        "pincode",
+        "state",
+        "amount",
+        "products",
+        "dispatchedId",
+        "date_dispatched",
+        "Add Payment"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f4f"
+      }
+    },
+    {
+      "page": "/payment",
+      "columns": [
+        "date",
+        "deposit_date",
+        "dispatchedId",
+        "payment_id",
+        "fund_type",
+        "referenceId",
+        "isDeleted",
+        "_id",
+        "ref",
+        "payment_type",
+        "sale_type",
+        "agent_name",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "shipment_type",
+        "address",
+        "awb_number",
+        "district",
+        "city",
+        "pincode",
+        "state",
+        "amount",
+        "products",
+        "Payment"
+      ],
+      "_id": {
+        "$oid": "67f80b2721ac0f16d9cf4f50"
+      }
+    }
+  ],
+  "__v": 3
+},
+{
+  "_id": {
+    "$oid": "67f748e816dd329f613ed547"
+  },
+  "role": {
+    "$oid": "67f748e816dd329f613ed545"
+  },
+  "permissions": [
+    {
+      "page": "/leads",
+      "columns": [
+        "source",
+        "date",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "agent_name",
+        "language",
+        "disease",
+        "age",
+        "height",
+        "weight",
+        "state",
+        "city",
+        "remark",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id",
+        "send",
+        "update",
+        "delete"
+      ],
+      "_id": {
+        "$oid": "67f748e816dd329f613ed548"
+      }
+    },
+    {
+      "page": "/incoming",
+      "columns": [
+        "source",
+        "date",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "agent_name",
+        "language",
+        "disease",
+        "age",
+        "height",
+        "weight",
+        "state",
+        "city",
+        "remark",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id",
+        "send",
+        "update",
+        "delete"
+      ],
+      "_id": {
+        "$oid": "67f748e816dd329f613ed549"
+      }
+    },
+    {
+      "page": "/add-incoming-data",
+      "columns": [
+        "source",
+        "date",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "agent_name",
+        "language",
+        "disease",
+        "age",
+        "height",
+        "weight",
+        "state",
+        "city",
+        "remark",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id"
+      ],
+      "_id": {
+        "$oid": "67f748e816dd329f613ed54a"
+      }
+    },
+    {
+      "page": "/pending",
+      "columns": [
+        "dataId",
+        "ref",
+        "date",
+        "time",
+        "data",
+        "source",
+        "payment_type",
+        "sale_type",
+        "agent_name",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "email",
+        "status",
+        "remark",
+        "comment",
+        "shipment_type",
+        "address",
+        "post_type",
+        "post",
+        "district",
+        "city",
+        "pincode",
+        "state",
+        "disease",
+        "amount",
+        "products",
+        "isDeleted",
+        "_id",
+        "send",
+        "update",
+        "delete"
+      ],
+      "_id": {
+        "$oid": "67f748e816dd329f613ed54b"
+      }
+    }
+  ],
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67f8d1b7a0dd4c2384295f57"
+  },
+  "role": {
+    "$oid": "67f8d1b7a0dd4c2384295f55"
+  },
+  "permissions": [
+    {
+      "page": "/leads",
+      "columns": [
+        "source",
+        "date",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "agent_name",
+        "language",
+        "remark",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id",
+        "send",
+        "update",
+        "delete"
+      ],
+      "_id": {
+        "$oid": "67f8ff755ec6cd1b184a3ff4"
+      }
+    },
+    {
+      "page": "/incoming",
+      "columns": [
+        "source",
+        "date",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "agent_name",
+        "language",
+        "disease",
+        "age",
+        "height",
+        "weight",
+        "state",
+        "city",
+        "remark",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id",
+        "send",
+        "update",
+        "delete"
+      ],
+      "_id": {
+        "$oid": "67f8ff755ec6cd1b184a3ff5"
+      }
+    },
+    {
+      "page": "/edit-incoming-data/:id",
+      "columns": [
+        "source",
+        "date",
+        "agent_name",
+        "language",
+        "disease",
+        "remark",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id"
+      ],
+      "_id": {
+        "$oid": "67f8ff755ec6cd1b184a3ff6"
+      }
+    },
+    {
+      "page": "/edit-lead-data/:id",
+      "columns": [
+        "weight",
+        "height",
+        "age",
+        "alternate_phone",
+        "cm_phone",
+        "is_sent_to_pending",
+        "_id",
+        "cm_last_name",
+        "cm_first_name",
+        "disease",
+        "language",
+        "date",
+        "source"
+      ],
+      "_id": {
+        "$oid": "67f8ff755ec6cd1b184a3ff7"
+      }
+    }
+  ],
+  "__v": 3
+},
+{
+  "_id": {
+    "$oid": "67f902bf5ec6cd1b184a4152"
+  },
+  "role": {
+    "$oid": "67f902bf5ec6cd1b184a4150"
+  },
+  "permissions": [
+    {
+      "page": "/leads",
+      "columns": [
+        "source",
+        "state",
+        "city",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id",
+        "send",
+        "update",
+        "delete"
+      ],
+      "_id": {
+        "$oid": "67f903175ec6cd1b184a4235"
+      }
+    },
+    {
+      "page": "/edit-lead-data/:id",
+      "columns": [
+        "source",
+        "date",
+        "agent_name",
+        "language",
+        "disease",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id"
+      ],
+      "_id": {
+        "$oid": "67f903175ec6cd1b184a4236"
+      }
+    },
+    {
+      "page": "/incoming",
+      "columns": [
+        "source",
+        "date",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "agent_name",
+        "language",
+        "disease",
+        "age",
+        "height",
+        "weight",
+        "state",
+        "city",
+        "remark",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id",
+        "send",
+        "update",
+        "delete"
+      ],
+      "_id": {
+        "$oid": "67f903175ec6cd1b184a4237"
+      }
+    },
+    {
+      "page": "/add-incoming-data",
+      "columns": [
+        "source",
+        "date",
+        "cm_first_name",
+        "cm_last_name",
+        "cm_phone",
+        "alternate_phone",
+        "agent_name",
+        "language",
+        "disease",
+        "age",
+        "height",
+        "weight",
+        "state",
+        "city",
+        "remark",
+        "comment",
+        "isDeleted",
+        "is_sent_to_pending",
+        "_id"
+      ],
+      "_id": {
+        "$oid": "67f903175ec6cd1b184a4238"
+      }
+    }
+  ],
+  "__v": 2
+}]

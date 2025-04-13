@@ -1,0 +1,353 @@
+[{
+  "_id": {
+    "$oid": "6788cc23eef82db238097218"
+  },
+  "name": "Data",
+  "values": [
+    "Lead",
+    "Incoming"
+  ],
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6788cc23eef82db238097219"
+  },
+  "name": "Source",
+  "values": [
+    "Meta",
+    "Google"
+  ],
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6788cc23eef82db23809721a"
+  },
+  "name": "Agent Name",
+  "values": [
+    "Panchved",
+    "Nandini",
+    "Shoaib"
+  ],
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6788cc23eef82db23809721b"
+  },
+  "name": "Language",
+  "values": [
+    "Hindi",
+    "English",
+    "Gujarati"
+  ],
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6788cc23eef82db23809721c"
+  },
+  "name": "Disease",
+  "values": [
+    "Weight Management",
+    "Mens Issues / PRM",
+    "Piles / Fissure / Fistula",
+    "Joint Pain",
+    "Liver",
+    "Gas / Acidity / Constipation"
+  ],
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6788cc23eef82db23809721d"
+  },
+  "name": "State",
+  "values": [
+    "Andaman and Nicobar Islands",
+    "Andhra Pradesh",
+    "Arunachal Pradesh",
+    "Assam",
+    "Bihar",
+    "Chandigarh",
+    "Chhattisgarh",
+    "Dadra and Nagar Haveli",
+    "Daman and Diu",
+    "Delhi",
+    "Goa",
+    "Gujarat",
+    "Haryana",
+    "Himachal Pradesh",
+    "Jammu and Kashmir",
+    "Jharkhand",
+    "Karnataka",
+    "Kerala",
+    "Lakshadweep",
+    "Madhya Pradesh",
+    "Maharashtra",
+    "Manipur",
+    "Meghalaya",
+    "Mizoram",
+    "Nagaland",
+    "Odisha",
+    "Puducherry",
+    "Punjab",
+    "Rajasthan",
+    "Sikkim",
+    "Tamil Nadu",
+    "Telangana",
+    "Tripura",
+    "Uttar Pradesh",
+    "Uttarakhand",
+    "West Bengal"
+  ],
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6788cc23eef82db23809721e"
+  },
+  "name": "Remark",
+  "values": [
+    "Ringing",
+    "S.Off",
+    "Not Reachable",
+    "Cus Not Avilabal",
+    "Only Asking Price",
+    "Mony Prob.",
+    "CallBack",
+    "Incoming Not Avilabal",
+    "Incorrect Number",
+    "W. Num.",
+    "Sale Done",
+    "Not Intrested",
+    "Cus Busy",
+    "By Mistake",
+    "Other disease",
+    "For Other Persone",
+    "Call Cut By Cus",
+    "Auto Call Cut",
+    "Network Pro.",
+    "Time Pass Cus",
+    "Now Use other Medicine",
+    "Talk In Incoming",
+    "I will give money later",
+    "Call Busy",
+    "No Problem"
+  ],
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6788cc23eef82db23809721f"
+  },
+  "name": "Sale Type",
+  "values": [
+    "New",
+    "Old",
+    "Incoming",
+    "Resale",
+    "Resend",
+    "Return",
+    "Reference"
+  ],
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6788cc23eef82db238097220"
+  },
+  "name": "Payment Type",
+  "values": [
+    "COD",
+    "F2F",
+    "Online",
+    "Free"
+  ],
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6788cc23eef82db238097221"
+  },
+  "name": "Shipment Type",
+  "values": [
+    "Indian Post",
+    "Bluedart",
+    "Delhivery",
+    "F2F",
+    "ShipRocket"
+  ],
+  "__v": 0,
+  "shipmentExtra": {
+    "bluedart": "171228",
+    "delhivery": "171228",
+    "f2f": "-",
+    "indian_post": "54558"
+  }
+},
+{
+  "_id": {
+    "$oid": "6788cc23eef82db238097222"
+  },
+  "name": "Status",
+  "values": [
+    "Ringing",
+    "2 Time Ringing",
+    "3 Time Ringing",
+    "4 Time Ringing",
+    "Busy Call",
+    "2 Time Busy Call",
+    "3 Time Busy Call",
+    "Busy Call (Call Cut)",
+    "Call Cut",
+    "Out OF Network",
+    "Switch Off",
+    "Cus. Busy Now",
+    "Cus. Currenty Drive",
+    "Not Confirmed Yet",
+    "Tell You Tomorrow",
+    "Money Problem",
+    "Cus. Send Location / Address",
+    "Cus. Not In Town",
+    "Cus. Not Convinced",
+    "Busy Call / Ringing",
+    "Cancel",
+    "Cus. not availble"
+  ],
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6788cc23eef82db238097223"
+  },
+  "name": "Post Type",
+  "values": [
+    "B.O.",
+    "S.O."
+  ],
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6788cc23eef82db238097224"
+  },
+  "name": "Amount",
+  "values": [
+    0,
+    99,
+    399,
+    499,
+    799,
+    899,
+    999,
+    1099,
+    1199,
+    1249,
+    1299,
+    1399,
+    1499,
+    1599,
+    1999,
+    2499
+  ],
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6788cc23eef82db238097225"
+  },
+  "name": "Products",
+  "values": [
+    "MetaGain Tab",
+    "MetaBurn Tab",
+    "HappyLAX Powder",
+    "PilesEase Tab",
+    "PilesEase Cream",
+    "JointCare Tab",
+    "JointCare Cream",
+    "LiverCare Tab",
+    "ProLong Tab",
+    "KamaForce Tab",
+    "Arousal All Gel"
+  ],
+  "__v": 0,
+  "productExtra": {
+    "MetaGain Tab": {
+      "product_id": "MG",
+      "price": 1499
+    },
+    "MetaBurn Tab": {
+      "product_id": "MB",
+      "price": 1499
+    },
+    "HappyLAX Powder": {
+      "product_id": "HL",
+      "price": 599
+    },
+    "PilesEase Tab": {
+      "product_id": "PT",
+      "price": 1499
+    },
+    "PilesEase Cream": {
+      "product_id": "PC",
+      "price": 599
+    },
+    "JointCare Tab": {
+      "product_id": "JT",
+      "price": 1499
+    },
+    "JointCare Cream": {
+      "product_id": "JC",
+      "price": 599
+    },
+    "LiverCare Tab": {
+      "product_id": "LC",
+      "price": 1499
+    },
+    "ProLong Tab": {
+      "product_id": "PL",
+      "price": 1499
+    },
+    "KamaForce Tab": {
+      "product_id": "KF",
+      "price": 1499
+    },
+    "Arousal All Gel": {
+      "product_id": "AA",
+      "price": 599
+    }
+  }
+},
+{
+  "_id": {
+    "$oid": "6788cc23eef82db238097226"
+  },
+  "name": "Status",
+  "values": [
+    "Ringing",
+    "2 Time Ringing",
+    "3 Time Ringing",
+    "4 Time Ringing",
+    "Busy Call",
+    "2 Time Busy Call",
+    "3 Time Busy Call",
+    "Busy Call (Call Cut)",
+    "Call Cut",
+    "Out OF Network",
+    "Switch Off",
+    "Cus. Busy Now",
+    "Cus. Currenty Drive",
+    "Not Confirmed Yet",
+    "Tell You Tomorrow",
+    "Money Problem",
+    "Cus. Send Location / Address",
+    "Cus. Not In Town",
+    "Cus. Not Convinced",
+    "Busy Call / Ringing",
+    "Cancel",
+    "Cus. not availble"
+  ],
+  "__v": 0
+}]

@@ -121,13 +121,16 @@ exports.register = [
     }
 ];
 exports.login = async (req, res) => {
+    console.log(req.body)
     const { email, password } = req.body;
     try {
         const user = await User.findOne({ email: email });
         if (!user) return res.status(404).json({ message: 'User not found' });
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+        console.log(user)
         const role = await Role.findOne({ _id: user.role })
+        console.log(role)
         const permissions = await Permission.findOne({ role: user.role })
         const userRole = role.name
 
