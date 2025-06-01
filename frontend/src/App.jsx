@@ -1,4 +1,3 @@
-
 // App.jsx
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
@@ -14,6 +13,7 @@ import AuthOnlyRoute from "./components/auth/AuthOnlyRoute";
 import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 import Sidenav from "./components/Sidenav";
 import useAuthStore from "./store/authStore";
+import useChatStore from "./store/chatStore";
 import { Toaster } from "react-hot-toast";
 import IncomingPage from "./components/section1/incoming/IncomingPage";
 import LeadPage from "./components/section1/lead/LeadPage";
@@ -31,18 +31,27 @@ import ComplainPage from "./components/section4/ComplainPage";
 import ProfilePage from "./components/ProfilePage";
 import AddUser from "./components/admin/AddUser";
 import Users from "./components/admin/Users";
-
 import DeliveredPage from "./components/section5/DeliveredPage";
 import PaymentPage from "./components/section5/PaymentPage";
 import EditUserData from "./components/admin/EditUserData";
-
+import Chat from "./components/chat/Chat";
+import AdminChatView from "./components/chat/AdminChatView";
 
 const App = () => {
   const { checkAuth, loading, user } = useAuthStore();
+  const { setCurrentUser } = useChatStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  useEffect(() => {
+    if (user) {
+      setCurrentUser(user);
+    } else {
+      setCurrentUser(null);
+    }
+  }, [user, setCurrentUser]);
 
   return (
     <Router>
@@ -82,6 +91,8 @@ const App = () => {
                 <Route path="/complain" element={<ProtectedRoute><ComplainPage /></ProtectedRoute>} />
                 <Route path="/delivered" element={<ProtectedRoute><DeliveredPage /></ProtectedRoute>} />
                 <Route path="/payment" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
+                <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+                <Route path="/admin/chat" element={<ProtectedRoute><AdminOnlyRoute><AdminChatView /></AdminOnlyRoute></ProtectedRoute>} />
 
 
               </Routes>
