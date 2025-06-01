@@ -70,13 +70,23 @@ exports.register = [
                     { email: email },
                     { company_number: companyNumber },
                     { agent_name: agentName },
-                    { aadhar_number: aadharNumber }
+                    { aadhar_number: aadharNumber },
+                    { phone_number: phoneNumber }
                 ]
             });
-
+            console.log(existingUser)
 
             if (existingUser) {
-                return res.status(400).json({ message: 'User with this email, company number, agent name, or Aadhar number already exists' });
+                let conflictField = '';
+                if (existingUser.email === email) conflictField = 'email';
+                else if (existingUser.company_number === companyNumber) conflictField = 'company number';
+                else if (existingUser.agent_name === agentName) conflictField = 'agent name';
+                else if (existingUser.aadhar_number === aadharNumber) conflictField = 'Aadhar number';
+                else if (existingUser.phone_number === phoneNumber) conflictField = 'phone number';
+
+                return res.status(400).json({
+                    message: `User with this ${conflictField} already exists`
+                });
             }
 
             const hashedPassword = await bcrypt.hash(password, 10);
@@ -97,18 +107,21 @@ exports.register = [
                 ifsc_code: IFSC_Code,
 
             });
-
             if (req.file) {
                 newUser.photo = {
                     data: req.file.buffer,
                     contentType: req.file.mimetype
                 };
             }
+            console.log(newUser)
             await newUser.save();
             res.status(201).json({ message: 'User registered successfully' });
         } catch (error) {
-
-            res.status(500).json({ error: error.message });
+            console.error('Registration error:', error);
+            res.status(500).json({
+                message: 'Error registering user',
+                error: error.message
+            });
         }
     }
 ];
@@ -120,7 +133,7 @@ exports.login = async (req, res) => {
         if (!user) return res.status(404).json({ message: 'User not found' });
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
-        const token = jwt.sign({ _id: user._id.toString(), email: user.email, agent_name: user.agent_name }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ _id: user._id.toString(), email: user.email, agent_name: user.agent_name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         res.json({ token });
     } catch (error) {
