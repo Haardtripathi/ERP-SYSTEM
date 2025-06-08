@@ -18,7 +18,7 @@ const getUint8ArrayFromBuffer = (buffer) => {
 };
 
 // Function to create Blob URL from Uint8Array
-const createBlobUrl = (uint8Array, contentType) => {
+export const createBlobUrl = (uint8Array, contentType) => {
     console.log('createBlobUrl: Received Uint8Array (length):', uint8Array.length, 'contentType:', contentType);
     const blob = new Blob([uint8Array], { type: contentType });
     console.log('createBlobUrl: Created Blob object (size, type):', blob.size, blob.type);
@@ -37,9 +37,8 @@ const processImageBuffer = (buffer, contentType) => {
         const uint8Array = new Uint8Array(buffer.data);
         console.log('processImageBuffer: Created Uint8Array (length):', uint8Array.length);
         const { url, blob } = createBlobUrl(uint8Array, contentType);
-        // Add to active URLs set for cleanup
-        useChatStore.getState().activeImageUrls.add(url);
-        return { url, blob };
+        // Store the blob in the message object for later use
+        return { url, blob, uint8Array };
     } catch (error) {
         console.error('processImageBuffer: Error processing image:', error);
         return null;
@@ -77,31 +76,26 @@ const useChatStore = create((set, get) => ({
             }
         });
 
-        // Log details of messages with images before updating state
-        newMessages.forEach(msg => {
-            if (msg.image || msg.imageBlob) {
-                console.log('setMessages: Before state update - Message:', msg._id, {
-                    hasImage: !!msg.image,
-                    hasImageBlob: !!msg.imageBlob,
-                    imageUrl: msg.imageUrl,
-                    imageRetryCount: msg.imageRetryCount
-                });
+        // Process new messages with images
+        const processedMessages = newMessages.map(msg => {
+            if (msg.image && !msg.imageUrl) {
+                const imageData = processImageBuffer(msg.image, msg.imageContentType);
+                if (imageData) {
+                    return {
+                        ...msg,
+                        imageUrl: imageData.url,
+                        imageBlob: imageData.blob,
+                        imageData: imageData.uint8Array, // Store the raw data for retries
+                        imageProcessing: false,
+                        imageError: false,
+                        imageRetryCount: 0
+                    };
+                }
             }
+            return msg;
         });
 
-        set({ messages: newMessages });
-
-        // Log details of messages with images after updating state (note: might not reflect immediate DOM update)
-        get().messages.forEach(msg => {
-            if (msg.image || msg.imageBlob) {
-                console.log('setMessages: After state update (get().messages) - Message:', msg._id, {
-                    hasImage: !!msg.image,
-                    hasImageBlob: !!msg.imageBlob,
-                    imageUrl: msg.imageUrl,
-                    imageRetryCount: msg.imageRetryCount
-                });
-            }
-        });
+        set({ messages: processedMessages });
     },
 
     setCurrentUser: (user) => {
@@ -154,6 +148,12 @@ const useChatStore = create((set, get) => ({
             }
         });
 
+        socket.on('message-error', (error) => {
+            console.error('message-error: Received error from server:', error);
+            // You might want to show a toast notification here
+            alert('Failed to send message: ' + error.error);
+        });
+
         socket.on('update-online-users', (users) => {
             console.log('update-online-users: Received online users update:', users);
             set({ onlineUsers: users });
@@ -193,17 +193,22 @@ const useChatStore = create((set, get) => ({
         let imageContentType = null;
 
         if (imageFile) {
-            console.log('sendMessage: Image file detected, reading...', imageFile);
-            imageContentType = imageFile.type;
-            // Read as Data URL (Base64) for sending to backend
-            imageData = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(imageFile);
+            console.log('sendMessage: Image file detected, reading...', {
+                name: imageFile.name,
+                type: imageFile.type,
+                size: imageFile.size
             });
-            imageData = imageData.split(';base64,').pop();
-            console.log('sendMessage: Image data converted to Base64 (length):', imageData.length);
+            imageContentType = imageFile.type;
+            try {
+                // Read as ArrayBuffer for better binary handling
+                const arrayBuffer = await imageFile.arrayBuffer();
+                console.log('sendMessage: ArrayBuffer created, size:', arrayBuffer.byteLength);
+                imageData = new Uint8Array(arrayBuffer);
+                console.log('sendMessage: Uint8Array created, length:', imageData.length, 'first 10 bytes:', Array.from(imageData.slice(0, 10)));
+            } catch (error) {
+                console.error('sendMessage: Error reading image file:', error);
+                return;
+            }
         }
 
         const message = {
@@ -211,10 +216,13 @@ const useChatStore = create((set, get) => ({
             receiver: receiverId,
             group: groupId,
             message: content || null,
-            image: imageData || null,
+            image: imageData ? { data: Array.from(imageData) } : null,
             imageContentType: imageContentType || null
         };
-        console.log('sendMessage: Emitting message:', message);
+        console.log('sendMessage: Emitting message:', {
+            ...message,
+            image: imageData ? { dataLength: imageData.length } : null
+        });
         socket.emit('send-message', message);
     },
 

@@ -7,6 +7,7 @@ const ChatWindow = () => {
     const [selectedImageFile, setSelectedImageFile] = useState(null); // Store the actual file
     const [selectedImagePreview, setSelectedImagePreview] = useState(null); // Store the preview URL
     const messagesEndRef = useRef(null);
+    const inputRef = useRef(null);
     const {
         messages,
         selectedChat,
@@ -43,6 +44,13 @@ const ChatWindow = () => {
         };
     }, [selectedImageFile]);
 
+    // Focus input when chat is selected
+    useEffect(() => {
+        if (selectedChat) {
+            inputRef.current?.focus();
+        }
+    }, [selectedChat]);
+
     const handleSend = (e) => {
         e.preventDefault();
         if (!message.trim() && !selectedImageFile) return;
@@ -62,6 +70,10 @@ const ChatWindow = () => {
         const file = event.target.files[0];
         if (file) {
             setSelectedImageFile(file);
+            // Focus input after image selection
+            setTimeout(() => {
+                inputRef.current?.focus();
+            }, 0);
         }
         event.target.value = null;
     };
@@ -221,6 +233,7 @@ const ChatWindow = () => {
                     </label>
                     <div className="flex-1">
                         <input
+                            ref={inputRef}
                             type="text"
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
