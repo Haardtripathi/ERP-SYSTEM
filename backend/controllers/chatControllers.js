@@ -4,9 +4,44 @@ const User = require("../models/User");
 const mongoose = require('mongoose');
 
 exports.sendMessage = async (req, res) => {
-    const { sender, receiver, group, message } = req.body;
-    const newMsg = await ChatMessage.create({ sender, receiver, group, message });
-    res.status(200).json(newMsg);
+    try {
+        const { sender, receiver, group, message, image, imageContentType } = req.body;
+        console.log('Received message data:', {
+            sender,
+            receiver,
+            group,
+            message,
+            imageContentType
+        });
+
+        // Create message data object
+        const messageData = {
+            sender,
+            receiver,
+            group,
+            message,
+            imageContentType
+        };
+
+        // Handle image data if present
+        if (image?.data) {
+            const imageBuffer = Buffer.from(image.data);
+            messageData.image = imageBuffer;
+        }
+
+        // Create the message
+        const newMsg = await ChatMessage.create(messageData);
+        console.log('Message saved to database:', {
+            id: newMsg._id,
+            message: newMsg.message,
+            imageContentType: newMsg.imageContentType
+        });
+
+        res.status(200).json(newMsg);
+    } catch (error) {
+        console.error('Error in sendMessage:', error);
+        res.status(500).json({ error: error.message });
+    }
 };
 
 exports.getPrivateChat = async (req, res) => {
@@ -47,8 +82,8 @@ exports.getAllUsers = async (req, res) => {
     // Exclude the current user from the list
     // Assuming authenticated user ID is available in req.user._id
     const currentUserId = req.user._id;
-    console.log('Fetching all users excluding user ID:', currentUserId); // Log current user ID
+    // Log current user ID
     const users = await User.find({ _id: { $ne: currentUserId } }, "_id agent_name email image_url");
-    console.log('Fetched users (excluding current user):', users); // Log fetched users
+    // Log fetched users
     res.json(users);
 };

@@ -1,13 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import useChatStore from '../../store/chatStore';
-import { Send, Users, Loader2, Image as ImageIcon, XCircle } from 'lucide-react';
+import { Send, Users, Loader2, Image as ImageIcon, XCircle, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { cn } from "@/lib/utils";
 
-const ChatWindow = () => {
+const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
     const [message, setMessage] = useState('');
-    const [selectedImageFile, setSelectedImageFile] = useState(null); // Store the actual file
-    const [selectedImagePreview, setSelectedImagePreview] = useState(null); // Store the preview URL
+    const [selectedImageFile, setSelectedImageFile] = useState(null);
+    const [selectedImagePreview, setSelectedImagePreview] = useState(null);
+    const [enlargedImage, setEnlargedImage] = useState(null);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
+    const fileInputRef = useRef(null);
+    const messagesContainerRef = useRef(null);
+    const isInitialLoadRef = useRef(true);
+    const isAtBottomRef = useRef(true);
+    const [showNewMessageButton, setShowNewMessageButton] = useState(false);
+
     const {
         messages,
         selectedChat,
@@ -15,18 +23,102 @@ const ChatWindow = () => {
         sendMessage,
         isTyping,
         revokeImageUrl,
-        setMessages
+        setMessages,
+        fetchMessages,
+        fetchGroupMessages,
+        chatPagination
     } = useChatStore();
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
+    // Message Skeleton Component
+    const MessageSkeleton = ({ isMyMessage }) => (
+        <div className={cn(
+            "flex animate-pulse",
+            isMyMessage ? "justify-end" : "justify-start"
+        )}>
+            <div className={cn(
+                "max-w-[70%] rounded-xl p-3",
+                isMyMessage
+                    ? "bg-blue-200"
+                    : "bg-gray-200"
+            )}>
+                <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+            </div>
+        </div>
+    );
+
+    // Image Message Skeleton Component
+    const ImageMessageSkeleton = ({ isMyMessage }) => (
+        <div className={cn(
+            "flex animate-pulse",
+            isMyMessage ? "justify-end" : "justify-start"
+        )}>
+            <div className={cn(
+                "max-w-[70%] rounded-xl p-3",
+                isMyMessage
+                    ? "bg-blue-200"
+                    : "bg-gray-200"
+            )}>
+                <div className="w-[200px] h-[150px] bg-gray-300 rounded-lg mb-2"></div>
+                <div className="h-4 bg-gray-300 rounded w-1/4"></div>
+            </div>
+        </div>
+    );
 
     useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+        if (selectedChat && inputRef.current) {
+            inputRef.current.focus();
+            if (selectedChat.type === 'user') {
+                fetchMessages(currentUser._id, selectedChat.id, 15, null);
+            } else if (selectedChat.type === 'group') {
+                fetchGroupMessages(selectedChat.id, 15, null);
+            }
 
-    // Effect to create and clean up image preview URL for the input preview
+            // Scroll to the bottom on initial load of a new chat
+            if (isInitialLoadRef.current) {
+                setTimeout(() => {
+                    if (messagesContainerRef.current) {
+                        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+                    }
+                }, 150);
+                isInitialLoadRef.current = false; // Reset after initial scroll
+            }
+        }
+        return () => {
+            useChatStore.getState().cleanupBlobUrls();
+            isInitialLoadRef.current = true; // Reset for next chat selection
+        };
+    }, [selectedChat, currentUser?._id]);
+
+    // New useEffect to handle conditional socket listeners based on isReadOnly and disableRealtime
+    useEffect(() => {
+        if (disableRealtime) {
+            // If real-time is explicitly disabled (e.g., admin monitoring view)
+            useChatStore.getState().initializeSocket(false); // Do NOT attach listeners
+            useChatStore.getState().cleanupSocket(); // Explicitly clean up any existing socket/listeners
+        } else if (isReadOnly) {
+            // If read-only, but not explicitly disabled real-time (e.g., future read-only views that might have some real-time)
+            useChatStore.getState().initializeSocket(false);
+            useChatStore.getState().cleanupSocket();
+        } else {
+            // If not read-only and real-time is not disabled, ensure standard socket initialization happens with listeners
+            useChatStore.getState().initializeSocket(true); // Attach listeners
+        }
+        return () => {
+            // Cleanup is handled by the main selectedChat useEffect, or by cleanupBlobUrls
+            // For socket listeners, the `socket.off` in initializeSocket handles duplicates on re-init.
+        };
+    }, [isReadOnly, disableRealtime]); // Depend on both props
+
+    const scrollToBottom = () => {
+        // Use requestAnimationFrame to ensure DOM is ready
+        requestAnimationFrame(() => {
+            if (messagesContainerRef.current) {
+                messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+            }
+        });
+    };
+
     useEffect(() => {
         if (!selectedImageFile) {
             setSelectedImagePreview(null);
@@ -38,18 +130,81 @@ const ChatWindow = () => {
             setSelectedImagePreview(reader.result);
         };
         reader.readAsDataURL(selectedImageFile);
-
-        return () => {
-            // No need to revoke object URL for data URL preview
-        };
     }, [selectedImageFile]);
 
-    // Focus input when chat is selected
-    useEffect(() => {
-        if (selectedChat) {
-            inputRef.current?.focus();
+    const handleScroll = () => {
+        const container = messagesContainerRef.current;
+        if (container) {
+            const { scrollTop, scrollHeight, clientHeight } = container;
+            // User is at the bottom if the scroll position plus client height is approximately equal to scroll height
+            isAtBottomRef.current = Math.abs(scrollHeight - scrollTop - clientHeight) < 1; // Allow for slight pixel variations
         }
-    }, [selectedChat]);
+    };
+
+    // Add scroll event listener
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (container) {
+            container.addEventListener('scroll', handleScroll);
+            // Initial check
+            handleScroll();
+        }
+        return () => {
+            if (container) {
+                container.removeEventListener('scroll', handleScroll);
+            }
+        };
+    }, []); // Empty dependency array means this runs once on mount
+
+    // New useEffect to handle new messages and show/hide the button
+    useEffect(() => {
+        if (selectedChat && messages.length > 0) {
+            // Only show the button if not at the bottom and new messages have arrived (after initial load)
+            if (!isAtBottomRef.current && !isInitialLoadRef.current) {
+                setShowNewMessageButton(true);
+            } else {
+                // If at bottom, or it's initial load, scroll to bottom and hide button
+                scrollToBottom();
+                setShowNewMessageButton(false);
+            }
+        }
+    }, [messages, selectedChat]);
+
+    const handleLoadOlderMessages = () => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
+
+        // Store the ID of the oldest message currently displayed BEFORE new messages are fetched
+        const messageElements = container.querySelectorAll('.message-item');
+        const oldestDisplayedMessageElement = messageElements.length > 0 ? messageElements[0] : null;
+        const oldestDisplayedMessageId = oldestDisplayedMessageElement ? oldestDisplayedMessageElement.dataset.messageId : null;
+
+        const chatId = selectedChat.type === 'user' ? selectedChat.id : selectedChat.id;
+        const pagination = chatPagination[chatId];
+
+        if (pagination?.hasMore && !pagination?.isLoading) {
+            if (selectedChat.type === 'user') {
+                fetchMessages(currentUser._id, selectedChat.id, 15, pagination.oldestMessageId);
+            } else if (selectedChat.type === 'group') {
+                fetchGroupMessages(selectedChat.id, 15, pagination.oldestMessageId);
+            }
+        }
+
+        // After messages are loaded (which triggers a re-render),
+        // scroll to the message that was previously at the top.
+        // This will bring the newly loaded messages into view above it.
+        setTimeout(() => {
+            if (container && oldestDisplayedMessageId) {
+                const previouslyOldestMessageElement = container.querySelector(`[data-message-id="${oldestDisplayedMessageId}"]`);
+                if (previouslyOldestMessageElement) {
+                    previouslyOldestMessageElement.scrollIntoView({
+                        behavior: 'auto',
+                        block: 'start' // Scroll so the start of the element is at the top of the container
+                    });
+                }
+            }
+        }, 50); // Small timeout to allow DOM to render new messages
+    };
 
     const handleSend = (e) => {
         e.preventDefault();
@@ -64,13 +219,13 @@ const ChatWindow = () => {
         setMessage('');
         setSelectedImageFile(null);
         setSelectedImagePreview(null);
+        inputRef.current?.focus();
     };
 
     const handleImageSelect = (event) => {
         const file = event.target.files[0];
         if (file) {
             setSelectedImageFile(file);
-            // Focus input after image selection
             setTimeout(() => {
                 inputRef.current?.focus();
             }, 0);
@@ -81,6 +236,11 @@ const ChatWindow = () => {
     const handleRemoveImage = () => {
         setSelectedImageFile(null);
         setSelectedImagePreview(null);
+        fileInputRef.current?.focus();
+    };
+
+    const handleImageClick = (imageUrl) => {
+        setEnlargedImage(imageUrl);
     };
 
     if (!selectedChat) {
@@ -94,9 +254,25 @@ const ChatWindow = () => {
         );
     }
 
+    const currentChatId = selectedChat.type === 'user' ? selectedChat.id : selectedChat.id;
+    const pagination = chatPagination[currentChatId] || { hasMore: true, oldestMessageId: null, isLoading: false };
+
+    // Generate skeleton messages for initial loading
+    const renderSkeletons = () => {
+        const skeletons = [];
+        for (let i = 0; i < 5; i++) {
+            // Alternate between text and image skeletons
+            if (i % 2 === 0) {
+                skeletons.push(<MessageSkeleton key={`text-${i}`} isMyMessage={i % 3 === 0} />);
+            } else {
+                skeletons.push(<ImageMessageSkeleton key={`image-${i}`} isMyMessage={i % 3 === 0} />);
+            }
+        }
+        return skeletons;
+    };
+
     return (
         <div className="flex flex-col h-full bg-white">
-            {/* Chat Header */}
             <div className="p-4 border-b bg-white shadow-sm">
                 <h2 className="text-lg font-semibold text-gray-800">{selectedChat.name || 'Select a Chat'}</h2>
                 {isTyping && (
@@ -107,149 +283,239 @@ const ChatWindow = () => {
                 )}
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-100">
-                {messages.map((msg) => {
-                    const hasText = msg.message && msg.message.trim().length > 0;
-                    const hasImage = msg.imageUrl;
-                    const isMyMessage = msg.sender === currentUser._id;
-
-                    if (!hasText && !hasImage) return null;
-
-                    // Determine sender name (handle cases where user or selectedChat might be null/undefined)
-                    let senderName = 'Unknown Sender';
-                    if (selectedChat?.type === 'user' && !isMyMessage) {
-                        // For direct messages, the other user is the sender if it's not me
-                        senderName = selectedChat.name;
-                    } else if (selectedChat?.type === 'group') {
-                        // For group messages, find the sender's name from the users list
-                        const senderUser = useChatStore.getState().users.find(user => user._id === msg.sender);
-                        senderName = senderUser ? senderUser.agent_name : 'Unknown Group Member';
-                    } else if (isMyMessage) {
-                        senderName = 'You';
-                    }
-
-                    return (
-                        <div
-                            key={msg._id}
-                            className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}
-                        >
-                            <div
-                                className={`max-w-[70%] rounded-xl p-3 shadow-md ${isMyMessage
-                                    ? 'bg-blue-500 text-white rounded-br-none'
-                                    : 'bg-white text-gray-800 rounded-bl-none'
-                                    }`}
-                            >
-                                {/* Display sender name in group chats */}
-                                {selectedChat?.type === 'group' && !isMyMessage && (
-                                    <p className="text-xs font-semibold mb-1 opacity-90">{senderName}</p>
-                                )}
-
-                                {hasImage && (
-                                    <div className="relative mb-2 last:mb-0">
-                                        <img
-                                            src={msg.imageUrl}
-                                            alt="Shared image"
-                                            className="max-w-full h-auto rounded-lg"
-                                            onError={(e) => {
-                                                console.error('ChatWindow: Image loading error:', {
-                                                    src: e.target.src,
-                                                    messageId: msg._id,
-                                                    hasImageBlob: !!msg.imageBlob,
-                                                    imageUrl: msg.imageUrl,
-                                                    retryCount: msg.imageRetryCount || 0
-                                                });
-
-                                                // Try to recreate the Blob URL if it's invalid and we haven't exceeded retry limit
-                                                if (msg.imageBlob && (!msg.imageRetryCount || msg.imageRetryCount < 2)) {
-                                                    try {
-                                                        // Revoke the old URL first
-                                                        if (msg.imageUrl && msg.imageUrl.startsWith('blob:')) {
-                                                            URL.revokeObjectURL(msg.imageUrl);
-                                                        }
-
-                                                        const newUrl = URL.createObjectURL(msg.imageBlob);
-                                                        console.log('ChatWindow: Recreated Blob URL:', newUrl);
-                                                        e.target.src = newUrl;
-
-                                                        // Update the message with the new URL and increment retry count
-                                                        const updatedMessages = messages.map(m =>
-                                                            m._id === msg._id ? {
-                                                                ...m,
-                                                                imageUrl: newUrl,
-                                                                imageRetryCount: (m.imageRetryCount || 0) + 1
-                                                            } : m
-                                                        );
-                                                        useChatStore.getState().setMessages(updatedMessages);
-                                                    } catch (error) {
-                                                        console.error('ChatWindow: Error recreating Blob URL:', error);
-                                                    }
-                                                } else {
-                                                    console.error('ChatWindow: Max retries reached or no image blob available');
-                                                }
-                                            }}
-                                            onLoad={(e) => {
-                                                console.log('ChatWindow: Image loaded successfully:', {
-                                                    src: e.target.src,
-                                                    messageId: msg._id,
-                                                    naturalWidth: e.target.naturalWidth,
-                                                    naturalHeight: e.target.naturalHeight
-                                                });
-                                            }}
-                                        />
-                                    </div>
-                                )}
-                                {hasText && <p className="text-sm mb-1 last:mb-0 break-words">{msg.message}</p>}
-
-                                <span className={`text-xs mt-1 block ${isMyMessage ? 'text-blue-100' : 'text-gray-500'}`}>
-                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
+            <div
+                ref={messagesContainerRef}
+                className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 flex flex-col"
+                onScroll={handleScroll}
+            >
+                {/* Show skeletons during initial load */}
+                {pagination.isLoading && messages.length === 0 ? (
+                    <div className="space-y-4">
+                        {renderSkeletons()}
+                    </div>
+                ) : (
+                    <>
+                        {/* Load Older Messages Button - Now above first message */}
+                        {pagination.hasMore && (
+                            <div className="flex justify-center mb-4">
+                                <button
+                                    onClick={handleLoadOlderMessages}
+                                    disabled={pagination.isLoading}
+                                    className={cn(
+                                        "flex items-center px-4 py-2 rounded-full text-sm font-medium transition-colors shadow-sm",
+                                        pagination.isLoading
+                                            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                            : "bg-blue-500 text-white hover:bg-blue-600"
+                                    )}
+                                >
+                                    {pagination.isLoading ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                            Loading...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ChevronUp className="w-4 h-4 mr-2" />
+                                            Load Older Messages
+                                        </>
+                                    )}
+                                </button>
                             </div>
-                        </div>
-                    );
-                })}
+                        )}
+
+                        {/* New Message Button */}
+                        {showNewMessageButton && (
+                            <div className="sticky bottom-4 w-full flex justify-center pb-2 z-10">
+                                <button
+                                    onClick={() => {
+                                        scrollToBottom();
+                                        setShowNewMessageButton(false);
+                                    }}
+                                    className="flex items-center px-4 py-2 rounded-full text-sm font-medium transition-colors shadow-lg bg-green-500 text-white hover:bg-green-600"
+                                >
+                                    <span className="mr-2">New Message</span>
+                                    <ChevronDown className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+
+                        {messages.map((msg) => {
+                            const hasText = msg.message && msg.message.trim().length > 0;
+                            const hasImage = msg.imageUrl;
+                            const isMyMessage = msg.sender === currentUser._id;
+
+                            if (!hasText && !hasImage) return null;
+
+                            let senderName = 'Unknown Sender';
+                            if (selectedChat?.type === 'user' && !isMyMessage) {
+                                senderName = selectedChat.name;
+                            } else if (selectedChat?.type === 'group') {
+                                const senderUser = useChatStore.getState().users.find(user => user._id === msg.sender);
+                                senderName = senderUser ? senderUser.agent_name : 'Unknown Group Member';
+                            } else if (isMyMessage) {
+                                senderName = 'You';
+                            }
+
+                            return (
+                                <div
+                                    key={msg._id}
+                                    className={cn(
+                                        "flex message-item",
+                                        isMyMessage ? "justify-end" : "justify-start"
+                                    )}
+                                    data-message-id={msg._id}
+                                >
+                                    <div
+                                        className={cn(
+                                            "max-w-[70%] rounded-xl p-3 shadow-sm",
+                                            isMyMessage
+                                                ? "bg-blue-500 text-white rounded-br-none"
+                                                : "bg-white text-gray-800 rounded-bl-none border border-gray-200"
+                                        )}
+                                    >
+                                        {selectedChat?.type === 'group' && !isMyMessage && (
+                                            <p className="text-xs font-semibold mb-1 opacity-90">{senderName}</p>
+                                        )}
+
+                                        {hasImage && (
+                                            <div className="relative mb-2 last:mb-0">
+                                                <img
+                                                    src={msg.imageUrl}
+                                                    alt="Shared image"
+                                                    className="max-w-[200px] h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                                    onClick={() => handleImageClick(msg.imageUrl)}
+                                                    onError={(e) => {
+                                                        console.error('ChatWindow: Image loading error:', {
+                                                            src: e.target.src,
+                                                            messageId: msg._id,
+                                                            hasImageBlob: !!msg.imageBlob,
+                                                            imageUrl: msg.imageUrl,
+                                                            retryCount: msg.imageRetryCount || 0
+                                                        });
+
+                                                        if (msg.imageBlob && (!msg.imageRetryCount || msg.imageRetryCount < 2)) {
+                                                            try {
+                                                                if (msg.imageUrl && msg.imageUrl.startsWith('blob:')) {
+                                                                    URL.revokeObjectURL(msg.imageUrl);
+                                                                }
+
+                                                                const newUrl = URL.createObjectURL(msg.imageBlob);
+                                                                e.target.src = newUrl;
+
+                                                                const updatedMessages = messages.map(m =>
+                                                                    m._id === msg._id ? {
+                                                                        ...m,
+                                                                        imageUrl: newUrl,
+                                                                        imageRetryCount: (m.imageRetryCount || 0) + 1
+                                                                    } : m
+                                                                );
+                                                                useChatStore.getState().setMessages(updatedMessages);
+                                                            } catch (error) {
+                                                                console.error('ChatWindow: Error recreating Blob URL:', error);
+                                                            }
+                                                        }
+                                                    }}>
+                                                </img>
+                                            </div>
+                                        )}
+                                        {hasText && <p className="text-sm mb-1 last:mb-0 break-words">{msg.message}</p>}
+
+                                        <span className={cn(
+                                            "text-xs mt-1 block",
+                                            isMyMessage ? "text-blue-100" : "text-gray-500"
+                                        )}>
+                                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </>
+                )}
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input */}
-            <form onSubmit={handleSend} className="p-4 border-t bg-gray-50 flex flex-col shadow-inner">
-                {/* Image Preview */}
-                {selectedImagePreview && (
-                    <div className="mb-3 p-3 border border-gray-300 rounded-lg bg-white flex items-center justify-between shadow-sm">
-                        <div className="flex items-center space-x-2">
-                            <img src={selectedImagePreview} alt="Image preview" className="h-10 w-10 object-cover rounded" />
-                            <span className="text-sm text-gray-700">{selectedImageFile?.name}</span>
-                        </div>
-                        <button type="button" onClick={handleRemoveImage} className="text-gray-500 hover:text-gray-700">
-                            <XCircle className="w-5 h-5" />
+            {enlargedImage && (
+                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+                    <div className="relative max-w-4xl max-h-[90vh]">
+                        <img
+                            src={enlargedImage}
+                            alt="Enlarged image"
+                            className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                        />
+                        <button
+                            onClick={() => setEnlargedImage(null)}
+                            className="absolute top-4 right-4 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                        >
+                            <X className="w-6 h-6" />
                         </button>
                     </div>
-                )}
-
-                <div className="flex items-center space-x-3">
-                    <label htmlFor="image-upload" className="p-3 bg-gray-200 text-gray-600 rounded-full hover:bg-gray-300 cursor-pointer transition-colors flex-shrink-0">
-                        <ImageIcon className="w-5 h-5" />
-                        <input id="image-upload" type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
-                    </label>
-                    <div className="flex-1">
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            placeholder="Type a message..."
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        className="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors flex-shrink-0"
-                        disabled={!message.trim() && !selectedImageFile}
-                    >
-                        <Send className="w-6 h-6" />
-                    </button>
                 </div>
-            </form>
+            )}
+
+            {!disableRealtime && ( // Conditionally render the input form based on disableRealtime
+                <form onSubmit={handleSend} className="p-4 border-t bg-white flex flex-col shadow-inner">
+                    {selectedImagePreview && (
+                        <div className="mb-3 p-3 border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-between shadow-sm">
+                            <div className="flex items-center space-x-2">
+                                <img
+                                    src={selectedImagePreview}
+                                    alt="Image preview"
+                                    className="h-10 w-10 object-cover rounded cursor-pointer"
+                                    onClick={() => setEnlargedImage(selectedImagePreview)}
+                                />
+                                <span className="text-sm text-gray-700">{selectedImageFile?.name}</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleRemoveImage}
+                                className="p-1 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                            >
+                                <XCircle className="w-5 h-5" />
+                            </button>
+                        </div>
+                    )}
+
+                    <div className="flex items-center space-x-3">
+                        <label
+                            htmlFor="image-upload"
+                            className="p-3 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 cursor-pointer transition-colors flex-shrink-0"
+                        >
+                            <ImageIcon className="w-5 h-5" />
+                            <input
+                                id="image-upload"
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleImageSelect}
+                                ref={fileInputRef}
+                            />
+                        </label>
+                        <div className="flex-1">
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                                placeholder="Type a message..."
+                                className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            className={cn(
+                                "p-3 rounded-full transition-colors flex-shrink-0",
+                                (!message.trim() && !selectedImageFile)
+                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                    : "bg-blue-500 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            )}
+                            disabled={!message.trim() && !selectedImageFile}
+                        >
+                            <Send className="w-6 h-6" />
+                        </button>
+                    </div>
+                </form>
+            )}
         </div>
     );
 };

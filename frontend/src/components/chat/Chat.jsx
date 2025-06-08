@@ -4,19 +4,40 @@ import ChatSidebar from './ChatSidebar';
 import ChatWindow from './ChatWindow';
 
 const Chat = () => {
-    const { currentUser, initializeSocket, joinChat, setSelectedChat } = useChatStore();
+    const {
+        currentUser,
+        initializeSocket,
+        joinChat,
+        setSelectedChat,
+        fetchUsers,
+        fetchGroups,
+        cleanupSocket
+    } = useChatStore();
 
-    useEffect(() => {
-        // Reset selected chat when the component mounts
-        setSelectedChat(null);
-    }, [setSelectedChat]);
-
+    // Initialize socket and fetch data on mount
     useEffect(() => {
         if (currentUser) {
-            initializeSocket();
+            console.log('Chat: Initializing socket and fetching data for user:', currentUser._id);
+            // Initialize socket with listeners
+            initializeSocket(true);
+            // Join chat with current user's ID
             joinChat(currentUser._id);
+            // Fetch initial data
+            fetchUsers();
+            fetchGroups();
         }
-    }, [currentUser, initializeSocket, joinChat]);
+
+        // Cleanup on unmount
+        return () => {
+            console.log('Chat: Cleaning up socket on unmount');
+            cleanupSocket();
+        };
+    }, [currentUser, initializeSocket, joinChat, fetchUsers, fetchGroups, cleanupSocket]);
+
+    // Reset selected chat when component mounts
+    useEffect(() => {
+        setSelectedChat(null);
+    }, [setSelectedChat]);
 
     return (
         // Removed redundant container styling to fit within the main app layout

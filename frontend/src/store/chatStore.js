@@ -2,9 +2,12 @@ import { create } from 'zustand';
 import axios from '../axiosInstance';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:5001', {
-    withCredentials: true
-});
+// Move socket instance outside of store to prevent multiple connections
+let socket = null;
+let isSocketInitialized = false;
+
+// Helper function to ensure socket is initialized
+// This function is now removed. Its logic is integrated into initializeSocket.
 
 // Function to extract Uint8Array from buffer object
 const getUint8ArrayFromBuffer = (buffer) => {
@@ -18,7 +21,7 @@ const getUint8ArrayFromBuffer = (buffer) => {
 };
 
 // Function to create Blob URL from Uint8Array
-export const createBlobUrl = (uint8Array, contentType) => {
+const createBlobUrl = (uint8Array, contentType) => {
     console.log('createBlobUrl: Received Uint8Array (length):', uint8Array.length, 'contentType:', contentType);
     const blob = new Blob([uint8Array], { type: contentType });
     console.log('createBlobUrl: Created Blob object (size, type):', blob.size, blob.type);
@@ -28,17 +31,50 @@ export const createBlobUrl = (uint8Array, contentType) => {
 };
 
 const processImageBuffer = (buffer, contentType) => {
-    if (!buffer || !buffer.data) {
-        console.error('processImageBuffer: Invalid buffer data');
+    console.log('processImageBuffer: Received buffer (before check):', buffer);
+    console.log('processImageBuffer: Received buffer.data (before check):', buffer?.data);
+    console.log('processImageBuffer: Received contentType:', contentType);
+
+    let uint8ArrayData = null;
+
+    if (buffer && buffer.data && Array.isArray(buffer.data)) {
+        // Case 1: Received as a Buffer object with .data property (common from Node.js)
+        console.log('processImageBuffer: Processing Buffer object with .data');
+        uint8ArrayData = buffer.data;
+    } else if (buffer instanceof ArrayBuffer) {
+        // Case 2: Received as a raw ArrayBuffer
+        console.log('processImageBuffer: Processing raw ArrayBuffer');
+        uint8ArrayData = new Uint8Array(buffer);
+    } else if (typeof buffer === 'string' && buffer.startsWith('data:')) {
+        // Case 3: Received as a data URL (base64 string)
+        console.log('processImageBuffer: Processing data URL string');
+        try {
+            const base64Data = buffer.split('base64,')[1];
+            uint8ArrayData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        } catch (error) {
+            console.error('processImageBuffer: Error decoding base64 string:', error);
+            return null;
+        }
+    } else if (buffer instanceof Blob) {
+        // Case 4: Received as a Blob object
+        console.log('processImageBuffer: Processing Blob object');
+        // Need to convert Blob to ArrayBuffer or similar to create a Blob URL
+        // This path might be less common from a socket, but handle as a fallback
+        return null; // For now, don't support Blob directly, expect ArrayBuffer or Buffer structure
+    }
+
+    if (!uint8ArrayData) {
+        console.error('processImageBuffer: Unrecognized or invalid buffer format', buffer);
         return null;
     }
 
     try {
-        const uint8Array = new Uint8Array(buffer.data);
+        const uint8Array = new Uint8Array(uint8ArrayData);
         console.log('processImageBuffer: Created Uint8Array (length):', uint8Array.length);
         const { url, blob } = createBlobUrl(uint8Array, contentType);
-        // Store the blob in the message object for later use
-        return { url, blob, uint8Array };
+        // Add to active URLs set for cleanup
+        useChatStore.getState().activeImageUrls.add(url);
+        return { url, blob };
     } catch (error) {
         console.error('processImageBuffer: Error processing image:', error);
         return null;
@@ -57,6 +93,8 @@ const useChatStore = create((set, get) => ({
     isAdmin: false,
     activeImageUrls: new Set(), // To keep track of active Blob URLs for revocation
     unreadMessages: {},
+    chatPagination: {}, // Stores pagination info per chat: { chatId: { hasMore: true, oldestMessageId: null, isLoading: false } },
+    isMonitoringAdminView: false, // New state to indicate if in admin monitoring mode
 
     // Actions
     setMessages: (newMessages) => {
@@ -76,154 +114,368 @@ const useChatStore = create((set, get) => ({
             }
         });
 
-        // Process new messages with images
-        const processedMessages = newMessages.map(msg => {
-            if (msg.image && !msg.imageUrl) {
-                const imageData = processImageBuffer(msg.image, msg.imageContentType);
-                if (imageData) {
-                    return {
-                        ...msg,
-                        imageUrl: imageData.url,
-                        imageBlob: imageData.blob,
-                        imageData: imageData.uint8Array, // Store the raw data for retries
-                        imageProcessing: false,
-                        imageError: false,
-                        imageRetryCount: 0
-                    };
-                }
+        // Log details of messages with images before updating state
+        newMessages.forEach(msg => {
+            if (msg.image || msg.imageBlob) {
+                console.log('setMessages: Before state update - Message:', msg._id, {
+                    hasImage: !!msg.image,
+                    hasImageBlob: !!msg.imageBlob,
+                    imageUrl: msg.imageUrl,
+                    imageRetryCount: msg.imageRetryCount
+                });
             }
-            return msg;
         });
 
-        set({ messages: processedMessages });
+        set({ messages: newMessages });
+
+        // Log details of messages with images after updating state (note: might not reflect immediate DOM update)
+        get().messages.forEach(msg => {
+            if (msg.image || msg.imageBlob) {
+                console.log('setMessages: After state update (get().messages) - Message:', msg._id, {
+                    hasImage: !!msg.image,
+                    hasImageBlob: !!msg.imageBlob,
+                    imageUrl: msg.imageUrl,
+                    imageRetryCount: msg.imageRetryCount
+                });
+            }
+        });
     },
 
     setCurrentUser: (user) => {
-        const actualUser = user?.user || user;
-        set({ currentUser: actualUser, isAdmin: actualUser?.role === 'admin' });
-        if (actualUser) {
-            get().fetchUsers();
-            get().fetchGroups();
-            get().joinChat(actualUser._id);
+        try {
+            const actualUser = user?.user || user;
+            set({ currentUser: actualUser, isAdmin: actualUser?.role === 'admin' });
+            if (actualUser && !get().isAdmin) { // Only initialize socket and join chat if NOT an admin
+                get().initializeSocket(true); // Initialize with listeners
+                get().joinChat(actualUser._id);
+            } else if (actualUser && get().isAdmin) {
+                console.log('setCurrentUser: Admin user detected, skipping automatic socket initialization and chat join.');
+                get().cleanupSocket(); // Ensure no socket is active for admin on login
+            }
+        } catch (error) {
+            console.error('Error setting current user:', error);
         }
     },
 
-    initializeSocket: () => {
-        socket.on('receive-message', async (message) => {
-            console.log('receive-message: Received message:', message);
-            const existingMessage = get().messages.find(msg => msg._id === message._id);
-            if (!existingMessage) {
-                // Determine the chat ID (sender for user chat, group ID for group chat)
-                const chatId = message.group || (message.sender === get().currentUser._id ? message.receiver : message.sender);
+    initializeSocket: (shouldAttachListeners = true) => {
+        try {
+            // If socket is already initialized, clear existing listeners to prevent duplicates
+            if (socket) {
+                console.log('Socket already exists. Clearing existing listeners for re-configuration.');
+                socket.off('receive-message');
+                socket.off('update-online-users');
+                socket.off('typing');
+                socket.off('user-online');
+                socket.off('user-offline');
+                socket.disconnect();
+                socket = null;
+                isSocketInitialized = false;
+            }
 
-                if (get().selectedChat?.id !== chatId) {
-                    // Increment unread count if not the currently selected chat
-                    get().setUnreadMessages(chatId, (get().unreadMessages[chatId] || 0) + 1);
-                    console.log(`receive-message: Incremented unread count for chat ${chatId}. Total: ${get().unreadMessages[chatId]}`);
-                }
+            // Only create and connect the socket if we intend to attach listeners
+            if (shouldAttachListeners) {
+                console.log('Creating new socket connection...');
+                socket = io('http://localhost:5001', {
+                    withCredentials: true,
+                    reconnection: true,
+                    reconnectionAttempts: 5,
+                    reconnectionDelay: 1000,
+                    transports: ['websocket', 'polling'],
+                    maxHttpBufferSize: 1e8, // Increase buffer size to 100MB
+                    timeout: 60000 // Increase timeout to 60 seconds
+                });
 
-                if (message.image) {
-                    console.log('receive-message: Message has image data, processing...');
-                    const imageData = processImageBuffer(message.image, message.imageContentType);
-                    if (imageData) {
-                        // Ensure both URL and Blob are stored on the message object
-                        const newMessage = {
-                            ...message,
-                            imageUrl: imageData.url,
-                            imageBlob: imageData.blob,
-                            imageProcessing: false,
-                            imageError: false,
-                            imageRetryCount: 0 // Initialize retry count
-                        };
-                        get().setMessages([...get().messages, newMessage]);
-                        console.log('receive-message: Image processed and message added, imageUrl:', imageData.url);
-                    } else {
-                        console.error('receive-message: Error processing image for new message.');
-                        get().setMessages([...get().messages, { ...message, imageError: true, imageProcessing: false }]);
-                    }
-                } else {
-                    console.log('receive-message: Message has no image data, adding directly.');
-                    get().setMessages([...get().messages, message]);
+                // Attach listeners if socket exists and is connected
+                if (socket) {
+                    console.log('Attaching socket listeners...');
+                    const processedMessageIds = new Set();
+
+                    socket.on('connect', () => {
+                        console.log('Socket connected successfully');
+                        // Re-join chat if we have a current user
+                        if (get().currentUser?._id) {
+                            console.log('Re-joining chat after connection:', get().currentUser._id);
+                            get().joinChat(get().currentUser._id);
+                            // Request current online users list
+                            socket.emit('get-online-users');
+                        }
+                    });
+
+                    socket.on('disconnect', (reason) => {
+                        console.log('Socket disconnected:', reason);
+                        set({ onlineUsers: [] });
+                    });
+
+                    socket.on('connect_error', (error) => {
+                        console.error('Socket connection error:', error);
+                        set({ onlineUsers: [] });
+                    });
+
+                    socket.on('receive-message', async (message) => {
+                        console.log('Received message:', message);
+                        if (!message || !message._id) {
+                            console.error('Invalid message received:', message);
+                            return;
+                        }
+
+                        // Check for duplicate messages
+                        if (processedMessageIds.has(message._id)) {
+                            console.log('Duplicate message received, skipping:', message._id);
+                            return;
+                        }
+                        processedMessageIds.add(message._id);
+
+                        // Clean up old message IDs (keep only last 100)
+                        if (processedMessageIds.size > 100) {
+                            const oldestIds = Array.from(processedMessageIds).slice(0, processedMessageIds.size - 100);
+                            oldestIds.forEach(id => processedMessageIds.delete(id));
+                        }
+
+                        // Check if this is a response to our sent message (has matching temp ID)
+                        const existingMessage = get().messages.find(msg => {
+                            if (!msg._id || typeof msg._id !== 'string') return false;
+                            if (msg._id === message._id) return true;
+                            return msg._id.startsWith('temp_') &&
+                                msg.sender === message.sender &&
+                                msg.receiver === message.receiver &&
+                                msg.group === message.group &&
+                                Math.abs(new Date(msg.createdAt) - new Date(message.createdAt)) < 5000;
+                        });
+
+                        if (existingMessage) {
+                            console.log('Found existing message to replace:', existingMessage._id);
+                            // Replace the temporary message with the server message
+                            const updatedMessages = get().messages.map(msg =>
+                                msg._id === existingMessage._id ? {
+                                    ...message,
+                                    imageUrl: existingMessage.imageUrl,
+                                    imageBlob: existingMessage.imageBlob
+                                } : msg
+                            );
+                            get().setMessages(updatedMessages);
+                            return;
+                        }
+
+                        // Process the message
+                        const chatId = message.group || (message.sender === get().currentUser._id ? message.receiver : message.sender);
+
+                        if (get().selectedChat && get().selectedChat.id === chatId) {
+                            // Add message to current chat
+                            if (message.image) {
+                                const imageData = processImageBuffer(message.image, message.imageContentType);
+                                if (imageData) {
+                                    get().setMessages([...get().messages, {
+                                        ...message,
+                                        imageUrl: imageData.url,
+                                        imageBlob: imageData.blob
+                                    }]);
+                                }
+                            } else {
+                                get().setMessages([...get().messages, message]);
+                            }
+                        } else {
+                            // Increment unread count for other chats
+                            get().setUnreadMessages(chatId, (get().unreadMessages[chatId] || 0) + 1);
+                        }
+                    });
+
+                    socket.on('update-online-users', (users) => {
+                        console.log('Received online users update:', users);
+                        if (Array.isArray(users)) {
+                            const validUsers = users.filter(id => id && typeof id === 'string');
+                            set({ onlineUsers: validUsers });
+                        }
+                    });
+
+                    socket.on('user-online', (userId) => {
+                        console.log('User came online:', userId);
+                        if (userId && typeof userId === 'string') {
+                            set((state) => ({
+                                onlineUsers: [...new Set([...state.onlineUsers, userId])]
+                            }));
+                        }
+                    });
+
+                    socket.on('user-offline', (userId) => {
+                        console.log('User went offline:', userId);
+                        if (userId && typeof userId === 'string') {
+                            set((state) => ({
+                                onlineUsers: state.onlineUsers.filter(id => id !== userId)
+                            }));
+                        }
+                    });
+
+                    socket.on('typing', ({ userId, isTyping }) => {
+                        if (get().selectedChat?.id === userId) {
+                            set({ isTyping });
+                        }
+                    });
+
+                    isSocketInitialized = true;
+                    console.log('Socket initialized successfully with listeners');
                 }
             }
-        });
-
-        socket.on('message-error', (error) => {
-            console.error('message-error: Received error from server:', error);
-            // You might want to show a toast notification here
-            alert('Failed to send message: ' + error.error);
-        });
-
-        socket.on('update-online-users', (users) => {
-            console.log('update-online-users: Received online users update:', users);
-            set({ onlineUsers: users });
-        });
-
-        socket.on('typing', ({ userId, isTyping }) => {
-            console.log(`typing: User ${userId} is typing: ${isTyping}`);
-            if (get().selectedChat?.id === userId) {
-                set({ isTyping });
+        } catch (error) {
+            console.error('Error initializing socket:', error);
+            isSocketInitialized = false;
+            if (socket) {
+                socket.disconnect();
+                socket = null;
             }
-        });
+        }
     },
 
     joinChat: (userId) => {
-        console.log('joinChat: Joining chat with userId:', userId);
-        socket.emit('join', userId);
+        try {
+            console.log('Joining chat with userId:', userId);
+            if (socket && socket.connected && !get().isMonitoringAdminView) {
+                socket.emit('join', userId);
+                // Request online users list after joining
+                socket.emit('get-online-users');
+            } else {
+                console.log('Cannot join chat: Socket not connected or in monitoring view');
+            }
+        } catch (error) {
+            console.error('Error joining chat:', error);
+        }
     },
 
     joinGroup: (groupId) => {
-        console.log('joinGroup: Joining group with groupId:', groupId);
-        socket.emit('join-group', groupId);
+        try {
+            console.log('joinGroup: Joining group with groupId:', groupId);
+            // Only join if socket exists AND not in monitoring view AND socket is connected
+            if (socket && !get().isMonitoringAdminView && socket.connected) {
+                socket.emit('join-group', groupId);
+            } else {
+                console.log(`joinGroup: Skipping join. Socket connected: ${socket?.connected}, isMonitoringAdminView: ${get().isMonitoringAdminView}`);
+            }
+        } catch (error) {
+            console.error('Error joining group:', error);
+        }
     },
 
     sendMessage: async (content, receiverId, groupId = null, imageFile = null) => {
-        console.log('sendMessage: Called with content:', content, 'receiverId:', receiverId, 'groupId:', groupId, 'imageFile:', imageFile);
-        const { currentUser } = get();
-        if (!currentUser || !currentUser._id) {
-            console.error('sendMessage: Aborted, currentUser or currentUser._id is null/undefined.', currentUser);
-            return;
-        }
-        if (!content && !imageFile) {
-            console.warn('sendMessage: Aborted, No content or image provided.');
-            return;
-        }
-
-        let imageData = null;
-        let imageContentType = null;
-
-        if (imageFile) {
-            console.log('sendMessage: Image file detected, reading...', {
-                name: imageFile.name,
-                type: imageFile.type,
-                size: imageFile.size
-            });
-            imageContentType = imageFile.type;
-            try {
-                // Read as ArrayBuffer for better binary handling
-                const arrayBuffer = await imageFile.arrayBuffer();
-                console.log('sendMessage: ArrayBuffer created, size:', arrayBuffer.byteLength);
-                imageData = new Uint8Array(arrayBuffer);
-                console.log('sendMessage: Uint8Array created, length:', imageData.length, 'first 10 bytes:', Array.from(imageData.slice(0, 10)));
-            } catch (error) {
-                console.error('sendMessage: Error reading image file:', error);
+        try {
+            if (get().isMonitoringAdminView) {
+                console.warn('sendMessage: Sending messages disabled in admin monitoring view.');
                 return;
             }
-        }
 
-        const message = {
-            sender: currentUser._id,
-            receiver: receiverId,
-            group: groupId,
-            message: content || null,
-            image: imageData ? { data: Array.from(imageData) } : null,
-            imageContentType: imageContentType || null
-        };
-        console.log('sendMessage: Emitting message:', {
-            ...message,
-            image: imageData ? { dataLength: imageData.length } : null
-        });
-        socket.emit('send-message', message);
+            console.log('Frontend - sendMessage called with:', {
+                content,
+                receiverId,
+                groupId,
+                hasImageFile: !!imageFile,
+                imageFileType: imageFile?.type,
+                imageFileSize: imageFile?.size
+            });
+
+            const { currentUser } = get();
+            if (!currentUser || !currentUser._id) {
+                console.error('sendMessage: Aborted, currentUser or currentUser._id is null/undefined.', currentUser);
+                return;
+            }
+            if (!content && !imageFile) {
+                console.warn('sendMessage: Aborted, No content or image provided.');
+                return;
+            }
+
+            // Ensure socket is initialized and connected
+            if (!socket || !socket.connected) {
+                console.log('sendMessage: Socket not connected, initializing...');
+                get().initializeSocket(true);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                if (!socket || !socket.connected) {
+                    console.error('sendMessage: Socket still not connected after initialization.');
+                    return;
+                }
+            }
+
+            let imageData = null;
+            let imageContentType = null;
+
+            if (imageFile) {
+                console.log('Frontend - Processing image file:', {
+                    name: imageFile.name,
+                    type: imageFile.type,
+                    size: imageFile.size
+                });
+                imageContentType = imageFile.type;
+                try {
+                    // Read the file as ArrayBuffer
+                    const arrayBuffer = await imageFile.arrayBuffer();
+                    // Convert to Uint8Array
+                    const uint8Array = new Uint8Array(arrayBuffer);
+                    // Convert to regular array for socket.io transmission
+                    imageData = Array.from(uint8Array);
+                    console.log('Frontend - Image processed successfully:', {
+                        arraySize: imageData.length,
+                        contentType: imageContentType,
+                        firstFewBytes: imageData.slice(0, 10)
+                    });
+                } catch (error) {
+                    console.error('Frontend - Error processing image:', error);
+                    return;
+                }
+            }
+
+            // Generate a temporary ID for optimistic update
+            const tempId = `temp_${Date.now()}`;
+
+            const message = {
+                _id: tempId,
+                sender: currentUser._id,
+                receiver: receiverId,
+                group: groupId,
+                message: content || null,
+                image: imageData ? { data: imageData } : null,
+                imageContentType: imageContentType,
+                createdAt: new Date()
+            };
+
+            // Log the exact message being sent
+            console.log('Frontend - Sending message via socket:', {
+                tempId,
+                sender: message.sender,
+                receiver: message.receiver,
+                group: message.group,
+                hasMessage: !!message.message,
+                hasImage: !!message.image,
+                imageContentType: message.imageContentType,
+                imageDataLength: message.image?.data?.length,
+                imageDataSample: message.image?.data?.slice(0, 10),
+                fullMessage: message
+            });
+
+            // Add optimistic update
+            const optimisticMessage = {
+                ...message,
+                imageUrl: imageFile ? URL.createObjectURL(imageFile) : null,
+                imageBlob: imageFile || null
+            };
+            get().setMessages([...get().messages, optimisticMessage]);
+
+            // Emit the message with explicit data structure
+            socket.emit('send-message', {
+                sender: message.sender,
+                receiver: message.receiver,
+                group: message.group,
+                message: message.message,
+                image: message.image,
+                imageContentType: message.imageContentType,
+                createdAt: message.createdAt
+            }, (response) => {
+                console.log('Frontend - Received server response:', response);
+                if (response && response.error) {
+                    console.error('Frontend - Server error:', response.error);
+                    // Remove the optimistic message if there was an error
+                    get().setMessages(get().messages.filter(msg => msg._id !== tempId));
+                }
+            });
+
+        } catch (error) {
+            console.error('Frontend - Error sending message:', error);
+        }
     },
 
     fetchUsers: async () => {
@@ -253,17 +505,38 @@ const useChatStore = create((set, get) => ({
         }
     },
 
-    fetchMessages: async (userId1, userId2) => {
+    fetchMessages: async (userId1, userId2, limit = 15, beforeId = null) => {
         const { currentUser } = get();
         if (!currentUser || !currentUser._id) {
             console.error('fetchMessages: Aborted, currentUser or currentUser._id is null/undefined.', currentUser);
             return;
         }
-        console.log(`fetchMessages: Fetching messages for users: ${userId1} and ${userId2}`);
+        console.log(`fetchMessages: Fetching messages for users: ${userId1} and ${userId2} with limit ${limit} and beforeId ${beforeId}`);
         try {
-            const response = await axios.get(`/chat/history/${userId1}/${userId2}`);
+            set(state => ({
+                chatPagination: {
+                    ...state.chatPagination,
+                    [userId2]: { ...state.chatPagination[userId2], isLoading: true }
+                }
+            }));
+            const url = `/chat/history/${userId1}/${userId2}`;
+            const params = { limit: limit };
+            if (beforeId) {
+                params.beforeId = beforeId;
+            }
+            const response = await axios.get(url, { params });
             console.log('fetchMessages: Raw messages received:', response.data.length);
-            const messagesWithProcessedImages = await Promise.all(response.data.map(async (msg) => {
+
+            const messagesToProcess = response.data;
+
+            // Determine if there are more messages to load
+            const hasMore = messagesToProcess.length === limit;
+
+            // Find the oldest message ID in the current batch
+            const oldestMessageId = messagesToProcess.length > 0 ? messagesToProcess[0]._id : null;
+
+            // Process images for the fetched messages
+            const messagesWithProcessedImages = await Promise.all(messagesToProcess.map(async (msg) => {
                 // Only process if image data exists and imageUrl is not already set (handle potential re-fetching)
                 if (msg.image && !msg.imageUrl) {
                     console.log(`fetchMessages: Processing image for message: ${msg._id} (has image: ${!!msg.image}, has imageUrl: ${!!msg.imageUrl})`);
@@ -286,19 +559,67 @@ const useChatStore = create((set, get) => ({
                 // If message already has imageUrl or no image data, return as is
                 return msg;
             }));
-            set({ messages: messagesWithProcessedImages });
-            console.log('fetchMessages: Messages set with processed images. Total:', messagesWithProcessedImages.length);
+
+            // If fetching older messages, prepend them to the existing messages
+            if (beforeId) {
+                set(state => ({
+                    messages: [...messagesWithProcessedImages, ...state.messages],
+                    chatPagination: {
+                        ...state.chatPagination,
+                        [userId2]: { ...state.chatPagination[userId2], hasMore: hasMore, oldestMessageId: oldestMessageId, isLoading: false }
+                    }
+                }));
+                console.log('fetchMessages: Prepended older messages. Total:', get().messages.length);
+            } else {
+                // Initial fetch or refetch without beforeId, replace existing messages
+                set(state => ({
+                    messages: messagesWithProcessedImages,
+                    chatPagination: {
+                        ...state.chatPagination,
+                        [userId2]: { hasMore: hasMore, oldestMessageId: oldestMessageId, isLoading: false }
+                    }
+                }));
+                console.log('fetchMessages: Messages set with processed images. Total:', messagesWithProcessedImages.length);
+            }
+
         } catch (error) {
             console.error('fetchMessages: Error fetching messages:', error.message, error.response?.data);
+            set(state => ({
+                chatPagination: {
+                    ...state.chatPagination,
+                    [userId2]: { ...state.chatPagination[userId2], isLoading: false }
+                }
+            }));
         }
     },
 
-    fetchGroupMessages: async (groupId) => {
-        console.log('fetchGroupMessages: Fetching group messages for group:', groupId);
+    fetchGroupMessages: async (groupId, limit = 15, beforeId = null) => {
+        console.log(`fetchGroupMessages: Fetching group messages for group: ${groupId} with limit ${limit} and beforeId ${beforeId}`);
         try {
-            const response = await axios.get(`/chat/group/${groupId}/messages`);
+            set(state => ({
+                chatPagination: {
+                    ...state.chatPagination,
+                    [groupId]: { ...state.chatPagination[groupId], isLoading: true }
+                }
+            }));
+            const url = `/chat/group/${groupId}/messages`;
+            const params = { limit: limit };
+            if (beforeId) {
+                params.beforeId = beforeId;
+            }
+            const response = await axios.get(url, { params });
             console.log('fetchGroupMessages: Raw group messages received:', response.data.length);
-            const messagesWithProcessedImages = await Promise.all(response.data.map(async (msg) => {
+
+            const messagesToProcess = response.data;
+
+            // Determine if there are more messages to load
+            const hasMore = messagesToProcess.length === limit;
+
+            // Find the oldest message ID in the current batch
+            const oldestMessageId = messagesToProcess.length > 0 ? messagesToProcess[0]._id : null;
+
+            // Process images for the fetched messages
+            const messagesWithProcessedImages = await Promise.all(messagesToProcess.map(async (msg) => {
                 // Only process if image data exists and imageUrl is not already set
                 if (msg.image && !msg.imageUrl) {
                     console.log(`fetchGroupMessages: Processing image for message: ${msg._id} (has image: ${!!msg.image}, has imageUrl: ${!!msg.imageUrl})`);
@@ -321,10 +642,37 @@ const useChatStore = create((set, get) => ({
                 // If message already has imageUrl or no image data, return as is
                 return msg;
             }));
-            set({ messages: messagesWithProcessedImages });
-            console.log('fetchGroupMessages: Messages set with processed images. Total:', messagesWithProcessedImages.length);
+
+            // If fetching older messages, prepend them to the existing messages
+            if (beforeId) {
+                set(state => ({
+                    messages: [...messagesWithProcessedImages, ...state.messages],
+                    chatPagination: {
+                        ...state.chatPagination,
+                        [groupId]: { ...state.chatPagination[groupId], hasMore: hasMore, oldestMessageId: oldestMessageId, isLoading: false }
+                    }
+                }));
+                console.log('fetchGroupMessages: Prepended older messages. Total:', get().messages.length);
+            } else {
+                // Initial fetch or refetch without beforeId, replace existing messages
+                set(state => ({
+                    messages: messagesWithProcessedImages,
+                    chatPagination: {
+                        ...state.chatPagination,
+                        [groupId]: { hasMore: hasMore, oldestMessageId: oldestMessageId, isLoading: false }
+                    }
+                }));
+                console.log('fetchGroupMessages: Messages set with processed images. Total:', messagesWithProcessedImages.length);
+            }
+
         } catch (error) {
             console.error('fetchGroupMessages: Error fetching group messages:', error.message, error.response?.data);
+            set(state => ({
+                chatPagination: {
+                    ...state.chatPagination,
+                    [groupId]: { ...state.chatPagination[groupId], isLoading: false }
+                }
+            }));
         }
     },
 
@@ -354,8 +702,8 @@ const useChatStore = create((set, get) => ({
         }
     },
 
-    setSelectedChat: (chat) => {
-        console.log('setSelectedChat: Called with chat:', chat);
+    setSelectedChat: (chat, isMonitoring = false) => {
+        console.log('setSelectedChat: Called with chat:', chat, 'isMonitoring:', isMonitoring);
         // Revoke all existing image URLs when changing chats
         get().activeImageUrls.forEach(url => {
             console.log('setSelectedChat: Revoking Blob URL:', url);
@@ -363,17 +711,26 @@ const useChatStore = create((set, get) => ({
         });
         set({ activeImageUrls: new Set() }); // Clear the set
 
-        set({ selectedChat: chat });
+        set({ selectedChat: chat, isMonitoringAdminView: isMonitoring }); // Update isMonitoringAdminView
         set({ messages: [] });
         // Mark messages in the newly selected chat as read
         if (chat) {
             get().markMessagesAsRead(chat.id);
         }
 
-        if (chat?.type === 'group') {
-            get().fetchGroupMessages(chat.id);
-        } else if (chat?.type === 'user') {
-            get().fetchMessages(get().currentUser?._id, chat.id);
+        // No real-time fetches or joins if in monitoring view
+        if (!isMonitoring) {
+            // If socket was created in a previous session, ensure listeners are enabled for this non-monitoring view.
+            get().initializeSocket(true);
+
+            if (chat?.type === 'group') {
+                get().fetchGroupMessages(chat.id);
+            } else if (chat?.type === 'user') {
+                get().fetchMessages(get().currentUser?._id, chat.id);
+            }
+        } else {
+            // If in monitoring view, ensure socket listeners are explicitly off.
+            get().cleanupSocket();
         }
     },
 
@@ -387,13 +744,24 @@ const useChatStore = create((set, get) => ({
     },
 
     cleanupSocket: () => {
-        console.log('cleanupSocket: Cleaning up socket listeners.');
-        socket.off('receive-message');
-        socket.off('update-online-users');
-        socket.off('typing');
-        // Revoke all remaining active image URLs on socket cleanup/app unmount
-        get().activeImageUrls.forEach(url => URL.revokeObjectURL(url));
-        set({ activeImageUrls: new Set() });
+        try {
+            console.log('cleanupSocket: Cleaning up socket listeners and disconnecting.');
+            if (socket) {
+                socket.off('receive-message');
+                socket.off('update-online-users');
+                socket.off('typing');
+                socket.off('user-online');
+                socket.off('user-offline');
+                socket.disconnect(); // Disconnect the socket
+                socket = null; // Clear the socket instance
+            }
+            isSocketInitialized = false; // Reset initialization flag
+            // Revoke all remaining active image URLs on socket cleanup/app unmount
+            get().activeImageUrls.forEach(url => URL.revokeObjectURL(url));
+            set({ activeImageUrls: new Set() });
+        } catch (error) {
+            console.error('Error cleaning up socket:', error);
+        }
     },
 
     cleanupBlobUrls: () => {

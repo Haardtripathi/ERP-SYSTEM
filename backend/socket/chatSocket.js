@@ -8,111 +8,108 @@ function setupSocket(server) {
         cors: {
             origin: "http://localhost:5173",
             credentials: true
-        }
+        },
+        maxHttpBufferSize: 1e8, // Increase buffer size to 100MB
+        pingTimeout: 60000, // Increase ping timeout to 60 seconds
+        pingInterval: 25000, // Increase ping interval to 25 seconds
+        transports: ['websocket', 'polling']
     });
 
     const onlineUsers = new Map();
 
     io.on("connection", (socket) => {
+        console.log('New socket connection:', socket.id);
+
         socket.on("join", (userId) => {
+            console.log('User joined:', userId);
             socket.join(userId);
             onlineUsers.set(userId, socket.id);
             io.emit("update-online-users", [...onlineUsers.keys()]);
         });
 
-        socket.on("send-message", async ({ sender, receiver, group, message, image, imageContentType }) => {
-            console.log('Received message on backend:', {
-                sender,
-                receiver,
-                group,
-                message,
-                hasImage: !!image,
-                imageContentType,
-                imageDataLength: image?.data?.length,
-                imageDataType: image?.data ? typeof image.data : 'none'
+        socket.on("send-message", async (messageData, callback) => {
+            // Log the raw message data first
+            console.log('Backend - Raw message data received:', {
+                sender: messageData.sender,
+                receiver: messageData.receiver,
+                group: messageData.group,
+                hasMessage: !!messageData.message,
+                hasImage: !!messageData.image,
+                imageContentType: messageData.imageContentType,
+                imageDataLength: messageData.image?.data?.length
             });
+
             try {
-                // Convert image data to Buffer if present
-                let imageBuffer = null;
-                if (image && image.data) {
-                    console.log('Processing image data:', {
-                        dataLength: image.data.length,
-                        contentType: imageContentType,
-                        isArray: Array.isArray(image.data),
-                        firstFewBytes: image.data.slice(0, 10)
+                // Create message data object
+                const messageToSave = {
+                    sender: messageData.sender,
+                    receiver: messageData.receiver,
+                    group: messageData.group,
+                    message: messageData.message,
+                    imageContentType: messageData.imageContentType
+                };
+
+                // Handle image data if present
+                if (messageData.image?.data) {
+                    console.log('Backend - Processing image data:', {
+                        dataLength: messageData.image.data.length,
+                        contentType: messageData.imageContentType
                     });
 
                     try {
-                        // Convert the array to a Buffer
-                        imageBuffer = Buffer.from(image.data);
+                        // Convert array to Buffer
+                        const imageBuffer = Buffer.from(messageData.image.data);
 
-                        // Verify the buffer
-                        if (!Buffer.isBuffer(imageBuffer)) {
-                            throw new Error('Failed to create valid buffer from image data');
+                        // Verify buffer
+                        if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) {
+                            throw new Error('Invalid image buffer created');
                         }
 
-                        console.log('Created image buffer:', {
+                        messageToSave.image = imageBuffer;
+                        console.log('Backend - Image buffer created successfully:', {
                             bufferLength: imageBuffer.length,
-                            isBuffer: Buffer.isBuffer(imageBuffer),
-                            firstFewBytes: Array.from(imageBuffer.slice(0, 10))
+                            isBuffer: Buffer.isBuffer(imageBuffer)
                         });
-
-                        // Verify the buffer contains valid image data
-                        if (imageBuffer.length === 0) {
-                            throw new Error('Created buffer is empty');
-                        }
-                    } catch (bufferError) {
-                        console.error('Error creating buffer:', bufferError);
-                        throw bufferError;
+                    } catch (error) {
+                        console.error('Backend - Error creating image buffer:', error);
+                        if (callback) callback({ error: 'Failed to process image data' });
+                        return;
                     }
                 }
 
-                // Create the message document
-                const messageData = {
-                    sender,
-                    receiver,
-                    group,
-                    message,
-                    imageContentType
-                };
-
-                // Only add image if we have a valid buffer
-                if (imageBuffer) {
-                    messageData.image = imageBuffer;
-                }
-
-                const msg = await ChatMessage.create(messageData);
-
-                console.log('Message saved to database:', {
-                    id: msg._id,
-                    hasImage: !!msg.image,
-                    imageSize: msg.image?.length,
-                    imageContentType: msg.imageContentType
+                // Save message to database
+                const savedMessage = await ChatMessage.create(messageToSave);
+                console.log('Backend - Message saved to database:', {
+                    id: savedMessage._id,
+                    message: savedMessage.message,
+                    hasImage: !!savedMessage.image,
+                    imageContentType: savedMessage.imageContentType,
+                    imageSize: savedMessage.image?.length
                 });
 
                 // Send the message to the appropriate recipients
-                if (group) {
-                    io.to(group).emit("receive-message", msg);
+                if (messageData.group) {
+                    io.to(messageData.group).emit("receive-message", savedMessage);
                 } else {
-                    io.to(receiver).emit("receive-message", msg);
-                    io.to(sender).emit("receive-message", msg);
+                    io.to(messageData.receiver).emit("receive-message", savedMessage);
+                    io.to(messageData.sender).emit("receive-message", savedMessage);
                 }
+
+                // Send success callback
+                if (callback) callback({ success: true, message: savedMessage });
             } catch (error) {
-                console.error('Error saving message to DB:', error);
-                // Log more details about the error
-                if (error.name === 'ValidationError') {
-                    console.error('Validation error details:', error.errors);
-                }
-                // Send error back to client
-                socket.emit('message-error', { error: 'Failed to save message: ' + error.message });
+                console.error('Backend - Error saving message:', error);
+                if (callback) callback({ error: error.message });
             }
         });
 
         socket.on("join-group", (groupId) => {
+            console.log('User joined group:', groupId);
             socket.join(groupId);
         });
 
-        socket.on("disconnect", () => {
+        socket.on("disconnect", (reason) => {
+            console.log('Socket disconnected:', socket.id, 'Reason:', reason);
             for (let [id, sockId] of onlineUsers.entries()) {
                 if (sockId === socket.id) {
                     onlineUsers.delete(id);
@@ -125,3 +122,5 @@ function setupSocket(server) {
 }
 
 module.exports = { setupSocket };
+
+
