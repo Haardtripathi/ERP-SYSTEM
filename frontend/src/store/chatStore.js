@@ -525,15 +525,9 @@ const useChatStore = create((set, get) => ({
                 params.beforeId = beforeId;
             }
             const response = await axios.get(url, { params });
-            console.log('fetchMessages: Raw messages received:', response.data.length);
+            console.log('fetchMessages: Raw messages received:', response.data.messages.length);
 
-            const messagesToProcess = response.data;
-
-            // Determine if there are more messages to load
-            const hasMore = messagesToProcess.length === limit;
-
-            // Find the oldest message ID in the current batch
-            const oldestMessageId = messagesToProcess.length > 0 ? messagesToProcess[0]._id : null;
+            const messagesToProcess = response.data.messages;
 
             // Process images for the fetched messages
             const messagesWithProcessedImages = await Promise.all(messagesToProcess.map(async (msg) => {
@@ -566,7 +560,12 @@ const useChatStore = create((set, get) => ({
                     messages: [...messagesWithProcessedImages, ...state.messages],
                     chatPagination: {
                         ...state.chatPagination,
-                        [userId2]: { ...state.chatPagination[userId2], hasMore: hasMore, oldestMessageId: oldestMessageId, isLoading: false }
+                        [userId2]: {
+                            hasMore: response.data.hasMore,
+                            oldestMessageId: messagesWithProcessedImages[0]?._id || null,
+                            isLoading: false,
+                            totalCount: response.data.totalCount
+                        }
                     }
                 }));
                 console.log('fetchMessages: Prepended older messages. Total:', get().messages.length);
@@ -576,7 +575,12 @@ const useChatStore = create((set, get) => ({
                     messages: messagesWithProcessedImages,
                     chatPagination: {
                         ...state.chatPagination,
-                        [userId2]: { hasMore: hasMore, oldestMessageId: oldestMessageId, isLoading: false }
+                        [userId2]: {
+                            hasMore: response.data.hasMore,
+                            oldestMessageId: messagesWithProcessedImages[0]?._id || null,
+                            isLoading: false,
+                            totalCount: response.data.totalCount
+                        }
                     }
                 }));
                 console.log('fetchMessages: Messages set with processed images. Total:', messagesWithProcessedImages.length);
@@ -608,15 +612,9 @@ const useChatStore = create((set, get) => ({
                 params.beforeId = beforeId;
             }
             const response = await axios.get(url, { params });
-            console.log('fetchGroupMessages: Raw group messages received:', response.data.length);
+            console.log('fetchGroupMessages: Raw group messages received:', response.data.messages.length);
 
-            const messagesToProcess = response.data;
-
-            // Determine if there are more messages to load
-            const hasMore = messagesToProcess.length === limit;
-
-            // Find the oldest message ID in the current batch
-            const oldestMessageId = messagesToProcess.length > 0 ? messagesToProcess[0]._id : null;
+            const messagesToProcess = response.data.messages;
 
             // Process images for the fetched messages
             const messagesWithProcessedImages = await Promise.all(messagesToProcess.map(async (msg) => {
@@ -649,7 +647,12 @@ const useChatStore = create((set, get) => ({
                     messages: [...messagesWithProcessedImages, ...state.messages],
                     chatPagination: {
                         ...state.chatPagination,
-                        [groupId]: { ...state.chatPagination[groupId], hasMore: hasMore, oldestMessageId: oldestMessageId, isLoading: false }
+                        [groupId]: {
+                            hasMore: response.data.hasMore,
+                            oldestMessageId: messagesWithProcessedImages[0]?._id || null,
+                            isLoading: false,
+                            totalCount: response.data.totalCount
+                        }
                     }
                 }));
                 console.log('fetchGroupMessages: Prepended older messages. Total:', get().messages.length);
@@ -659,7 +662,12 @@ const useChatStore = create((set, get) => ({
                     messages: messagesWithProcessedImages,
                     chatPagination: {
                         ...state.chatPagination,
-                        [groupId]: { hasMore: hasMore, oldestMessageId: oldestMessageId, isLoading: false }
+                        [groupId]: {
+                            hasMore: response.data.hasMore,
+                            oldestMessageId: messagesWithProcessedImages[0]?._id || null,
+                            isLoading: false,
+                            totalCount: response.data.totalCount
+                        }
                     }
                 }));
                 console.log('fetchGroupMessages: Messages set with processed images. Total:', messagesWithProcessedImages.length);

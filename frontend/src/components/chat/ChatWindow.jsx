@@ -65,9 +65,23 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
         </div>
     );
 
+    // Loading Overlay Component
+    const LoadingOverlay = () => (
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+            <div className="flex flex-col items-center space-y-4">
+                <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-gray-600 font-medium">Loading messages...</p>
+            </div>
+        </div>
+    );
+
     useEffect(() => {
         if (selectedChat && inputRef.current) {
-            inputRef.current.focus();
+            // Focus input when chat is selected
+            setTimeout(() => {
+                inputRef.current?.focus();
+            }, 100);
+
             if (selectedChat.type === 'user') {
                 fetchMessages(currentUser._id, selectedChat.id, 15, null);
             } else if (selectedChat.type === 'group') {
@@ -226,9 +240,10 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
         const file = event.target.files[0];
         if (file) {
             setSelectedImageFile(file);
+            // Focus input after image is selected
             setTimeout(() => {
                 inputRef.current?.focus();
-            }, 0);
+            }, 100);
         }
         event.target.value = null;
     };
@@ -236,7 +251,10 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
     const handleRemoveImage = () => {
         setSelectedImageFile(null);
         setSelectedImagePreview(null);
-        fileInputRef.current?.focus();
+        // Focus input after removing image
+        setTimeout(() => {
+            inputRef.current?.focus();
+        }, 100);
     };
 
     const handleImageClick = (imageUrl) => {
@@ -272,7 +290,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-white">
+        <div className="flex flex-col h-full bg-white relative">
             <div className="p-4 border-b bg-white shadow-sm">
                 <h2 className="text-lg font-semibold text-gray-800">{selectedChat.name || 'Select a Chat'}</h2>
                 {isTyping && (
@@ -288,6 +306,9 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                 className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 flex flex-col"
                 onScroll={handleScroll}
             >
+                {/* Show loading overlay during initial load */}
+                {pagination.isLoading && messages.length === 0 && <LoadingOverlay />}
+
                 {/* Show skeletons during initial load */}
                 {pagination.isLoading && messages.length === 0 ? (
                     <div className="space-y-4">
@@ -360,14 +381,14 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                                 <div
                                     key={msg._id}
                                     className={cn(
-                                        "flex message-item",
+                                        "flex message-item w-full",
                                         isMyMessage ? "justify-end" : "justify-start"
                                     )}
                                     data-message-id={msg._id}
                                 >
                                     <div
                                         className={cn(
-                                            "max-w-[70%] rounded-xl p-3 shadow-sm",
+                                            "max-w-[70%] min-w-0 rounded-xl p-3 shadow-sm",
                                             isMyMessage
                                                 ? "bg-blue-500 text-white rounded-br-none"
                                                 : "bg-white text-gray-800 rounded-bl-none border border-gray-200"
@@ -418,7 +439,11 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                                                 </img>
                                             </div>
                                         )}
-                                        {hasText && <p className="text-sm mb-1 last:mb-0 break-words">{msg.message}</p>}
+                                        {hasText && (
+                                            <div className="break-all whitespace-pre-wrap overflow-hidden">
+                                                <p className="text-sm mb-1 last:mb-0 break-words">{msg.message}</p>
+                                            </div>
+                                        )}
 
                                         <span className={cn(
                                             "text-xs mt-1 block",
@@ -453,68 +478,90 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                 </div>
             )}
 
-            {!disableRealtime && ( // Conditionally render the input form based on disableRealtime
-                <form onSubmit={handleSend} className="p-4 border-t bg-white flex flex-col shadow-inner">
+            {/* Input area */}
+            {!isReadOnly && (
+                <div className={cn(
+                    "p-3 border-t bg-white",
+                    pagination.isLoading && messages.length === 0 && "opacity-50 pointer-events-none"
+                )}>
                     {selectedImagePreview && (
-                        <div className="mb-3 p-3 border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-between shadow-sm">
+                        <div className="mb-2 p-2 border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-between shadow-sm">
                             <div className="flex items-center space-x-2">
                                 <img
                                     src={selectedImagePreview}
-                                    alt="Image preview"
-                                    className="h-10 w-10 object-cover rounded cursor-pointer"
+                                    alt="Preview"
+                                    className="h-10 w-10 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                                     onClick={() => setEnlargedImage(selectedImagePreview)}
                                 />
-                                <span className="text-sm text-gray-700">{selectedImageFile?.name}</span>
+                                <span className="text-xs text-gray-600">Image selected</span>
                             </div>
                             <button
-                                type="button"
                                 onClick={handleRemoveImage}
-                                className="p-1 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                                className="p-1 text-gray-500 hover:text-red-500 rounded-full hover:bg-gray-100 transition-colors"
+                                disabled={pagination.isLoading && messages.length === 0}
                             >
-                                <XCircle className="w-5 h-5" />
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
                     )}
-
-                    <div className="flex items-center space-x-3">
-                        <label
-                            htmlFor="image-upload"
-                            className="p-3 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 cursor-pointer transition-colors flex-shrink-0"
-                        >
-                            <ImageIcon className="w-5 h-5" />
-                            <input
-                                id="image-upload"
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={handleImageSelect}
-                                ref={fileInputRef}
-                            />
-                        </label>
-                        <div className="flex-1">
-                            <input
+                    <form onSubmit={handleSend} className="flex items-end gap-2">
+                        <div className="flex-1 relative">
+                            <textarea
                                 ref={inputRef}
-                                type="text"
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend(e);
+                                    }
+                                }}
                                 placeholder="Type a message..."
-                                className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                className="w-full p-2.5 pr-10 border rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 min-h-[40px] max-h-[100px] text-sm"
+                                rows={1}
+                                disabled={pagination.isLoading && messages.length === 0}
+                                style={{
+                                    height: 'auto',
+                                    overflow: 'hidden'
+                                }}
+                                onInput={(e) => {
+                                    e.target.style.height = 'auto';
+                                    e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
+                                }}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="absolute right-1.5 bottom-1.5 p-1.5 text-gray-500 hover:text-blue-500 rounded-full hover:bg-gray-100 transition-colors"
+                                disabled={pagination.isLoading && messages.length === 0}
+                                title="Attach image"
+                            >
+                                <ImageIcon className="w-4 h-4" />
+                            </button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageSelect}
+                                className="hidden"
+                                disabled={pagination.isLoading && messages.length === 0}
                             />
                         </div>
                         <button
                             type="submit"
+                            disabled={(!message.trim() && !selectedImageFile) || (pagination.isLoading && messages.length === 0)}
                             className={cn(
-                                "p-3 rounded-full transition-colors flex-shrink-0",
-                                (!message.trim() && !selectedImageFile)
-                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                    : "bg-blue-500 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                "p-2.5 rounded-full transition-colors",
+                                (!message.trim() && !selectedImageFile) || (pagination.isLoading && messages.length === 0)
+                                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                    : "bg-blue-500 text-white hover:bg-blue-600 shadow-sm hover:shadow"
                             )}
-                            disabled={!message.trim() && !selectedImageFile}
+                            title="Send message"
                         >
-                            <Send className="w-6 h-6" />
+                            <Send className="w-4 h-4" />
                         </button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             )}
         </div>
     );

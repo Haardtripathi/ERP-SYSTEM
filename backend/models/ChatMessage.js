@@ -10,9 +10,10 @@ const chatMessageSchema = new mongoose.Schema({
     seenBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]
 }, { timestamps: true });
 
-// Add index for better query performance
+// Add indexes for better query performance
 chatMessageSchema.index({ sender: 1, receiver: 1, createdAt: -1 });
 chatMessageSchema.index({ group: 1, createdAt: -1 });
+chatMessageSchema.index({ createdAt: -1 }); // Add index for createdAt for pagination
 
 const ChatMessage = mongoose.model("ChatMessage", chatMessageSchema);
 

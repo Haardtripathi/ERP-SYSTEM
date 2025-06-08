@@ -45,14 +45,54 @@ exports.sendMessage = async (req, res) => {
 };
 
 exports.getPrivateChat = async (req, res) => {
-    const { userId1, userId2 } = req.params;
-    const messages = await ChatMessage.find({
-        $or: [
-            { sender: userId1, receiver: userId2 },
-            { sender: userId2, receiver: userId1 }
-        ]
-    }).sort({ createdAt: 1 });
-    res.json(messages);
+    try {
+        const { userId1, userId2 } = req.params;
+        const { limit = 15, beforeId } = req.query;
+
+        // Build the query
+        let query = {
+            $or: [
+                { sender: userId1, receiver: userId2 },
+                { sender: userId2, receiver: userId1 }
+            ]
+        };
+
+        // If beforeId is provided, get messages before that ID
+        if (beforeId) {
+            const beforeMessage = await ChatMessage.findById(beforeId);
+            if (beforeMessage) {
+                query.createdAt = { $lt: beforeMessage.createdAt };
+            }
+        }
+
+        // Get total count for this chat
+        const totalCount = await ChatMessage.countDocuments({
+            $or: [
+                { sender: userId1, receiver: userId2 },
+                { sender: userId2, receiver: userId1 }
+            ]
+        });
+
+        // Execute query with pagination - sort by newest first
+        const messages = await ChatMessage.find(query)
+            .sort({ createdAt: -1 })
+            .limit(parseInt(limit));
+
+        // Calculate if there are more messages to load
+        const hasMore = beforeId ?
+            await ChatMessage.countDocuments({ ...query, createdAt: { $lt: messages[messages.length - 1]?.createdAt } }) > 0 :
+            totalCount > messages.length;
+
+        // Add metadata to response
+        res.json({
+            messages: messages.reverse(), // Reverse to get oldest first for display
+            hasMore,
+            totalCount
+        });
+    } catch (error) {
+        console.error('Error in getPrivateChat:', error);
+        res.status(500).json({ error: error.message });
+    }
 };
 
 exports.createGroup = async (req, res) => {
@@ -62,8 +102,44 @@ exports.createGroup = async (req, res) => {
 };
 
 exports.getGroupMessages = async (req, res) => {
-    const messages = await ChatMessage.find({ group: req.params.groupId }).sort({ createdAt: 1 });
-    res.json(messages);
+    try {
+        const { groupId } = req.params;
+        const { limit = 15, beforeId } = req.query;
+
+        // Build the query
+        let query = { group: groupId };
+
+        // If beforeId is provided, get messages before that ID
+        if (beforeId) {
+            const beforeMessage = await ChatMessage.findById(beforeId);
+            if (beforeMessage) {
+                query.createdAt = { $lt: beforeMessage.createdAt };
+            }
+        }
+
+        // Get total count for this group
+        const totalCount = await ChatMessage.countDocuments({ group: groupId });
+
+        // Execute query with pagination - sort by newest first
+        const messages = await ChatMessage.find(query)
+            .sort({ createdAt: -1 })
+            .limit(parseInt(limit));
+
+        // Calculate if there are more messages to load
+        const hasMore = beforeId ?
+            await ChatMessage.countDocuments({ ...query, createdAt: { $lt: messages[messages.length - 1]?.createdAt } }) > 0 :
+            totalCount > messages.length;
+
+        // Add metadata to response
+        res.json({
+            messages: messages.reverse(), // Reverse to get oldest first for display
+            hasMore,
+            totalCount
+        });
+    } catch (error) {
+        console.error('Error in getGroupMessages:', error);
+        res.status(500).json({ error: error.message });
+    }
 };
 
 exports.getGroupsForUser = async (req, res) => {
