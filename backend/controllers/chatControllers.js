@@ -76,7 +76,8 @@ exports.getPrivateChat = async (req, res) => {
         // Execute query with pagination - sort by newest first
         const messages = await ChatMessage.find(query)
             .sort({ createdAt: -1 })
-            .limit(parseInt(limit));
+            .limit(parseInt(limit))
+            .populate('replyTo');
 
         // Calculate if there are more messages to load
         const hasMore = beforeId ?
@@ -123,7 +124,8 @@ exports.getGroupMessages = async (req, res) => {
         // Execute query with pagination - sort by newest first
         const messages = await ChatMessage.find(query)
             .sort({ createdAt: -1 })
-            .limit(parseInt(limit));
+            .limit(parseInt(limit))
+            .populate('replyTo');
 
         // Calculate if there are more messages to load
         const hasMore = beforeId ?

@@ -7,6 +7,7 @@ const chatMessageSchema = new mongoose.Schema({
     message: { type: String },
     image: { type: Buffer, select: true },
     imageContentType: { type: String },
+    replyTo: { type: mongoose.Schema.Types.ObjectId, ref: "ChatMessage" },
     seenBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]
 }, { timestamps: true });
 

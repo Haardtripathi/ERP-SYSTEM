@@ -244,19 +244,19 @@ const useChatStore = create((set, get) => ({
 
                         if (existingMessage) {
                             console.log('Found existing message to replace:', existingMessage._id);
-                            // Replace the temporary message with the server message
+                            // Replace the temporary message with the server message, preserving image data if optimistic
                             const updatedMessages = get().messages.map(msg =>
                                 msg._id === existingMessage._id ? {
-                                    ...message,
-                                    imageUrl: existingMessage.imageUrl,
-                                    imageBlob: existingMessage.imageBlob
+                                    ...message, // Server message (should have populated replyTo)
+                                    imageUrl: existingMessage.imageUrl, // Preserve optimistic image URL
+                                    imageBlob: existingMessage.imageBlob // Preserve optimistic image blob
                                 } : msg
                             );
                             get().setMessages(updatedMessages);
                             return;
                         }
 
-                        // Process the message
+                        // Process the message (new message or non-optimistic update)
                         const chatId = message.group || (message.sender === get().currentUser._id ? message.receiver : message.sender);
 
                         if (get().selectedChat && get().selectedChat.id === chatId) {
@@ -265,7 +265,7 @@ const useChatStore = create((set, get) => ({
                                 const imageData = processImageBuffer(message.image, message.imageContentType);
                                 if (imageData) {
                                     get().setMessages([...get().messages, {
-                                        ...message,
+                                        ...message, // Server message (should have populated replyTo)
                                         imageUrl: imageData.url,
                                         imageBlob: imageData.blob
                                     }]);
@@ -354,7 +354,7 @@ const useChatStore = create((set, get) => ({
         }
     },
 
-    sendMessage: async (content, receiverId, groupId = null, imageFile = null) => {
+    sendMessage: async (content, receiverId, groupId = null, imageFile = null, replyToId = null) => {
         try {
             if (get().isMonitoringAdminView) {
                 console.warn('sendMessage: Sending messages disabled in admin monitoring view.');
@@ -367,7 +367,8 @@ const useChatStore = create((set, get) => ({
                 groupId,
                 hasImageFile: !!imageFile,
                 imageFileType: imageFile?.type,
-                imageFileSize: imageFile?.size
+                imageFileSize: imageFile?.size,
+                replyToId
             });
 
             const { currentUser } = get();
@@ -430,7 +431,8 @@ const useChatStore = create((set, get) => ({
                 message: content || null,
                 image: imageData ? { data: imageData } : null,
                 imageContentType: imageContentType,
-                createdAt: new Date()
+                createdAt: new Date(),
+                replyTo: replyToId ? get().messages.find(m => m._id === replyToId) : null
             };
 
             // Log the exact message being sent
@@ -444,6 +446,7 @@ const useChatStore = create((set, get) => ({
                 imageContentType: message.imageContentType,
                 imageDataLength: message.image?.data?.length,
                 imageDataSample: message.image?.data?.slice(0, 10),
+                replyTo: message.replyTo,
                 fullMessage: message
             });
 
@@ -463,7 +466,8 @@ const useChatStore = create((set, get) => ({
                 message: message.message,
                 image: message.image,
                 imageContentType: message.imageContentType,
-                createdAt: message.createdAt
+                createdAt: message.createdAt,
+                replyTo: message.replyTo
             }, (response) => {
                 console.log('Frontend - Received server response:', response);
                 if (response && response.error) {
@@ -538,7 +542,7 @@ const useChatStore = create((set, get) => ({
                     if (imageData) {
                         console.log('fetchMessages: Image processed for message:', msg._id, 'imageUrl:', imageData.url);
                         return {
-                            ...msg,
+                            ...msg, // Ensure all original message properties, including replyTo, are spread
                             imageUrl: imageData.url,
                             imageBlob: imageData.blob,
                             imageProcessing: false,
@@ -550,7 +554,7 @@ const useChatStore = create((set, get) => ({
                         return { ...msg, imageError: true, imageProcessing: false };
                     }
                 }
-                // If message already has imageUrl or no image data, return as is
+                // If message already has imageUrl or no image data, return as is, preserving replyTo
                 return msg;
             }));
 
@@ -625,7 +629,7 @@ const useChatStore = create((set, get) => ({
                     if (imageData) {
                         console.log('fetchGroupMessages: Image processed for message:', msg._id, 'imageUrl:', imageData.url);
                         return {
-                            ...msg,
+                            ...msg, // Ensure all original message properties, including replyTo, are spread
                             imageUrl: imageData.url,
                             imageBlob: imageData.blob,
                             imageProcessing: false,
@@ -637,7 +641,7 @@ const useChatStore = create((set, get) => ({
                         return { ...msg, imageError: true, imageProcessing: false };
                     }
                 }
-                // If message already has imageUrl or no image data, return as is
+                // If message already has imageUrl or no image data, return as is, preserving replyTo
                 return msg;
             }));
 

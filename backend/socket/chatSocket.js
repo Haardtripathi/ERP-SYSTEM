@@ -46,7 +46,8 @@ function setupSocket(server) {
                     receiver: messageData.receiver,
                     group: messageData.group,
                     message: messageData.message,
-                    imageContentType: messageData.imageContentType
+                    imageContentType: messageData.imageContentType,
+                    replyTo: messageData.replyTo?._id // Include replyTo ID if present
                 };
 
                 // Handle image data if present
@@ -78,13 +79,18 @@ function setupSocket(server) {
                 }
 
                 // Save message to database
-                const savedMessage = await ChatMessage.create(messageToSave);
-                console.log('Backend - Message saved to database:', {
+                let savedMessage = await ChatMessage.create(messageToSave);
+
+                // Populate the replyTo field before sending
+                savedMessage = await savedMessage.populate('replyTo');
+
+                console.log('Backend - Message saved to database and populated:', {
                     id: savedMessage._id,
                     message: savedMessage.message,
                     hasImage: !!savedMessage.image,
                     imageContentType: savedMessage.imageContentType,
-                    imageSize: savedMessage.image?.length
+                    imageSize: savedMessage.image?.length,
+                    replyTo: savedMessage.replyTo ? { _id: savedMessage.replyTo._id, message: savedMessage.replyTo.message } : null
                 });
 
                 // Send the message to the appropriate recipients

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import useChatStore from '../../store/chatStore';
-import { Send, Users, Loader2, Image as ImageIcon, XCircle, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Send, Users, Loader2, Image as ImageIcon, XCircle, X, ChevronUp, ChevronDown, Reply } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
@@ -8,6 +8,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
     const [selectedImageFile, setSelectedImageFile] = useState(null);
     const [selectedImagePreview, setSelectedImagePreview] = useState(null);
     const [enlargedImage, setEnlargedImage] = useState(null);
+    const [replyingTo, setReplyingTo] = useState(null);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -26,7 +27,8 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
         setMessages,
         fetchMessages,
         fetchGroupMessages,
-        chatPagination
+        chatPagination,
+        users
     } = useChatStore();
 
     // Message Skeleton Component
@@ -220,6 +222,15 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
         }, 50); // Small timeout to allow DOM to render new messages
     };
 
+    const handleReply = (message) => {
+        setReplyingTo(message);
+        inputRef.current?.focus();
+    };
+
+    const handleCancelReply = () => {
+        setReplyingTo(null);
+    };
+
     const handleSend = (e) => {
         e.preventDefault();
         if (!message.trim() && !selectedImageFile) return;
@@ -228,11 +239,13 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
             message.trim(),
             selectedChat.type === 'user' ? selectedChat.id : null,
             selectedChat.type === 'group' ? selectedChat.id : null,
-            selectedImageFile
+            selectedImageFile,
+            replyingTo?._id
         );
         setMessage('');
         setSelectedImageFile(null);
         setSelectedImagePreview(null);
+        setReplyingTo(null);
         inputRef.current?.focus();
     };
 
@@ -367,35 +380,57 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
 
                             if (!hasText && !hasImage) return null;
 
-                            let senderName = 'Unknown Sender';
-                            if (selectedChat?.type === 'user' && !isMyMessage) {
-                                senderName = selectedChat.name;
-                            } else if (selectedChat?.type === 'group') {
-                                const senderUser = useChatStore.getState().users.find(user => user._id === msg.sender);
-                                senderName = senderUser ? senderUser.agent_name : 'Unknown Group Member';
-                            } else if (isMyMessage) {
-                                senderName = 'You';
-                            }
-
                             return (
                                 <div
                                     key={msg._id}
                                     className={cn(
-                                        "flex message-item w-full",
+                                        "flex message-item w-full items-center",
                                         isMyMessage ? "justify-end" : "justify-start"
                                     )}
                                     data-message-id={msg._id}
                                 >
+                                    {/* Reply button */}
+                                    <div className={cn(
+                                        "flex-shrink-0",
+                                        isMyMessage ? "order-first mr-2" : "order-last ml-2" // Position based on sender
+                                    )}>
+                                        <button
+                                            onClick={() => handleReply(msg)}
+                                            className="p-1 rounded-full transition-colors text-gray-500 hover:bg-gray-100"
+                                            title="Reply"
+                                        >
+                                            <Reply className={cn(
+                                                "w-4 h-4",
+                                                isMyMessage ? "rotate-180" : "" // Rotate for own messages to point left
+                                            )} />
+                                        </button>
+                                    </div>
+
+                                    {/* Message Bubble */}
                                     <div
                                         className={cn(
-                                            "max-w-[70%] min-w-0 rounded-xl p-3 shadow-sm",
+                                            "max-w-[70%] min-w-0 rounded-xl p-3 shadow-sm relative",
                                             isMyMessage
                                                 ? "bg-blue-500 text-white rounded-br-none"
                                                 : "bg-white text-gray-800 rounded-bl-none border border-gray-200"
                                         )}
                                     >
                                         {selectedChat?.type === 'group' && !isMyMessage && (
-                                            <p className="text-xs font-semibold mb-1 opacity-90">{senderName}</p>
+                                            <p className="text-xs font-semibold mb-1 opacity-90">{users.find(u => u._id === msg.sender)?.agent_name || 'Unknown Group Member'}</p>
+                                        )}
+
+                                        {msg.replyTo && (
+                                            <div className={cn(
+                                                "mb-2 p-2 rounded-lg text-xs",
+                                                isMyMessage ? "bg-blue-600" : "bg-gray-100"
+                                            )}>
+                                                <p className="font-medium mb-1">
+                                                    Replying to {msg.replyTo.sender === currentUser._id ? 'yourself' : (users.find(u => u._id === msg.replyTo.sender)?.agent_name || 'Unknown')}
+                                                </p>
+                                                <p className="opacity-90 truncate">
+                                                    {msg.replyTo.message || 'Image'}
+                                                </p>
+                                            </div>
                                         )}
 
                                         {hasImage && (
@@ -484,21 +519,22 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                     "p-3 border-t bg-white",
                     pagination.isLoading && messages.length === 0 && "opacity-50 pointer-events-none"
                 )}>
-                    {selectedImagePreview && (
+                    {replyingTo && (
                         <div className="mb-2 p-2 border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-between shadow-sm">
                             <div className="flex items-center space-x-2">
-                                <img
-                                    src={selectedImagePreview}
-                                    alt="Preview"
-                                    className="h-10 w-10 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                    onClick={() => setEnlargedImage(selectedImagePreview)}
-                                />
-                                <span className="text-xs text-gray-600">Image selected</span>
+                                <Reply className="w-4 h-4 text-gray-500" />
+                                <div className="text-xs">
+                                    <p className="font-medium text-gray-700">
+                                        Replying to {replyingTo.sender === currentUser._id
+                                            ? 'yourself'
+                                            : (users.find(u => u._id === replyingTo.sender)?.agent_name || 'Unknown')}
+                                    </p>
+                                    <p className="text-gray-500 truncate">{replyingTo.message || 'Image'}</p>
+                                </div>
                             </div>
                             <button
-                                onClick={handleRemoveImage}
+                                onClick={handleCancelReply}
                                 className="p-1 text-gray-500 hover:text-red-500 rounded-full hover:bg-gray-100 transition-colors"
-                                disabled={pagination.isLoading && messages.length === 0}
                             >
                                 <X className="w-4 h-4" />
                             </button>
