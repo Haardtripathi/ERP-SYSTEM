@@ -3,7 +3,7 @@ import useChatStore from '../../store/chatStore';
 import { Send, Users, Loader2, Image as ImageIcon, XCircle, X, ChevronUp, ChevronDown, Reply } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
-const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
+const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] }) => {
     const [message, setMessage] = useState('');
     const [selectedImageFiles, setSelectedImageFiles] = useState([]);
     const [selectedImagePreviews, setSelectedImagePreviews] = useState([]);
@@ -28,8 +28,11 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
         fetchMessages,
         fetchGroupMessages,
         chatPagination,
-        users
+        users: storeUsers
     } = useChatStore();
+
+    // Use either prop users or store users
+    const allUsers = users.length > 0 ? users : storeUsers;
 
     // Message Skeleton Component
     const MessageSkeleton = ({ isMyMessage }) => (
@@ -208,12 +211,38 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
         const oldestDisplayedMessageElement = messageElements.length > 0 ? messageElements[0] : null;
         const oldestDisplayedMessageId = oldestDisplayedMessageElement ? oldestDisplayedMessageElement.dataset.messageId : null;
 
-        const chatId = selectedChat.type === 'user' ? selectedChat.id : selectedChat.id;
+        // Get the correct chat ID based on chat type and monitoring status
+        let chatId;
+        if (selectedChat.type === 'user') {
+            // In monitoring view, we need to use both user IDs
+            if (isReadOnly) {
+                // For monitoring view, we need to get the other user's ID from the messages
+                const firstMessage = messages[0];
+                if (firstMessage) {
+                    chatId = firstMessage.sender === selectedChat.id ? firstMessage.receiver : firstMessage.sender;
+                }
+            } else {
+                chatId = selectedChat.id;
+            }
+        } else {
+            chatId = selectedChat.id;
+        }
+
         const pagination = chatPagination[chatId];
 
         if (pagination?.hasMore && !pagination?.isLoading) {
             if (selectedChat.type === 'user') {
-                fetchMessages(currentUser._id, selectedChat.id, 15, pagination.oldestMessageId);
+                if (isReadOnly) {
+                    // For monitoring view, use both user IDs
+                    const firstMessage = messages[0];
+                    if (firstMessage) {
+                        const user1Id = firstMessage.sender;
+                        const user2Id = firstMessage.receiver;
+                        fetchMessages(user1Id, user2Id, 15, pagination.oldestMessageId);
+                    }
+                } else {
+                    fetchMessages(currentUser._id, selectedChat.id, 15, pagination.oldestMessageId);
+                }
             } else if (selectedChat.type === 'group') {
                 fetchGroupMessages(selectedChat.id, 15, pagination.oldestMessageId);
             }
@@ -457,14 +486,27 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                                     key={msg._id}
                                     className={cn(
                                         "flex message-item w-full items-center",
-                                        isMyMessage ? "justify-end" : "justify-start"
+                                        // In monitoring view, use the first user's ID as reference for alignment
+                                        isReadOnly
+                                            ? msg.sender === selectedChat.user1Id
+                                                ? "justify-start"
+                                                : "justify-end"
+                                            : isMyMessage
+                                                ? "justify-end"
+                                                : "justify-start"
                                     )}
                                     data-message-id={msg._id}
                                 >
                                     {/* Reply button */}
                                     <div className={cn(
                                         "flex-shrink-0",
-                                        isMyMessage ? "order-first mr-2" : "order-last ml-2"
+                                        isReadOnly
+                                            ? msg.sender === selectedChat.user1Id
+                                                ? "order-last ml-2"
+                                                : "order-first mr-2"
+                                            : isMyMessage
+                                                ? "order-first mr-2"
+                                                : "order-last ml-2"
                                     )}>
                                         <button
                                             onClick={() => handleReply(msg)}
@@ -473,7 +515,13 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                                         >
                                             <Reply className={cn(
                                                 "w-4 h-4",
-                                                isMyMessage ? "rotate-180" : ""
+                                                isReadOnly
+                                                    ? msg.sender === selectedChat.user1Id
+                                                        ? ""
+                                                        : "rotate-180"
+                                                    : isMyMessage
+                                                        ? "rotate-180"
+                                                        : ""
                                             )} />
                                         </button>
                                     </div>
@@ -482,13 +530,27 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                                     <div
                                         className={cn(
                                             "max-w-[70%] min-w-0 rounded-xl p-3 shadow-sm relative",
-                                            isMyMessage
-                                                ? "bg-blue-500 text-white rounded-br-none"
-                                                : "bg-white text-gray-800 rounded-bl-none border border-gray-200"
+                                            isReadOnly
+                                                ? msg.sender === selectedChat.user1Id
+                                                    ? "bg-white text-gray-800 rounded-bl-none border border-gray-200"
+                                                    : "bg-blue-500 text-white rounded-br-none"
+                                                : isMyMessage
+                                                    ? "bg-blue-500 text-white rounded-br-none"
+                                                    : "bg-white text-gray-800 rounded-bl-none border border-gray-200"
                                         )}
                                     >
-                                        {selectedChat?.type === 'group' && !isMyMessage && (
-                                            <p className="text-xs font-semibold mb-1 opacity-90">{users.find(u => u._id === msg.sender)?.agent_name || 'Unknown Group Member'}</p>
+                                        {/* Show sender name for both group chats and monitoring view */}
+                                        {(selectedChat?.type === 'group' || isReadOnly) && (
+                                            <p className={cn(
+                                                "text-xs font-semibold mb-1",
+                                                isReadOnly
+                                                    ? msg.sender === selectedChat.user1Id
+                                                        ? "text-gray-600"
+                                                        : "text-blue-100"
+                                                    : "opacity-90"
+                                            )}>
+                                                {allUsers.find(u => u._id === msg.sender)?.agent_name || 'Unknown User'}
+                                            </p>
                                         )}
 
                                         {msg.replyTo && (
@@ -500,7 +562,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                                                 onClick={() => scrollToMessage(msg.replyTo._id)}
                                             >
                                                 <p className="font-medium mb-1">
-                                                    Replying to {msg.replyTo.sender === currentUser._id ? 'yourself' : (users.find(u => u._id === msg.replyTo.sender)?.agent_name || 'Unknown')}
+                                                    Replying to {msg.replyTo.sender === currentUser._id ? 'yourself' : (allUsers.find(u => u._id === msg.replyTo.sender)?.agent_name || 'Unknown')}
                                                 </p>
                                                 <div className="opacity-90">
                                                     {msg.replyTo.message && (
@@ -626,7 +688,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                                     <p className="font-medium text-gray-700">
                                         Replying to {replyingTo.sender === currentUser._id
                                             ? 'yourself'
-                                            : (users.find(u => u._id === replyingTo.sender)?.agent_name || 'Unknown')}
+                                            : (allUsers.find(u => u._id === replyingTo.sender)?.agent_name || 'Unknown')}
                                     </p>
                                     <p className="text-gray-500 truncate">{replyingTo.message || (replyingTo.imageUrls?.length > 0 ? 'Image' : '')}</p>
                                     {replyingTo.imageUrls && replyingTo.imageUrls.length > 0 && (

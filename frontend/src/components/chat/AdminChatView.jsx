@@ -41,10 +41,12 @@ const AdminChatView = () => {
         useChatStore.getState().cleanupSocket();
         useChatStore.getState().setSelectedChat({
             type: 'user',
-            id: pair.user1._id, // Or user2._id, consistency with fetchMessages is key
+            id: pair.user1._id,
             name: `${pair.user1.agent_name} ↔ ${pair.user2.agent_name}`,
-            // Add any other properties needed by ChatWindow or receive-message logic
+            user1Id: pair.user1._id,
+            user2Id: pair.user2._id
         }, true); // Pass true for isMonitoring
+        // Pass both user IDs for monitoring
         fetchMessages(pair.user1._id, pair.user2._id);
     };
 
@@ -119,10 +121,21 @@ const AdminChatView = () => {
             <div className="flex-1">
                 <ChatWindow
                     messages={messages}
-                    selectedChat={selectedUserPair ? { type: 'user', id: selectedUserPair.user1._id, name: `${selectedUserPair.user1.agent_name} ↔ ${selectedUserPair.user2.agent_name}` } : selectedGroup ? { type: 'group', id: selectedGroup._id, name: selectedGroup.name } : null}
+                    selectedChat={selectedUserPair ? {
+                        type: 'user',
+                        id: selectedUserPair.user1._id,
+                        name: `${selectedUserPair.user1.agent_name} ↔ ${selectedUserPair.user2.agent_name}`,
+                        user1Id: selectedUserPair.user1._id,
+                        user2Id: selectedUserPair.user2._id
+                    } : selectedGroup ? {
+                        type: 'group',
+                        id: selectedGroup._id,
+                        name: selectedGroup.name
+                    } : null}
                     currentUser={currentUser}
-                    isReadOnly={true} // Pass isReadOnly prop for admin monitoring
-                    disableRealtime={true} // New prop to explicitly disable real-time features for admin view
+                    isReadOnly={true}
+                    disableRealtime={true}
+                    users={users}
                 />
             </div>
         </div>
