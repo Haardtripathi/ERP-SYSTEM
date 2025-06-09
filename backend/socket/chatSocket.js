@@ -34,9 +34,7 @@ function setupSocket(server) {
                 receiver: messageData.receiver,
                 group: messageData.group,
                 hasMessage: !!messageData.message,
-                hasImage: !!messageData.image,
-                imageContentType: messageData.imageContentType,
-                imageDataLength: messageData.image?.data?.length
+                imagesCount: messageData.images?.length || 0
             });
 
             try {
@@ -46,34 +44,28 @@ function setupSocket(server) {
                     receiver: messageData.receiver,
                     group: messageData.group,
                     message: messageData.message,
-                    imageContentType: messageData.imageContentType,
                     replyTo: messageData.replyTo?._id // Include replyTo ID if present
                 };
 
-                // Handle image data if present
-                if (messageData.image?.data) {
-                    console.log('Backend - Processing image data:', {
-                        dataLength: messageData.image.data.length,
-                        contentType: messageData.imageContentType
+                // Handle images if present
+                if (messageData.images && messageData.images.length > 0) {
+                    console.log('Backend - Processing images:', {
+                        count: messageData.images.length
                     });
 
                     try {
-                        // Convert array to Buffer
-                        const imageBuffer = Buffer.from(messageData.image.data);
+                        // Process each image
+                        messageToSave.images = messageData.images.map(img => ({
+                            data: Buffer.from(img.data),
+                            contentType: img.contentType
+                        }));
 
-                        // Verify buffer
-                        if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) {
-                            throw new Error('Invalid image buffer created');
-                        }
-
-                        messageToSave.image = imageBuffer;
-                        console.log('Backend - Image buffer created successfully:', {
-                            bufferLength: imageBuffer.length,
-                            isBuffer: Buffer.isBuffer(imageBuffer)
+                        console.log('Backend - Images processed successfully:', {
+                            count: messageToSave.images.length
                         });
                     } catch (error) {
-                        console.error('Backend - Error creating image buffer:', error);
-                        if (callback) callback({ error: 'Failed to process image data' });
+                        console.error('Backend - Error processing images:', error);
+                        if (callback) callback({ error: 'Failed to process images' });
                         return;
                     }
                 }
@@ -87,21 +79,19 @@ function setupSocket(server) {
                 console.log('Backend - Message saved to database and populated:', {
                     id: savedMessage._id,
                     message: savedMessage.message,
-                    hasImage: !!savedMessage.image,
-                    imageContentType: savedMessage.imageContentType,
-                    imageSize: savedMessage.image?.length,
+                    imagesCount: savedMessage.images?.length || 0,
                     replyTo: savedMessage.replyTo ? { _id: savedMessage.replyTo._id, message: savedMessage.replyTo.message } : null
                 });
 
-                // Send the message to the appropriate recipients
-                if (messageData.group) {
-                    io.to(messageData.group).emit("receive-message", savedMessage);
+                // Emit to the appropriate room(s)
+                if (savedMessage.group) {
+                    io.to(savedMessage.group.toString()).emit('receive-message', savedMessage);
                 } else {
-                    io.to(messageData.receiver).emit("receive-message", savedMessage);
-                    io.to(messageData.sender).emit("receive-message", savedMessage);
+                    // For private messages, emit to both sender and receiver
+                    io.to(savedMessage.sender.toString()).emit('receive-message', savedMessage);
+                    io.to(savedMessage.receiver.toString()).emit('receive-message', savedMessage);
                 }
 
-                // Send success callback
                 if (callback) callback({ success: true, message: savedMessage });
             } catch (error) {
                 console.error('Backend - Error saving message:', error);

@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
 
 const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
     const [message, setMessage] = useState('');
-    const [selectedImageFile, setSelectedImageFile] = useState(null);
-    const [selectedImagePreview, setSelectedImagePreview] = useState(null);
+    const [selectedImageFiles, setSelectedImageFiles] = useState([]);
+    const [selectedImagePreviews, setSelectedImagePreviews] = useState([]);
     const [enlargedImage, setEnlargedImage] = useState(null);
     const [replyingTo, setReplyingTo] = useState(null);
     const messagesEndRef = useRef(null);
@@ -135,18 +135,31 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
         });
     };
 
+    // Update image preview effect
     useEffect(() => {
-        if (!selectedImageFile) {
-            setSelectedImagePreview(null);
+        if (selectedImageFiles.length === 0) {
+            setSelectedImagePreviews([]);
             return;
         }
 
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setSelectedImagePreview(reader.result);
+        const newPreviews = [];
+        const processFile = async (file) => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    resolve(reader.result);
+                };
+                reader.readAsDataURL(file);
+            });
         };
-        reader.readAsDataURL(selectedImageFile);
-    }, [selectedImageFile]);
+
+        const processFiles = async () => {
+            const previews = await Promise.all(selectedImageFiles.map(processFile));
+            setSelectedImagePreviews(previews);
+        };
+
+        processFiles();
+    }, [selectedImageFiles]);
 
     const handleScroll = () => {
         const container = messagesContainerRef.current;
@@ -233,27 +246,26 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
 
     const handleSend = (e) => {
         e.preventDefault();
-        if (!message.trim() && !selectedImageFile) return;
+        if (!message.trim() && selectedImageFiles.length === 0) return;
 
         sendMessage(
             message.trim(),
             selectedChat.type === 'user' ? selectedChat.id : null,
             selectedChat.type === 'group' ? selectedChat.id : null,
-            selectedImageFile,
+            selectedImageFiles,
             replyingTo?._id
         );
         setMessage('');
-        setSelectedImageFile(null);
-        setSelectedImagePreview(null);
+        setSelectedImageFiles([]);
+        setSelectedImagePreviews([]);
         setReplyingTo(null);
         inputRef.current?.focus();
     };
 
     const handleImageSelect = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            setSelectedImageFile(file);
-            // Focus input after image is selected
+        const files = Array.from(event.target.files);
+        if (files.length > 0) {
+            setSelectedImageFiles(prev => [...prev, ...files]);
             setTimeout(() => {
                 inputRef.current?.focus();
             }, 100);
@@ -261,10 +273,9 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
         event.target.value = null;
     };
 
-    const handleRemoveImage = () => {
-        setSelectedImageFile(null);
-        setSelectedImagePreview(null);
-        // Focus input after removing image
+    const handleRemoveImage = (index) => {
+        setSelectedImageFiles(prev => prev.filter((_, i) => i !== index));
+        setSelectedImagePreviews(prev => prev.filter((_, i) => i !== index));
         setTimeout(() => {
             inputRef.current?.focus();
         }, 100);
@@ -272,6 +283,67 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
 
     const handleImageClick = (imageUrl) => {
         setEnlargedImage(imageUrl);
+    };
+
+    // Add scrollToMessage function
+    const scrollToMessage = async (messageId) => {
+        const messageElement = messagesContainerRef.current?.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Add a highlight effect
+            messageElement.classList.add('bg-yellow-100');
+            setTimeout(() => {
+                messageElement.classList.remove('bg-yellow-100');
+            }, 2000);
+        } else {
+            // Message not found in current view, try to load older messages
+            const chatId = selectedChat.type === 'user' ? selectedChat.id : selectedChat.id;
+            const pagination = chatPagination[chatId];
+
+            // Keep track of attempts to prevent infinite loops
+            let attempts = 0;
+            const maxAttempts = 5; // Maximum number of attempts to load older messages
+
+            const tryLoadAndScroll = async () => {
+                if (attempts >= maxAttempts) {
+                    console.log('Max attempts reached to find referenced message');
+                    return;
+                }
+
+                attempts++;
+
+                // Check if we have more messages to load
+                if (pagination?.hasMore && !pagination?.isLoading) {
+                    // Store current scroll position
+                    const currentScroll = messagesContainerRef.current?.scrollTop;
+
+                    // Load older messages
+                    if (selectedChat.type === 'user') {
+                        await fetchMessages(currentUser._id, selectedChat.id, 15, pagination.oldestMessageId);
+                    } else if (selectedChat.type === 'group') {
+                        await fetchGroupMessages(selectedChat.id, 15, pagination.oldestMessageId);
+                    }
+
+                    // Wait for messages to be processed and rendered
+                    setTimeout(() => {
+                        const newMessageElement = messagesContainerRef.current?.querySelector(`[data-message-id="${messageId}"]`);
+                        if (newMessageElement) {
+                            newMessageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            newMessageElement.classList.add('bg-yellow-100');
+                            setTimeout(() => {
+                                newMessageElement.classList.remove('bg-yellow-100');
+                            }, 2000);
+                        } else {
+                            // Message still not found, try loading more
+                            tryLoadAndScroll();
+                        }
+                    }, 100); // Small delay to allow DOM to update
+                }
+            };
+
+            // Start the loading process
+            tryLoadAndScroll();
+        }
     };
 
     if (!selectedChat) {
@@ -375,10 +447,10 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
 
                         {messages.map((msg) => {
                             const hasText = msg.message && msg.message.trim().length > 0;
-                            const hasImage = msg.imageUrl;
+                            const hasImages = msg.imageUrls && msg.imageUrls.length > 0;
                             const isMyMessage = msg.sender === currentUser._id;
 
-                            if (!hasText && !hasImage) return null;
+                            if (!hasText && !hasImages) return null;
 
                             return (
                                 <div
@@ -392,7 +464,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                                     {/* Reply button */}
                                     <div className={cn(
                                         "flex-shrink-0",
-                                        isMyMessage ? "order-first mr-2" : "order-last ml-2" // Position based on sender
+                                        isMyMessage ? "order-first mr-2" : "order-last ml-2"
                                     )}>
                                         <button
                                             onClick={() => handleReply(msg)}
@@ -401,7 +473,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                                         >
                                             <Reply className={cn(
                                                 "w-4 h-4",
-                                                isMyMessage ? "rotate-180" : "" // Rotate for own messages to point left
+                                                isMyMessage ? "rotate-180" : ""
                                             )} />
                                         </button>
                                     </div>
@@ -420,60 +492,87 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                                         )}
 
                                         {msg.replyTo && (
-                                            <div className={cn(
-                                                "mb-2 p-2 rounded-lg text-xs",
-                                                isMyMessage ? "bg-blue-600" : "bg-gray-100"
-                                            )}>
+                                            <div
+                                                className={cn(
+                                                    "mb-2 p-2 rounded-lg text-xs cursor-pointer hover:bg-opacity-80 transition-colors",
+                                                    isMyMessage ? "bg-blue-600" : "bg-gray-100"
+                                                )}
+                                                onClick={() => scrollToMessage(msg.replyTo._id)}
+                                            >
                                                 <p className="font-medium mb-1">
                                                     Replying to {msg.replyTo.sender === currentUser._id ? 'yourself' : (users.find(u => u._id === msg.replyTo.sender)?.agent_name || 'Unknown')}
                                                 </p>
-                                                <p className="opacity-90 truncate">
-                                                    {msg.replyTo.message || 'Image'}
-                                                </p>
+                                                <div className="opacity-90">
+                                                    {msg.replyTo.message && (
+                                                        <p className="truncate">{msg.replyTo.message}</p>
+                                                    )}
+                                                    {msg.replyTo.images && msg.replyTo.images.length > 0 && (
+                                                        <div className="flex gap-1 mt-1">
+                                                            {msg.replyTo.images.map((img, index) => (
+                                                                <div key={index} className="relative w-8 h-8">
+                                                                    <img
+                                                                        src={msg.replyTo.imageUrls?.[index]}
+                                                                        alt={`Reply image ${index + 1}`}
+                                                                        className="w-full h-full object-cover rounded"
+                                                                    />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         )}
 
-                                        {hasImage && (
-                                            <div className="relative mb-2 last:mb-0">
-                                                <img
-                                                    src={msg.imageUrl}
-                                                    alt="Shared image"
-                                                    className="max-w-[200px] h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                                    onClick={() => handleImageClick(msg.imageUrl)}
-                                                    onError={(e) => {
-                                                        console.error('ChatWindow: Image loading error:', {
-                                                            src: e.target.src,
-                                                            messageId: msg._id,
-                                                            hasImageBlob: !!msg.imageBlob,
-                                                            imageUrl: msg.imageUrl,
-                                                            retryCount: msg.imageRetryCount || 0
-                                                        });
+                                        {hasImages && (
+                                            <div className="grid grid-cols-2 gap-2 mb-2 last:mb-0">
+                                                {msg.imageUrls.map((imageUrl, index) => (
+                                                    <div key={index} className="relative">
+                                                        <img
+                                                            src={imageUrl}
+                                                            alt={`Shared image ${index + 1}`}
+                                                            className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                                            onClick={() => handleImageClick(imageUrl)}
+                                                            onError={(e) => {
+                                                                console.error('ChatWindow: Image loading error:', {
+                                                                    src: e.target.src,
+                                                                    messageId: msg._id,
+                                                                    imageIndex: index,
+                                                                    hasImageBlob: !!msg.imageBlobs?.[index],
+                                                                    imageUrl: imageUrl,
+                                                                    retryCount: msg.imageRetryCount?.[index] || 0
+                                                                });
 
-                                                        if (msg.imageBlob && (!msg.imageRetryCount || msg.imageRetryCount < 2)) {
-                                                            try {
-                                                                if (msg.imageUrl && msg.imageUrl.startsWith('blob:')) {
-                                                                    URL.revokeObjectURL(msg.imageUrl);
+                                                                if (msg.imageBlobs?.[index] && (!msg.imageRetryCount?.[index] || msg.imageRetryCount[index] < 2)) {
+                                                                    try {
+                                                                        if (imageUrl && imageUrl.startsWith('blob:')) {
+                                                                            URL.revokeObjectURL(imageUrl);
+                                                                        }
+
+                                                                        const newUrl = URL.createObjectURL(msg.imageBlobs[index]);
+                                                                        e.target.src = newUrl;
+
+                                                                        const updatedMessages = messages.map(m =>
+                                                                            m._id === msg._id ? {
+                                                                                ...m,
+                                                                                imageUrls: m.imageUrls.map((url, i) => i === index ? newUrl : url),
+                                                                                imageRetryCount: {
+                                                                                    ...m.imageRetryCount,
+                                                                                    [index]: (m.imageRetryCount?.[index] || 0) + 1
+                                                                                }
+                                                                            } : m
+                                                                        );
+                                                                        useChatStore.getState().setMessages(updatedMessages);
+                                                                    } catch (error) {
+                                                                        console.error('ChatWindow: Error recreating Blob URL:', error);
+                                                                    }
                                                                 }
-
-                                                                const newUrl = URL.createObjectURL(msg.imageBlob);
-                                                                e.target.src = newUrl;
-
-                                                                const updatedMessages = messages.map(m =>
-                                                                    m._id === msg._id ? {
-                                                                        ...m,
-                                                                        imageUrl: newUrl,
-                                                                        imageRetryCount: (m.imageRetryCount || 0) + 1
-                                                                    } : m
-                                                                );
-                                                                useChatStore.getState().setMessages(updatedMessages);
-                                                            } catch (error) {
-                                                                console.error('ChatWindow: Error recreating Blob URL:', error);
-                                                            }
-                                                        }
-                                                    }}>
-                                                </img>
+                                                            }}
+                                                        />
+                                                    </div>
+                                                ))}
                                             </div>
                                         )}
+
                                         {hasText && (
                                             <div className="break-all whitespace-pre-wrap overflow-hidden">
                                                 <p className="text-sm mb-1 last:mb-0 break-words">{msg.message}</p>
@@ -529,7 +628,20 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                                             ? 'yourself'
                                             : (users.find(u => u._id === replyingTo.sender)?.agent_name || 'Unknown')}
                                     </p>
-                                    <p className="text-gray-500 truncate">{replyingTo.message || 'Image'}</p>
+                                    <p className="text-gray-500 truncate">{replyingTo.message || (replyingTo.imageUrls?.length > 0 ? 'Image' : '')}</p>
+                                    {replyingTo.imageUrls && replyingTo.imageUrls.length > 0 && (
+                                        <div className="flex gap-1 mt-1">
+                                            {replyingTo.imageUrls.map((url, index) => (
+                                                <div key={index} className="relative w-8 h-8">
+                                                    <img
+                                                        src={url}
+                                                        alt={`Reply image ${index + 1}`}
+                                                        className="w-full h-full object-cover rounded"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <button
@@ -540,6 +652,28 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                             </button>
                         </div>
                     )}
+
+                    {/* Image Previews */}
+                    {selectedImagePreviews.length > 0 && (
+                        <div className="mb-2 flex flex-wrap gap-2">
+                            {selectedImagePreviews.map((preview, index) => (
+                                <div key={index} className="relative">
+                                    <img
+                                        src={preview}
+                                        alt={`Preview ${index + 1}`}
+                                        className="w-20 h-20 object-cover rounded-lg"
+                                    />
+                                    <button
+                                        onClick={() => handleRemoveImage(index)}
+                                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     <form onSubmit={handleSend} className="flex items-end gap-2">
                         <div className="flex-1 relative">
                             <textarea
@@ -570,7 +704,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                                 onClick={() => fileInputRef.current?.click()}
                                 className="absolute right-1.5 bottom-1.5 p-1.5 text-gray-500 hover:text-blue-500 rounded-full hover:bg-gray-100 transition-colors"
                                 disabled={pagination.isLoading && messages.length === 0}
-                                title="Attach image"
+                                title="Attach images"
                             >
                                 <ImageIcon className="w-4 h-4" />
                             </button>
@@ -578,6 +712,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                                 ref={fileInputRef}
                                 type="file"
                                 accept="image/*"
+                                multiple
                                 onChange={handleImageSelect}
                                 className="hidden"
                                 disabled={pagination.isLoading && messages.length === 0}
@@ -585,10 +720,10 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false }) => {
                         </div>
                         <button
                             type="submit"
-                            disabled={(!message.trim() && !selectedImageFile) || (pagination.isLoading && messages.length === 0)}
+                            disabled={(!message.trim() && selectedImageFiles.length === 0) || (pagination.isLoading && messages.length === 0)}
                             className={cn(
                                 "p-2.5 rounded-full transition-colors",
-                                (!message.trim() && !selectedImageFile) || (pagination.isLoading && messages.length === 0)
+                                (!message.trim() && selectedImageFiles.length === 0) || (pagination.isLoading && messages.length === 0)
                                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                                     : "bg-blue-500 text-white hover:bg-blue-600 shadow-sm hover:shadow"
                             )}

@@ -38,15 +38,12 @@ const processImageBuffer = (buffer, contentType) => {
     let uint8ArrayData = null;
 
     if (buffer && buffer.data && Array.isArray(buffer.data)) {
-        // Case 1: Received as a Buffer object with .data property (common from Node.js)
         console.log('processImageBuffer: Processing Buffer object with .data');
         uint8ArrayData = buffer.data;
     } else if (buffer instanceof ArrayBuffer) {
-        // Case 2: Received as a raw ArrayBuffer
         console.log('processImageBuffer: Processing raw ArrayBuffer');
         uint8ArrayData = new Uint8Array(buffer);
     } else if (typeof buffer === 'string' && buffer.startsWith('data:')) {
-        // Case 3: Received as a data URL (base64 string)
         console.log('processImageBuffer: Processing data URL string');
         try {
             const base64Data = buffer.split('base64,')[1];
@@ -55,12 +52,6 @@ const processImageBuffer = (buffer, contentType) => {
             console.error('processImageBuffer: Error decoding base64 string:', error);
             return null;
         }
-    } else if (buffer instanceof Blob) {
-        // Case 4: Received as a Blob object
-        console.log('processImageBuffer: Processing Blob object');
-        // Need to convert Blob to ArrayBuffer or similar to create a Blob URL
-        // This path might be less common from a socket, but handle as a fallback
-        return null; // For now, don't support Blob directly, expect ArrayBuffer or Buffer structure
     }
 
     if (!uint8ArrayData) {
@@ -72,7 +63,6 @@ const processImageBuffer = (buffer, contentType) => {
         const uint8Array = new Uint8Array(uint8ArrayData);
         console.log('processImageBuffer: Created Uint8Array (length):', uint8Array.length);
         const { url, blob } = createBlobUrl(uint8Array, contentType);
-        // Add to active URLs set for cleanup
         useChatStore.getState().activeImageUrls.add(url);
         return { url, blob };
     } catch (error) {
@@ -244,13 +234,51 @@ const useChatStore = create((set, get) => ({
 
                         if (existingMessage) {
                             console.log('Found existing message to replace:', existingMessage._id);
-                            // Replace the temporary message with the server message, preserving image data if optimistic
+                            // Process images if present for the main message
+                            let processedMessage = { ...message };
+                            if (message.images && message.images.length > 0) {
+                                const processedImages = await Promise.all(message.images.map(async (img) => {
+                                    const imageData = processImageBuffer(img.data, img.contentType);
+                                    return imageData ? {
+                                        url: imageData.url,
+                                        blob: imageData.blob
+                                    } : null;
+                                }));
+
+                                processedMessage = {
+                                    ...message,
+                                    imageUrls: processedImages.map(img => img?.url).filter(Boolean),
+                                    imageBlobs: processedImages.map(img => img?.blob).filter(Boolean)
+                                };
+                            }
+
+                            // Process images in replyTo, if it exists and has images
+                            if (processedMessage.replyTo && processedMessage.replyTo.images && processedMessage.replyTo.images.length > 0) {
+                                console.log('Processing replyTo images for incoming message:', processedMessage._id);
+                                processedMessage.replyTo.images.forEach((img, index) => {
+                                    console.log(`ReplyTo image ${index}: data type - ${typeof img.data}, contentType - ${img.contentType}`);
+                                    // If img.data is an object with a 'data' array, log its length
+                                    if (typeof img.data === 'object' && img.data !== null && Array.isArray(img.data.data)) {
+                                        console.log(`ReplyTo image ${index}: img.data.data length - ${img.data.data.length}`);
+                                    }
+                                });
+                                const processedReplyImages = await Promise.all(processedMessage.replyTo.images.map(async (img) => {
+                                    const imageData = processImageBuffer(img.data, img.contentType);
+                                    return imageData ? {
+                                        url: imageData.url,
+                                        blob: imageData.blob
+                                    } : null;
+                                }));
+                                processedMessage.replyTo = {
+                                    ...processedMessage.replyTo,
+                                    imageUrls: processedReplyImages.map(img => img?.url).filter(Boolean),
+                                    imageBlobs: processedReplyImages.map(img => img?.blob).filter(Boolean)
+                                };
+                            }
+
+                            // Replace the temporary message with the server message
                             const updatedMessages = get().messages.map(msg =>
-                                msg._id === existingMessage._id ? {
-                                    ...message, // Server message (should have populated replyTo)
-                                    imageUrl: existingMessage.imageUrl, // Preserve optimistic image URL
-                                    imageBlob: existingMessage.imageBlob // Preserve optimistic image blob
-                                } : msg
+                                msg._id === existingMessage._id ? processedMessage : msg
                             );
                             get().setMessages(updatedMessages);
                             return;
@@ -260,19 +288,50 @@ const useChatStore = create((set, get) => ({
                         const chatId = message.group || (message.sender === get().currentUser._id ? message.receiver : message.sender);
 
                         if (get().selectedChat && get().selectedChat.id === chatId) {
-                            // Add message to current chat
-                            if (message.image) {
-                                const imageData = processImageBuffer(message.image, message.imageContentType);
-                                if (imageData) {
-                                    get().setMessages([...get().messages, {
-                                        ...message, // Server message (should have populated replyTo)
-                                        imageUrl: imageData.url,
-                                        imageBlob: imageData.blob
-                                    }]);
-                                }
-                            } else {
-                                get().setMessages([...get().messages, message]);
+                            // Process images if present for the main message
+                            let processedMessage = { ...message };
+                            if (message.images && message.images.length > 0) {
+                                const processedImages = await Promise.all(message.images.map(async (img) => {
+                                    const imageData = processImageBuffer(img.data, img.contentType);
+                                    return imageData ? {
+                                        url: imageData.url,
+                                        blob: imageData.blob
+                                    } : null;
+                                }));
+
+                                processedMessage = {
+                                    ...message,
+                                    imageUrls: processedImages.map(img => img?.url).filter(Boolean),
+                                    imageBlobs: processedImages.map(img => img?.blob).filter(Boolean)
+                                };
                             }
+
+                            // Process images in replyTo, if it exists and has images
+                            if (processedMessage.replyTo && processedMessage.replyTo.images && processedMessage.replyTo.images.length > 0) {
+                                console.log('Processing replyTo images for incoming message:', processedMessage._id);
+                                processedMessage.replyTo.images.forEach((img, index) => {
+                                    console.log(`ReplyTo image ${index}: data type - ${typeof img.data}, contentType - ${img.contentType}`);
+                                    // If img.data is an object with a 'data' array, log its length
+                                    if (typeof img.data === 'object' && img.data !== null && Array.isArray(img.data.data)) {
+                                        console.log(`ReplyTo image ${index}: img.data.data length - ${img.data.data.length}`);
+                                    }
+                                });
+                                const processedReplyImages = await Promise.all(processedMessage.replyTo.images.map(async (img) => {
+                                    const imageData = processImageBuffer(img.data, img.contentType);
+                                    return imageData ? {
+                                        url: imageData.url,
+                                        blob: imageData.blob
+                                    } : null;
+                                }));
+                                processedMessage.replyTo = {
+                                    ...processedMessage.replyTo,
+                                    imageUrls: processedReplyImages.map(img => img?.url).filter(Boolean),
+                                    imageBlobs: processedReplyImages.map(img => img?.blob).filter(Boolean)
+                                };
+                            }
+
+                            // Add message to current chat
+                            get().setMessages([...get().messages, processedMessage]);
                         } else {
                             // Increment unread count for other chats
                             get().setUnreadMessages(chatId, (get().unreadMessages[chatId] || 0) + 1);
@@ -354,7 +413,7 @@ const useChatStore = create((set, get) => ({
         }
     },
 
-    sendMessage: async (content, receiverId, groupId = null, imageFile = null, replyToId = null) => {
+    sendMessage: async (content, receiverId, groupId = null, imageFiles = [], replyToId = null) => {
         try {
             if (get().isMonitoringAdminView) {
                 console.warn('sendMessage: Sending messages disabled in admin monitoring view.');
@@ -365,9 +424,7 @@ const useChatStore = create((set, get) => ({
                 content,
                 receiverId,
                 groupId,
-                hasImageFile: !!imageFile,
-                imageFileType: imageFile?.type,
-                imageFileSize: imageFile?.size,
+                imageFilesCount: imageFiles.length,
                 replyToId
             });
 
@@ -376,8 +433,8 @@ const useChatStore = create((set, get) => ({
                 console.error('sendMessage: Aborted, currentUser or currentUser._id is null/undefined.', currentUser);
                 return;
             }
-            if (!content && !imageFile) {
-                console.warn('sendMessage: Aborted, No content or image provided.');
+            if (!content && imageFiles.length === 0) {
+                console.warn('sendMessage: Aborted, No content or images provided.');
                 return;
             }
 
@@ -392,28 +449,24 @@ const useChatStore = create((set, get) => ({
                 }
             }
 
-            let imageData = null;
-            let imageContentType = null;
+            const processedImages = [];
+            const imageBlobs = [];
 
-            if (imageFile) {
+            for (const imageFile of imageFiles) {
                 console.log('Frontend - Processing image file:', {
                     name: imageFile.name,
                     type: imageFile.type,
                     size: imageFile.size
                 });
-                imageContentType = imageFile.type;
+
                 try {
-                    // Read the file as ArrayBuffer
                     const arrayBuffer = await imageFile.arrayBuffer();
-                    // Convert to Uint8Array
                     const uint8Array = new Uint8Array(arrayBuffer);
-                    // Convert to regular array for socket.io transmission
-                    imageData = Array.from(uint8Array);
-                    console.log('Frontend - Image processed successfully:', {
-                        arraySize: imageData.length,
-                        contentType: imageContentType,
-                        firstFewBytes: imageData.slice(0, 10)
+                    processedImages.push({
+                        data: Array.from(uint8Array),
+                        contentType: imageFile.type
                     });
+                    imageBlobs.push(imageFile);
                 } catch (error) {
                     console.error('Frontend - Error processing image:', error);
                     return;
@@ -429,50 +482,32 @@ const useChatStore = create((set, get) => ({
                 receiver: receiverId,
                 group: groupId,
                 message: content || null,
-                image: imageData ? { data: imageData } : null,
-                imageContentType: imageContentType,
+                images: processedImages,
                 createdAt: new Date(),
                 replyTo: replyToId ? get().messages.find(m => m._id === replyToId) : null
             };
 
-            // Log the exact message being sent
-            console.log('Frontend - Sending message via socket:', {
-                tempId,
-                sender: message.sender,
-                receiver: message.receiver,
-                group: message.group,
-                hasMessage: !!message.message,
-                hasImage: !!message.image,
-                imageContentType: message.imageContentType,
-                imageDataLength: message.image?.data?.length,
-                imageDataSample: message.image?.data?.slice(0, 10),
-                replyTo: message.replyTo,
-                fullMessage: message
-            });
-
             // Add optimistic update
             const optimisticMessage = {
                 ...message,
-                imageUrl: imageFile ? URL.createObjectURL(imageFile) : null,
-                imageBlob: imageFile || null
+                imageUrls: imageFiles.map(file => URL.createObjectURL(file)),
+                imageBlobs: imageBlobs
             };
             get().setMessages([...get().messages, optimisticMessage]);
 
-            // Emit the message with explicit data structure
+            // Emit the message
             socket.emit('send-message', {
                 sender: message.sender,
                 receiver: message.receiver,
                 group: message.group,
                 message: message.message,
-                image: message.image,
-                imageContentType: message.imageContentType,
+                images: message.images,
                 createdAt: message.createdAt,
                 replyTo: message.replyTo
             }, (response) => {
                 console.log('Frontend - Received server response:', response);
                 if (response && response.error) {
                     console.error('Frontend - Server error:', response.error);
-                    // Remove the optimistic message if there was an error
                     get().setMessages(get().messages.filter(msg => msg._id !== tempId));
                 }
             });
@@ -536,26 +571,39 @@ const useChatStore = create((set, get) => ({
             // Process images for the fetched messages
             const messagesWithProcessedImages = await Promise.all(messagesToProcess.map(async (msg) => {
                 // Only process if image data exists and imageUrl is not already set (handle potential re-fetching)
-                if (msg.image && !msg.imageUrl) {
-                    console.log(`fetchMessages: Processing image for message: ${msg._id} (has image: ${!!msg.image}, has imageUrl: ${!!msg.imageUrl})`);
-                    const imageData = processImageBuffer(msg.image, msg.imageContentType);
-                    if (imageData) {
-                        console.log('fetchMessages: Image processed for message:', msg._id, 'imageUrl:', imageData.url);
-                        return {
-                            ...msg, // Ensure all original message properties, including replyTo, are spread
-                            imageUrl: imageData.url,
-                            imageBlob: imageData.blob,
-                            imageProcessing: false,
-                            imageError: false,
-                            imageRetryCount: 0 // Initialize retry count
-                        };
-                    } else {
-                        console.error('fetchMessages: Error processing image for message:', msg._id);
-                        return { ...msg, imageError: true, imageProcessing: false };
-                    }
+                let processedMsg = { ...msg };
+
+                if (processedMsg.images && processedMsg.images.length > 0 && !processedMsg.imageUrls) {
+                    const processedCurrentImages = await Promise.all(processedMsg.images.map(async (img) => {
+                        const imageData = processImageBuffer(img.data, img.contentType);
+                        return imageData ? { url: imageData.url, blob: imageData.blob } : null;
+                    }));
+                    processedMsg.imageUrls = processedCurrentImages.map(img => img?.url).filter(Boolean);
+                    processedMsg.imageBlobs = processedCurrentImages.map(img => img?.blob).filter(Boolean);
                 }
-                // If message already has imageUrl or no image data, return as is, preserving replyTo
-                return msg;
+
+                // Process images in replyTo, if it exists and has images
+                if (processedMsg.replyTo && processedMsg.replyTo.images && processedMsg.replyTo.images.length > 0) {
+                    console.log('Processing replyTo images for fetched message:', processedMsg._id);
+                    processedMsg.replyTo.images.forEach((img, index) => {
+                        console.log(`ReplyTo image ${index}: data type - ${typeof img.data}, contentType - ${img.contentType}`);
+                        // If img.data is an object with a 'data' array, log its length
+                        if (typeof img.data === 'object' && img.data !== null && Array.isArray(img.data.data)) {
+                            console.log(`ReplyTo image ${index}: img.data.data length - ${img.data.data.length}`);
+                        }
+                    });
+                    const processedReplyImages = await Promise.all(processedMsg.replyTo.images.map(async (img) => {
+                        const imageData = processImageBuffer(img.data, img.contentType);
+                        return imageData ? { url: imageData.url, blob: imageData.blob } : null;
+                    }));
+                    processedMsg.replyTo = {
+                        ...processedMsg.replyTo,
+                        imageUrls: processedReplyImages.map(img => img?.url).filter(Boolean),
+                        imageBlobs: processedReplyImages.map(img => img?.blob).filter(Boolean)
+                    };
+                }
+
+                return processedMsg;
             }));
 
             // If fetching older messages, prepend them to the existing messages
@@ -622,27 +670,39 @@ const useChatStore = create((set, get) => ({
 
             // Process images for the fetched messages
             const messagesWithProcessedImages = await Promise.all(messagesToProcess.map(async (msg) => {
-                // Only process if image data exists and imageUrl is not already set
-                if (msg.image && !msg.imageUrl) {
-                    console.log(`fetchGroupMessages: Processing image for message: ${msg._id} (has image: ${!!msg.image}, has imageUrl: ${!!msg.imageUrl})`);
-                    const imageData = processImageBuffer(msg.image, msg.imageContentType);
-                    if (imageData) {
-                        console.log('fetchGroupMessages: Image processed for message:', msg._id, 'imageUrl:', imageData.url);
-                        return {
-                            ...msg, // Ensure all original message properties, including replyTo, are spread
-                            imageUrl: imageData.url,
-                            imageBlob: imageData.blob,
-                            imageProcessing: false,
-                            imageError: false,
-                            imageRetryCount: 0 // Initialize retry count
-                        };
-                    } else {
-                        console.error('fetchGroupMessages: Error processing image for message:', msg._id);
-                        return { ...msg, imageError: true, imageProcessing: false };
-                    }
+                let processedMsg = { ...msg };
+
+                if (processedMsg.images && processedMsg.images.length > 0 && !processedMsg.imageUrls) {
+                    const processedCurrentImages = await Promise.all(processedMsg.images.map(async (img) => {
+                        const imageData = processImageBuffer(img.data, img.contentType);
+                        return imageData ? { url: imageData.url, blob: imageData.blob } : null;
+                    }));
+                    processedMsg.imageUrls = processedCurrentImages.map(img => img?.url).filter(Boolean);
+                    processedMsg.imageBlobs = processedCurrentImages.map(img => img?.blob).filter(Boolean);
                 }
-                // If message already has imageUrl or no image data, return as is, preserving replyTo
-                return msg;
+
+                // Process images in replyTo, if it exists and has images
+                if (processedMsg.replyTo && processedMsg.replyTo.images && processedMsg.replyTo.images.length > 0) {
+                    console.log('Processing replyTo images for fetched group message:', processedMsg._id);
+                    processedMsg.replyTo.images.forEach((img, index) => {
+                        console.log(`ReplyTo image ${index}: data type - ${typeof img.data}, contentType - ${img.contentType}`);
+                        // If img.data is an object with a 'data' array, log its length
+                        if (typeof img.data === 'object' && img.data !== null && Array.isArray(img.data.data)) {
+                            console.log(`ReplyTo image ${index}: img.data.data length - ${img.data.data.length}`);
+                        }
+                    });
+                    const processedReplyImages = await Promise.all(processedMsg.replyTo.images.map(async (img) => {
+                        const imageData = processImageBuffer(img.data, img.contentType);
+                        return imageData ? { url: imageData.url, blob: imageData.blob } : null;
+                    }));
+                    processedMsg.replyTo = {
+                        ...processedMsg.replyTo,
+                        imageUrls: processedReplyImages.map(img => img?.url).filter(Boolean),
+                        imageBlobs: processedReplyImages.map(img => img?.blob).filter(Boolean)
+                    };
+                }
+
+                return processedMsg;
             }));
 
             // If fetching older messages, prepend them to the existing messages

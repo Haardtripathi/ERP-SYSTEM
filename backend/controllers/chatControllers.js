@@ -5,13 +5,13 @@ const mongoose = require('mongoose');
 
 exports.sendMessage = async (req, res) => {
     try {
-        const { sender, receiver, group, message, image, imageContentType } = req.body;
+        const { sender, receiver, group, message, images } = req.body;
         console.log('Received message data:', {
             sender,
             receiver,
             group,
             message,
-            imageContentType
+            imagesCount: images?.length || 0
         });
 
         // Create message data object
@@ -19,14 +19,15 @@ exports.sendMessage = async (req, res) => {
             sender,
             receiver,
             group,
-            message,
-            imageContentType
+            message
         };
 
-        // Handle image data if present
-        if (image?.data) {
-            const imageBuffer = Buffer.from(image.data);
-            messageData.image = imageBuffer;
+        // Handle images if present
+        if (images && images.length > 0) {
+            messageData.images = images.map(img => ({
+                data: Buffer.from(img.data),
+                contentType: img.contentType
+            }));
         }
 
         // Create the message
@@ -34,7 +35,7 @@ exports.sendMessage = async (req, res) => {
         console.log('Message saved to database:', {
             id: newMsg._id,
             message: newMsg.message,
-            imageContentType: newMsg.imageContentType
+            imagesCount: newMsg.images?.length || 0
         });
 
         res.status(200).json(newMsg);
