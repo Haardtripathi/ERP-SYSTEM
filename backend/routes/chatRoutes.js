@@ -10,4 +10,8 @@ router.post("/group", isAuthenticated, chatController.createGroup);
 router.get("/group/:groupId/messages", isAuthenticated, chatController.getGroupMessages);
 router.get("/mygroups/:userId", isAuthenticated, chatController.getGroupsForUser);
 
+// New routes for user info and media gallery
+router.get("/user-info/:userId", isAuthenticated, chatController.getUserInfo);
+router.get("/chat-media/:userId1/:userId2", isAuthenticated, chatController.getChatMedia);
+
 module.exports = router;

@@ -162,7 +162,135 @@ exports.getAllUsers = async (req, res) => {
     // Assuming authenticated user ID is available in req.user._id
     const currentUserId = req.user._id;
     // Log current user ID
-    const users = await User.find({ _id: { $ne: currentUserId } }, "_id agent_name email image_url");
+    const users = await User.find({ _id: { $ne: currentUserId } }, "_id agent_name email photo phone_number address");
     // Log fetched users
     res.json(users);
+};
+
+exports.getUserInfo = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        console.log('getUserInfo request:', { userId });
+
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            console.log('Invalid user ID:', userId);
+            return res.status(400).json({ message: "Invalid user ID" });
+        }
+
+        const user = await User.findById(userId).select('-password');
+        console.log('Found user:', user ? 'yes' : 'no');
+
+        if (!user) {
+            console.log('User not found:', userId);
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        console.log('Sending user info response');
+        res.json(user);
+    } catch (error) {
+        console.error('Error in getUserInfo:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.getChatMedia = async (req, res) => {
+    try {
+        const { userId1, userId2 } = req.params;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+        const skip = (page - 1) * limit;
+
+        console.log('Getting chat media with params:', { userId1, userId2, page, limit, skip });
+
+        // Validate user IDs
+        if (!mongoose.Types.ObjectId.isValid(userId1) || !mongoose.Types.ObjectId.isValid(userId2)) {
+            console.error('Invalid user IDs:', { userId1, userId2 });
+            return res.status(400).json({ error: 'Invalid user IDs' });
+        }
+
+        // Aggregation pipeline to get individual images with pagination
+        const pipeline = [
+            {
+                $match: {
+                    $or: [
+                        { sender: new mongoose.Types.ObjectId(userId1), receiver: new mongoose.Types.ObjectId(userId2) },
+                        { sender: new mongoose.Types.ObjectId(userId2), receiver: new mongoose.Types.ObjectId(userId1) }
+                    ],
+                    images: { $exists: true, $ne: [] } // Only messages with images
+                }
+            },
+            { $unwind: "$images" }, // Deconstruct the images array into separate documents
+            { $sort: { createdAt: -1 } }, // Sort by message creation date (newest message first)
+            {
+                $project: {
+                    _id: 0, // Exclude _id of the message
+                    id: "$_id", // Use message _id as media item id
+                    data: "$images.data",
+                    contentType: "$images.contentType",
+                    timestamp: "$createdAt",
+                    sender: "$sender", // Store sender for population
+                }
+            },
+            {
+                $lookup: {
+                    from: "users", // The collection name for the User model
+                    localField: "sender",
+                    foreignField: "_id",
+                    as: "senderInfo"
+                }
+            },
+            { $unwind: "$senderInfo" }, // Deconstruct senderInfo array
+            { $addFields: { sender: "$senderInfo.agent_name" } }, // Replace sender ID with agent_name
+            { $project: { senderInfo: 0 } } // Remove senderInfo field
+        ];
+
+        // Get total count of all images matching the query
+        const totalCountPipeline = [
+            {
+                $match: {
+                    $or: [
+                        { sender: new mongoose.Types.ObjectId(userId1), receiver: new mongoose.Types.ObjectId(userId2) },
+                        { sender: new mongoose.Types.ObjectId(userId2), receiver: new mongoose.Types.ObjectId(userId1) }
+                    ],
+                    images: { $exists: true, $ne: [] }
+                }
+            },
+            { $unwind: "$images" },
+            { $count: "totalImages" } // Count total individual images
+        ];
+
+        const totalImagesResult = await ChatMessage.aggregate(totalCountPipeline);
+        const totalCount = totalImagesResult.length > 0 ? totalImagesResult[0].totalImages : 0;
+        console.log('Total individual images:', totalCount);
+
+        // Apply pagination to the main pipeline
+        const mediaPipeline = [
+            ...pipeline,
+            { $skip: skip },
+            { $limit: limit }
+        ];
+
+        const mediaItems = await ChatMessage.aggregate(mediaPipeline);
+        console.log('Found media items for current page:', mediaItems.length);
+
+        // Calculate total pages
+        const totalPages = Math.ceil(totalCount / limit);
+        const hasMoreCalculated = (page * limit) < totalCount;
+
+        console.log('Pagination Info:', { currentPage: page, totalPages, totalItems: totalCount, hasMore: hasMoreCalculated });
+
+        // Return response with pagination info
+        res.json({
+            media: mediaItems,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalItems: totalCount,
+                hasMore: hasMoreCalculated
+            }
+        });
+    } catch (error) {
+        console.error('Error in getChatMedia:', error);
+        res.status(500).json({ error: 'Failed to fetch chat media' });
+    }
 };
