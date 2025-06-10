@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import useChatStore from '../../store/chatStore';
-import { Send, Users, Loader2, Image as ImageIcon, XCircle, X, ChevronUp, ChevronDown, Reply } from 'lucide-react';
+import { Send, Users, Loader2, Image as ImageIcon, XCircle, X, ChevronUp, ChevronDown, Reply, Info } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import UserInfoPanel from './UserInfoPanel';
+import { PanelGroup, Panel } from 'react-resizable-panels';
 
 const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] }) => {
     const [message, setMessage] = useState('');
@@ -9,6 +11,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
     const [selectedImagePreviews, setSelectedImagePreviews] = useState([]);
     const [enlargedImage, setEnlargedImage] = useState(null);
     const [replyingTo, setReplyingTo] = useState(null);
+    const [showInfoPanel, setShowInfoPanel] = useState(false);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -405,175 +408,295 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
 
     return (
         <div className="flex flex-col h-full bg-white relative">
-            <div className="p-4 border-b bg-white shadow-sm">
+            <div className="p-4 border-b bg-white shadow-sm flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-800">{selectedChat.name || 'Select a Chat'}</h2>
-                {isTyping && (
-                    <div className="flex items-center text-sm text-gray-500 mt-1">
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        <span>Typing...</span>
-                    </div>
-                )}
+                <div className="flex items-center space-x-2">
+                    {isTyping && (
+                        <div className="flex items-center text-sm text-gray-500">
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            <span>Typing...</span>
+                        </div>
+                    )}
+                    {selectedChat && !isReadOnly && (
+                        <button
+                            onClick={() => setShowInfoPanel(!showInfoPanel)}
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                            title="Contact Info"
+                        >
+                            <Info className="w-5 h-5 text-gray-600" />
+                        </button>
+                    )}
+                </div>
             </div>
 
-            <div
-                ref={messagesContainerRef}
-                className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 flex flex-col"
-                onScroll={handleScroll}
-            >
-                {/* Show loading overlay during initial load */}
-                {pagination.isLoading && messages.length === 0 && <LoadingOverlay />}
+            <div className="flex-1 overflow-hidden">
+                <PanelGroup direction="horizontal" className="h-full">
+                    <Panel defaultSize={75} minSize={60}>
+                        <div className="flex-1 flex flex-col h-full">
+                            <div
+                                ref={messagesContainerRef}
+                                className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 flex flex-col"
+                                onScroll={handleScroll}
+                            >
+                                {/* Show loading overlay during initial load */}
+                                {pagination.isLoading && messages.length === 0 && <LoadingOverlay />}
 
-                {/* Show skeletons during initial load */}
-                {pagination.isLoading && messages.length === 0 ? (
-                    <div className="space-y-4">
-                        {renderSkeletons()}
-                    </div>
-                ) : (
-                    <>
-                        {/* Load Older Messages Button - Now above first message */}
-                        {pagination.hasMore && (
-                            <div className="flex justify-center mb-4">
-                                <button
-                                    onClick={handleLoadOlderMessages}
-                                    disabled={pagination.isLoading}
-                                    className={cn(
-                                        "flex items-center px-4 py-2 rounded-full text-sm font-medium transition-colors shadow-sm",
-                                        pagination.isLoading
-                                            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                                            : "bg-blue-500 text-white hover:bg-blue-600"
-                                    )}
-                                >
-                                    {pagination.isLoading ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                            Loading...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <ChevronUp className="w-4 h-4 mr-2" />
-                                            Load Older Messages
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        )}
-
-                        {/* New Message Button */}
-                        {showNewMessageButton && (
-                            <div className="sticky bottom-4 w-full flex justify-center pb-2 z-10">
-                                <button
-                                    onClick={() => {
-                                        scrollToBottom();
-                                        setShowNewMessageButton(false);
-                                    }}
-                                    className="flex items-center px-4 py-2 rounded-full text-sm font-medium transition-colors shadow-lg bg-green-500 text-white hover:bg-green-600"
-                                >
-                                    <span className="mr-2">New Message</span>
-                                    <ChevronDown className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
-
-                        {messages.map((msg) => {
-                            const hasText = msg.message && msg.message.trim().length > 0;
-                            const hasImages = msg.imageUrls && msg.imageUrls.length > 0;
-                            const isMyMessage = msg.sender === currentUser._id;
-
-                            if (!hasText && !hasImages) return null;
-
-                            return (
-                                <div
-                                    key={msg._id}
-                                    className={cn(
-                                        "flex message-item w-full items-center",
-                                        // In monitoring view, use the first user's ID as reference for alignment
-                                        isReadOnly
-                                            ? msg.sender === selectedChat.user1Id
-                                                ? "justify-start"
-                                                : "justify-end"
-                                            : isMyMessage
-                                                ? "justify-end"
-                                                : "justify-start"
-                                    )}
-                                    data-message-id={msg._id}
-                                >
-                                    {/* Reply button */}
-                                    <div className={cn(
-                                        "flex-shrink-0",
-                                        isReadOnly
-                                            ? msg.sender === selectedChat.user1Id
-                                                ? "order-last ml-2"
-                                                : "order-first mr-2"
-                                            : isMyMessage
-                                                ? "order-first mr-2"
-                                                : "order-last ml-2"
-                                    )}>
-                                        <button
-                                            onClick={() => handleReply(msg)}
-                                            className="p-1 rounded-full transition-colors text-gray-500 hover:bg-gray-100"
-                                            title="Reply"
-                                        >
-                                            <Reply className={cn(
-                                                "w-4 h-4",
-                                                isReadOnly
-                                                    ? msg.sender === selectedChat.user1Id
-                                                        ? ""
-                                                        : "rotate-180"
-                                                    : isMyMessage
-                                                        ? "rotate-180"
-                                                        : ""
-                                            )} />
-                                        </button>
+                                {/* Show skeletons during initial load */}
+                                {pagination.isLoading && messages.length === 0 ? (
+                                    <div className="space-y-4">
+                                        {renderSkeletons()}
                                     </div>
-
-                                    {/* Message Bubble */}
-                                    <div
-                                        className={cn(
-                                            "max-w-[70%] min-w-0 rounded-xl p-3 shadow-sm relative",
-                                            isReadOnly
-                                                ? msg.sender === selectedChat.user1Id
-                                                    ? "bg-white text-gray-800 rounded-bl-none border border-gray-200"
-                                                    : "bg-blue-500 text-white rounded-br-none"
-                                                : isMyMessage
-                                                    ? "bg-blue-500 text-white rounded-br-none"
-                                                    : "bg-white text-gray-800 rounded-bl-none border border-gray-200"
-                                        )}
-                                    >
-                                        {/* Show sender name for both group chats and monitoring view */}
-                                        {(selectedChat?.type === 'group' || isReadOnly) && (
-                                            <p className={cn(
-                                                "text-xs font-semibold mb-1",
-                                                isReadOnly
-                                                    ? msg.sender === selectedChat.user1Id
-                                                        ? "text-gray-600"
-                                                        : "text-blue-100"
-                                                    : "opacity-90"
-                                            )}>
-                                                {allUsers.find(u => u._id === msg.sender)?.agent_name || 'Unknown User'}
-                                            </p>
-                                        )}
-
-                                        {msg.replyTo && (
-                                            <div
-                                                className={cn(
-                                                    "mb-2 p-2 rounded-lg text-xs cursor-pointer hover:bg-opacity-80 transition-colors",
-                                                    isMyMessage ? "bg-blue-600" : "bg-gray-100"
-                                                )}
-                                                onClick={() => scrollToMessage(msg.replyTo._id)}
-                                            >
-                                                <p className="font-medium mb-1">
-                                                    Replying to {msg.replyTo.sender === currentUser._id ? 'yourself' : (allUsers.find(u => u._id === msg.replyTo.sender)?.agent_name || 'Unknown')}
-                                                </p>
-                                                <div className="opacity-90">
-                                                    {msg.replyTo.message && (
-                                                        <p className="truncate">{msg.replyTo.message}</p>
+                                ) : (
+                                    <>
+                                        {/* Load Older Messages Button - Now above first message */}
+                                        {pagination.hasMore && (
+                                            <div className="flex justify-center mb-4">
+                                                <button
+                                                    onClick={handleLoadOlderMessages}
+                                                    disabled={pagination.isLoading}
+                                                    className={cn(
+                                                        "flex items-center px-4 py-2 rounded-full text-sm font-medium transition-colors shadow-sm",
+                                                        pagination.isLoading
+                                                            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                                            : "bg-blue-500 text-white hover:bg-blue-600"
                                                     )}
-                                                    {msg.replyTo.images && msg.replyTo.images.length > 0 && (
+                                                >
+                                                    {pagination.isLoading ? (
+                                                        <>
+                                                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                                            Loading...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <ChevronUp className="w-4 h-4 mr-2" />
+                                                            Load Older Messages
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {/* New Message Button */}
+                                        {showNewMessageButton && (
+                                            <div className="sticky bottom-4 w-full flex justify-center pb-2 z-10">
+                                                <button
+                                                    onClick={() => {
+                                                        scrollToBottom();
+                                                        setShowNewMessageButton(false);
+                                                    }}
+                                                    className="flex items-center px-4 py-2 rounded-full text-sm font-medium transition-colors shadow-lg bg-green-500 text-white hover:bg-green-600"
+                                                >
+                                                    <span className="mr-2">New Message</span>
+                                                    <ChevronDown className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {messages.map((msg) => {
+                                            const hasText = msg.message && msg.message.trim().length > 0;
+                                            const hasImages = msg.imageUrls && msg.imageUrls.length > 0;
+                                            const isMyMessage = msg.sender === currentUser._id;
+
+                                            if (!hasText && !hasImages) return null;
+
+                                            return (
+                                                <div
+                                                    key={msg._id}
+                                                    className={cn(
+                                                        "flex message-item w-full items-center",
+                                                        // In monitoring view, use the first user's ID as reference for alignment
+                                                        isReadOnly
+                                                            ? msg.sender === selectedChat.user1Id
+                                                                ? "justify-start"
+                                                                : "justify-end"
+                                                            : isMyMessage
+                                                                ? "justify-end"
+                                                                : "justify-start"
+                                                    )}
+                                                    data-message-id={msg._id}
+                                                >
+                                                    {/* Reply button */}
+                                                    <div className={cn(
+                                                        "flex-shrink-0",
+                                                        isReadOnly
+                                                            ? msg.sender === selectedChat.user1Id
+                                                                ? "order-last ml-2"
+                                                                : "order-first mr-2"
+                                                            : isMyMessage
+                                                                ? "order-first mr-2"
+                                                                : "order-last ml-2"
+                                                    )}>
+                                                        <button
+                                                            onClick={() => handleReply(msg)}
+                                                            className="p-1 rounded-full transition-colors text-gray-500 hover:bg-gray-100"
+                                                            title="Reply"
+                                                        >
+                                                            <Reply className={cn(
+                                                                "w-4 h-4",
+                                                                isReadOnly
+                                                                    ? msg.sender === selectedChat.user1Id
+                                                                        ? ""
+                                                                        : "rotate-180"
+                                                                    : isMyMessage
+                                                                        ? "rotate-180"
+                                                                        : ""
+                                                            )} />
+                                                        </button>
+                                                    </div>
+
+                                                    {/* Message Bubble */}
+                                                    <div
+                                                        className={cn(
+                                                            "max-w-[70%] min-w-0 rounded-xl p-3 shadow-sm relative",
+                                                            isReadOnly
+                                                                ? msg.sender === selectedChat.user1Id
+                                                                    ? "bg-white text-gray-800 rounded-bl-none border border-gray-200"
+                                                                    : "bg-blue-500 text-white rounded-br-none"
+                                                                : isMyMessage
+                                                                    ? "bg-blue-500 text-white rounded-br-none"
+                                                                    : "bg-white text-gray-800 rounded-bl-none border border-gray-200"
+                                                        )}
+                                                    >
+                                                        {/* Show sender name for both group chats and monitoring view */}
+                                                        {(selectedChat?.type === 'group' || isReadOnly) && (
+                                                            <p className={cn(
+                                                                "text-xs font-semibold mb-1",
+                                                                isReadOnly
+                                                                    ? msg.sender === selectedChat.user1Id
+                                                                        ? "text-gray-600"
+                                                                        : "text-blue-100"
+                                                                    : "opacity-90"
+                                                            )}>
+                                                                {allUsers.find(u => u._id === msg.sender)?.agent_name || 'Unknown User'}
+                                                            </p>
+                                                        )}
+
+                                                        {msg.replyTo && (
+                                                            <div
+                                                                className={cn(
+                                                                    "mb-2 p-2 rounded-lg text-xs cursor-pointer hover:bg-opacity-80 transition-colors",
+                                                                    isMyMessage ? "bg-blue-600" : "bg-gray-100"
+                                                                )}
+                                                                onClick={() => scrollToMessage(msg.replyTo._id)}
+                                                            >
+                                                                <p className="font-medium mb-1">
+                                                                    Replying to {msg.replyTo.sender === currentUser._id ? 'yourself' : (allUsers.find(u => u._id === msg.replyTo.sender)?.agent_name || 'Unknown')}
+                                                                </p>
+                                                                <div className="opacity-90">
+                                                                    {msg.replyTo.message && (
+                                                                        <p className="truncate">{msg.replyTo.message}</p>
+                                                                    )}
+                                                                    {msg.replyTo.images && msg.replyTo.images.length > 0 && (
+                                                                        <div className="flex gap-1 mt-1">
+                                                                            {msg.replyTo.images.map((img, index) => (
+                                                                                <div key={index} className="relative w-8 h-8">
+                                                                                    <img
+                                                                                        src={msg.replyTo.imageUrls?.[index]}
+                                                                                        alt={`Reply image ${index + 1}`}
+                                                                                        className="w-full h-full object-cover rounded"
+                                                                                    />
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {hasImages && (
+                                                            <div className="grid grid-cols-2 gap-2 mb-2 last:mb-0">
+                                                                {msg.imageUrls.map((imageUrl, index) => (
+                                                                    <div key={index} className="relative">
+                                                                        <img
+                                                                            src={imageUrl}
+                                                                            alt={`Shared image ${index + 1}`}
+                                                                            className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                                                            onClick={() => handleImageClick(imageUrl)}
+                                                                            onError={(e) => {
+                                                                                console.error('ChatWindow: Image loading error:', {
+                                                                                    src: e.target.src,
+                                                                                    messageId: msg._id,
+                                                                                    imageIndex: index,
+                                                                                    hasImageBlob: !!msg.imageBlobs?.[index],
+                                                                                    imageUrl: imageUrl,
+                                                                                    retryCount: msg.imageRetryCount?.[index] || 0
+                                                                                });
+
+                                                                                if (msg.imageBlobs?.[index] && (!msg.imageRetryCount?.[index] || msg.imageRetryCount[index] < 2)) {
+                                                                                    try {
+                                                                                        if (imageUrl && imageUrl.startsWith('blob:')) {
+                                                                                            URL.revokeObjectURL(imageUrl);
+                                                                                        }
+
+                                                                                        const newUrl = URL.createObjectURL(msg.imageBlobs[index]);
+                                                                                        e.target.src = newUrl;
+
+                                                                                        const updatedMessages = messages.map(m =>
+                                                                                            m._id === msg._id ? {
+                                                                                                ...m,
+                                                                                                imageUrls: m.imageUrls.map((url, i) => i === index ? newUrl : url),
+                                                                                                imageRetryCount: {
+                                                                                                    ...m.imageRetryCount,
+                                                                                                    [index]: (m.imageRetryCount?.[index] || 0) + 1
+                                                                                                }
+                                                                                            } : m
+                                                                                        );
+                                                                                        useChatStore.getState().setMessages(updatedMessages);
+                                                                                    } catch (error) {
+                                                                                        console.error('ChatWindow: Error recreating Blob URL:', error);
+                                                                                    }
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+
+                                                        {hasText && (
+                                                            <div className="break-all whitespace-pre-wrap overflow-hidden">
+                                                                <p className="text-sm mb-1 last:mb-0 break-words">{msg.message}</p>
+                                                            </div>
+                                                        )}
+
+                                                        <span className={cn(
+                                                            "text-xs mt-1 block",
+                                                            isMyMessage ? "text-blue-100" : "text-gray-500"
+                                                        )}>
+                                                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </>
+                                )}
+                                <div ref={messagesEndRef} />
+                            </div>
+
+                            {/* Input area */}
+                            {!isReadOnly && (
+                                <div className={cn(
+                                    "p-3 border-t bg-white",
+                                    pagination.isLoading && messages.length === 0 && "opacity-50 pointer-events-none"
+                                )}>
+                                    {replyingTo && (
+                                        <div className="mb-2 p-2 border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-between shadow-sm">
+                                            <div className="flex items-center space-x-2">
+                                                <Reply className="w-4 h-4 text-gray-500" />
+                                                <div className="text-xs">
+                                                    <p className="font-medium text-gray-700">
+                                                        Replying to {replyingTo.sender === currentUser._id
+                                                            ? 'yourself'
+                                                            : (allUsers.find(u => u._id === replyingTo.sender)?.agent_name || 'Unknown')}
+                                                    </p>
+                                                    <p className="text-gray-500 truncate">{replyingTo.message || (replyingTo.imageUrls?.length > 0 ? 'Image' : '')}</p>
+                                                    {replyingTo.imageUrls && replyingTo.imageUrls.length > 0 && (
                                                         <div className="flex gap-1 mt-1">
-                                                            {msg.replyTo.images.map((img, index) => (
+                                                            {replyingTo.imageUrls.map((url, index) => (
                                                                 <div key={index} className="relative w-8 h-8">
                                                                     <img
-                                                                        src={msg.replyTo.imageUrls?.[index]}
+                                                                        src={url}
                                                                         alt={`Reply image ${index + 1}`}
                                                                         className="w-full h-full object-cover rounded"
                                                                     />
@@ -583,77 +706,108 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                                     )}
                                                 </div>
                                             </div>
-                                        )}
+                                            <button
+                                                onClick={handleCancelReply}
+                                                className="p-1 text-gray-500 hover:text-red-500 rounded-full hover:bg-gray-100 transition-colors"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    )}
 
-                                        {hasImages && (
-                                            <div className="grid grid-cols-2 gap-2 mb-2 last:mb-0">
-                                                {msg.imageUrls.map((imageUrl, index) => (
-                                                    <div key={index} className="relative">
-                                                        <img
-                                                            src={imageUrl}
-                                                            alt={`Shared image ${index + 1}`}
-                                                            className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                                            onClick={() => handleImageClick(imageUrl)}
-                                                            onError={(e) => {
-                                                                console.error('ChatWindow: Image loading error:', {
-                                                                    src: e.target.src,
-                                                                    messageId: msg._id,
-                                                                    imageIndex: index,
-                                                                    hasImageBlob: !!msg.imageBlobs?.[index],
-                                                                    imageUrl: imageUrl,
-                                                                    retryCount: msg.imageRetryCount?.[index] || 0
-                                                                });
+                                    {/* Image Previews */}
+                                    {selectedImagePreviews.length > 0 && (
+                                        <div className="mb-2 flex flex-wrap gap-2">
+                                            {selectedImagePreviews.map((preview, index) => (
+                                                <div key={index} className="relative">
+                                                    <img
+                                                        src={preview}
+                                                        alt={`Preview ${index + 1}`}
+                                                        className="w-20 h-20 object-cover rounded-lg"
+                                                    />
+                                                    <button
+                                                        onClick={() => handleRemoveImage(index)}
+                                                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
 
-                                                                if (msg.imageBlobs?.[index] && (!msg.imageRetryCount?.[index] || msg.imageRetryCount[index] < 2)) {
-                                                                    try {
-                                                                        if (imageUrl && imageUrl.startsWith('blob:')) {
-                                                                            URL.revokeObjectURL(imageUrl);
-                                                                        }
-
-                                                                        const newUrl = URL.createObjectURL(msg.imageBlobs[index]);
-                                                                        e.target.src = newUrl;
-
-                                                                        const updatedMessages = messages.map(m =>
-                                                                            m._id === msg._id ? {
-                                                                                ...m,
-                                                                                imageUrls: m.imageUrls.map((url, i) => i === index ? newUrl : url),
-                                                                                imageRetryCount: {
-                                                                                    ...m.imageRetryCount,
-                                                                                    [index]: (m.imageRetryCount?.[index] || 0) + 1
-                                                                                }
-                                                                            } : m
-                                                                        );
-                                                                        useChatStore.getState().setMessages(updatedMessages);
-                                                                    } catch (error) {
-                                                                        console.error('ChatWindow: Error recreating Blob URL:', error);
-                                                                    }
-                                                                }
-                                                            }}
-                                                        />
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {hasText && (
-                                            <div className="break-all whitespace-pre-wrap overflow-hidden">
-                                                <p className="text-sm mb-1 last:mb-0 break-words">{msg.message}</p>
-                                            </div>
-                                        )}
-
-                                        <span className={cn(
-                                            "text-xs mt-1 block",
-                                            isMyMessage ? "text-blue-100" : "text-gray-500"
-                                        )}>
-                                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
-                                    </div>
+                                    <form onSubmit={handleSend} className="flex items-end gap-2">
+                                        <div className="flex-1 relative">
+                                            <textarea
+                                                ref={inputRef}
+                                                value={message}
+                                                onChange={(e) => setMessage(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                                        e.preventDefault();
+                                                        handleSend(e);
+                                                    }
+                                                }}
+                                                placeholder="Type a message..."
+                                                className="w-full p-2.5 pr-10 border rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 min-h-[40px] max-h-[100px] text-sm"
+                                                rows={1}
+                                                disabled={pagination.isLoading && messages.length === 0}
+                                                style={{
+                                                    height: 'auto',
+                                                    overflow: 'hidden'
+                                                }}
+                                                onInput={(e) => {
+                                                    e.target.style.height = 'auto';
+                                                    e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="absolute right-1.5 bottom-1.5 p-1.5 text-gray-500 hover:text-blue-500 rounded-full hover:bg-gray-100 transition-colors"
+                                                disabled={pagination.isLoading && messages.length === 0}
+                                                title="Attach images"
+                                            >
+                                                <ImageIcon className="w-4 h-4" />
+                                            </button>
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                onChange={handleImageSelect}
+                                                className="hidden"
+                                                disabled={pagination.isLoading && messages.length === 0}
+                                            />
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            disabled={(!message.trim() && selectedImageFiles.length === 0) || (pagination.isLoading && messages.length === 0)}
+                                            className={cn(
+                                                "p-2.5 rounded-full transition-colors",
+                                                (!message.trim() && selectedImageFiles.length === 0) || (pagination.isLoading && messages.length === 0)
+                                                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                                    : "bg-blue-500 text-white hover:bg-blue-600 shadow-sm hover:shadow"
+                                            )}
+                                            title="Send message"
+                                        >
+                                            <Send className="w-4 h-4" />
+                                        </button>
+                                    </form>
                                 </div>
-                            );
-                        })}
-                    </>
-                )}
-                <div ref={messagesEndRef} />
+                            )}
+                        </div>
+                    </Panel>
+
+                    {/* User Info Panel */}
+                    {showInfoPanel && (
+                        <UserInfoPanel
+                            selectedChat={selectedChat}
+                            onClose={() => setShowInfoPanel(false)}
+                            currentUser={currentUser}
+                        />
+                    )}
+                </PanelGroup>
             </div>
 
             {enlargedImage && (
@@ -671,129 +825,6 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                             <X className="w-6 h-6" />
                         </button>
                     </div>
-                </div>
-            )}
-
-            {/* Input area */}
-            {!isReadOnly && (
-                <div className={cn(
-                    "p-3 border-t bg-white",
-                    pagination.isLoading && messages.length === 0 && "opacity-50 pointer-events-none"
-                )}>
-                    {replyingTo && (
-                        <div className="mb-2 p-2 border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-between shadow-sm">
-                            <div className="flex items-center space-x-2">
-                                <Reply className="w-4 h-4 text-gray-500" />
-                                <div className="text-xs">
-                                    <p className="font-medium text-gray-700">
-                                        Replying to {replyingTo.sender === currentUser._id
-                                            ? 'yourself'
-                                            : (allUsers.find(u => u._id === replyingTo.sender)?.agent_name || 'Unknown')}
-                                    </p>
-                                    <p className="text-gray-500 truncate">{replyingTo.message || (replyingTo.imageUrls?.length > 0 ? 'Image' : '')}</p>
-                                    {replyingTo.imageUrls && replyingTo.imageUrls.length > 0 && (
-                                        <div className="flex gap-1 mt-1">
-                                            {replyingTo.imageUrls.map((url, index) => (
-                                                <div key={index} className="relative w-8 h-8">
-                                                    <img
-                                                        src={url}
-                                                        alt={`Reply image ${index + 1}`}
-                                                        className="w-full h-full object-cover rounded"
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            <button
-                                onClick={handleCancelReply}
-                                className="p-1 text-gray-500 hover:text-red-500 rounded-full hover:bg-gray-100 transition-colors"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Image Previews */}
-                    {selectedImagePreviews.length > 0 && (
-                        <div className="mb-2 flex flex-wrap gap-2">
-                            {selectedImagePreviews.map((preview, index) => (
-                                <div key={index} className="relative">
-                                    <img
-                                        src={preview}
-                                        alt={`Preview ${index + 1}`}
-                                        className="w-20 h-20 object-cover rounded-lg"
-                                    />
-                                    <button
-                                        onClick={() => handleRemoveImage(index)}
-                                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                    >
-                                        <X className="w-3 h-3" />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    <form onSubmit={handleSend} className="flex items-end gap-2">
-                        <div className="flex-1 relative">
-                            <textarea
-                                ref={inputRef}
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleSend(e);
-                                    }
-                                }}
-                                placeholder="Type a message..."
-                                className="w-full p-2.5 pr-10 border rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 min-h-[40px] max-h-[100px] text-sm"
-                                rows={1}
-                                disabled={pagination.isLoading && messages.length === 0}
-                                style={{
-                                    height: 'auto',
-                                    overflow: 'hidden'
-                                }}
-                                onInput={(e) => {
-                                    e.target.style.height = 'auto';
-                                    e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
-                                }}
-                            />
-                            <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="absolute right-1.5 bottom-1.5 p-1.5 text-gray-500 hover:text-blue-500 rounded-full hover:bg-gray-100 transition-colors"
-                                disabled={pagination.isLoading && messages.length === 0}
-                                title="Attach images"
-                            >
-                                <ImageIcon className="w-4 h-4" />
-                            </button>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={handleImageSelect}
-                                className="hidden"
-                                disabled={pagination.isLoading && messages.length === 0}
-                            />
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={(!message.trim() && selectedImageFiles.length === 0) || (pagination.isLoading && messages.length === 0)}
-                            className={cn(
-                                "p-2.5 rounded-full transition-colors",
-                                (!message.trim() && selectedImageFiles.length === 0) || (pagination.isLoading && messages.length === 0)
-                                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                                    : "bg-blue-500 text-white hover:bg-blue-600 shadow-sm hover:shadow"
-                            )}
-                            title="Send message"
-                        >
-                            <Send className="w-4 h-4" />
-                        </button>
-                    </form>
                 </div>
             )}
         </div>

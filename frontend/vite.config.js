@@ -8,4 +8,13 @@ export default defineConfig({
       "@": "/src", // This sets "@" as an alias for the "src" directory
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  }
 });

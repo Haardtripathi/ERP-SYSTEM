@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import useChatStore from '../../store/chatStore';
 import useAuthStore from '../../store/authStore';
 import { Users, UserPlus, MessageSquare, Plus, Loader2, X } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 const ChatSidebar = () => {
     const {
@@ -13,7 +14,8 @@ const ChatSidebar = () => {
         setSelectedChat,
         createGroup,
         onlineUsers,
-        unreadMessages
+        unreadMessages,
+        selectedChat
     } = useChatStore();
 
     const { isAdmin } = useAuthStore();
@@ -24,6 +26,23 @@ const ChatSidebar = () => {
     const [newGroupName, setNewGroupName] = useState('');
     const [selectedUsers, setSelectedUsers] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Helper function to convert buffer to base64
+    const bufferToBase64 = (buffer) => {
+        if (!buffer) return '';
+        if (typeof buffer === 'string') return buffer;
+        if (buffer.data && Array.isArray(buffer.data)) {
+            // Process the array in chunks to avoid stack overflow
+            const chunkSize = 1024;
+            let result = '';
+            for (let i = 0; i < buffer.data.length; i += chunkSize) {
+                const chunk = buffer.data.slice(i, i + chunkSize);
+                result += String.fromCharCode.apply(null, chunk);
+            }
+            return btoa(result);
+        }
+        return '';
+    };
 
     useEffect(() => {
         if (currentUser && users.length === 0 && groups.length === 0) {
@@ -136,12 +155,15 @@ const ChatSidebar = () => {
                                             className="mr-2"
                                         />
                                         <div className="relative flex-shrink-0 rounded-full overflow-hidden w-10 h-10">
-                                            {/* User Avatar or Placeholder */}
-                                            {user.image_url ? (
-                                                <img src={user.image_url} alt={user.agent_name} className="w-full h-full object-cover" />
+                                            {user.photo ? (
+                                                <img
+                                                    src={`data:${user.photo.contentType};base64,${bufferToBase64(user.photo.data)}`}
+                                                    alt={user.agent_name}
+                                                    className="w-full h-full object-cover"
+                                                />
                                             ) : (
                                                 <div className="w-full h-full bg-blue-200 flex items-center justify-center text-blue-800 font-bold text-sm">
-                                                    {user.agent_name.charAt(0).toUpperCase()}
+                                                    {user.agent_name?.charAt(0)?.toUpperCase() || '?'}
                                                 </div>
                                             )}
                                         </div>
@@ -177,15 +199,21 @@ const ChatSidebar = () => {
                                 <div
                                     key={user._id}
                                     onClick={() => setSelectedChat({ type: 'user', id: user._id, name: user.agent_name })}
-                                    className="flex items-center p-3 hover:bg-gray-100 cursor-pointer rounded-lg transition-colors last:mb-0 mb-2"
+                                    className={cn(
+                                        "flex items-center p-3 hover:bg-gray-100 cursor-pointer rounded-lg transition-colors last:mb-0 mb-2",
+                                        selectedChat?.type === 'user' && selectedChat?.id === user._id && "bg-blue-100"
+                                    )}
                                 >
                                     <div className="relative flex-shrink-0 rounded-full overflow-hidden w-10 h-10">
-                                        {/* User Avatar or Placeholder */}
-                                        {user.image_url ? (
-                                            <img src={user.image_url} alt={user.agent_name} className="w-full h-full object-cover" />
+                                        {user.photo ? (
+                                            <img
+                                                src={`data:${user.photo.contentType};base64,${bufferToBase64(user.photo.data)}`}
+                                                alt={user.agent_name}
+                                                className="w-full h-full object-cover"
+                                            />
                                         ) : (
                                             <div className="w-full h-full bg-blue-200 flex items-center justify-center text-blue-800 font-bold text-sm">
-                                                {user.agent_name.charAt(0).toUpperCase()}
+                                                {user.agent_name?.charAt(0)?.toUpperCase() || '?'}
                                             </div>
                                         )}
                                     </div>
@@ -219,7 +247,10 @@ const ChatSidebar = () => {
                                 <div
                                     key={group._id}
                                     onClick={() => setSelectedChat({ type: 'group', id: group._id, name: group.name })}
-                                    className="flex items-center p-3 hover:bg-gray-100 cursor-pointer rounded-lg transition-colors last:mb-0 mb-2"
+                                    className={cn(
+                                        "flex items-center p-3 hover:bg-gray-100 cursor-pointer rounded-lg transition-colors last:mb-0 mb-2",
+                                        selectedChat?.type === 'group' && selectedChat?.id === group._id && "bg-blue-100"
+                                    )}
                                 >
                                     <div className="flex-shrink-0">
                                         {/* Group Icon Placeholder */}

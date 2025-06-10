@@ -147,6 +147,32 @@ const useChatStore = create((set, get) => ({
         }
     },
 
+    // New functions for user info and media
+    getUserInfo: async (userId) => {
+        try {
+            const response = await axios.get(`/chat/user-info/${userId}`);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching user info:', error);
+            throw error;
+        }
+    },
+
+    getChatMedia: async (userId1, userId2, page = 1, limit = 12) => {
+        try {
+            console.log('Fetching chat media with params:', { userId1, userId2, page, limit });
+            const response = await axios.get(`/chat/chat-media/${userId1}/${userId2}`, {
+                params: { page, limit },
+                timeout: 30000 // Increase timeout to 30 seconds
+            });
+            console.log('Chat media response:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching chat media:', error);
+            throw error;
+        }
+    },
+
     initializeSocket: (shouldAttachListeners = true) => {
         try {
             // If socket is already initialized, clear existing listeners to prevent duplicates
