@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import useChatStore from '../../store/chatStore';
 import useAuthStore from '../../store/authStore';
 import { Users, UserPlus, MessageSquare, Plus, Loader2, X } from 'lucide-react';
-import { cn } from '../../lib/utils';
 
 const ChatSidebar = () => {
     const {
@@ -14,8 +13,7 @@ const ChatSidebar = () => {
         setSelectedChat,
         createGroup,
         onlineUsers,
-        unreadMessages,
-        selectedChat
+        unreadMessages
     } = useChatStore();
 
     const { isAdmin } = useAuthStore();
@@ -199,10 +197,7 @@ const ChatSidebar = () => {
                                 <div
                                     key={user._id}
                                     onClick={() => setSelectedChat({ type: 'user', id: user._id, name: user.agent_name })}
-                                    className={cn(
-                                        "flex items-center p-3 hover:bg-gray-100 cursor-pointer rounded-lg transition-colors last:mb-0 mb-2",
-                                        selectedChat?.type === 'user' && selectedChat?.id === user._id && "bg-blue-100"
-                                    )}
+                                    className="flex items-center p-3 hover:bg-gray-100 cursor-pointer rounded-lg transition-colors last:mb-0 mb-2"
                                 >
                                     <div className="relative flex-shrink-0 rounded-full overflow-hidden w-10 h-10">
                                         {user.photo ? (
@@ -247,10 +242,7 @@ const ChatSidebar = () => {
                                 <div
                                     key={group._id}
                                     onClick={() => setSelectedChat({ type: 'group', id: group._id, name: group.name })}
-                                    className={cn(
-                                        "flex items-center p-3 hover:bg-gray-100 cursor-pointer rounded-lg transition-colors last:mb-0 mb-2",
-                                        selectedChat?.type === 'group' && selectedChat?.id === group._id && "bg-blue-100"
-                                    )}
+                                    className="flex items-center p-3 hover:bg-gray-100 cursor-pointer rounded-lg transition-colors last:mb-0 mb-2"
                                 >
                                     <div className="flex-shrink-0">
                                         {/* Group Icon Placeholder */}
