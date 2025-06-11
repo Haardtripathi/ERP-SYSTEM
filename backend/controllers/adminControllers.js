@@ -720,6 +720,7 @@ exports.editUserData = async (req, res) => {
 
 exports.getUserAccessPages = async (req, res) => {
     try {
+        console.log("ABC")
         const authHeader = req.headers.authorization;
         if (!authHeader) {
             return res.status(401).json({ message: "Authorization header is missing" });
@@ -729,7 +730,7 @@ exports.getUserAccessPages = async (req, res) => {
         if (!token) {
             return res.status(401).json({ message: "Token is missing" });
         }
-
+        console.log(token)
         // Verify the token
         const secretKey = process.env.JWT_SECRET || "yourSecretKey"; // Use your secret key
         const decoded = jwt.verify(token, secretKey);

@@ -27,7 +27,7 @@ const useAuthStore = create((set, get) => ({
             const { data } = await axiosInstance.get('/auth/checkAuth', {
                 headers: { Authorization: token },
             });
-
+            console.log(data)
             const isAdmin = data.user.agent_name === 'Panchved';
             set({ user: data, token, isAdmin });
 
@@ -39,10 +39,10 @@ const useAuthStore = create((set, get) => ({
                 permissions: permissionData.permissions,
             });
 
-        } catch (err) {
-            console.error('Auth check failed:', err);
-            const isAdmin = data.user.agent_name == "Panchved";
-            set({ user: data, token, loading: false, isAdmin });
+        } catch {
+            console.log('authStore: checkAuth - Error checking auth, removing token and setting user to null');
+            localStorage.removeItem('token');
+            set({ user: null, token: null, loading: false });
         } finally {
             set({ loading: false });
         }

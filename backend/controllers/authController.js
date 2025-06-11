@@ -145,12 +145,13 @@ exports.login = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
         const role = await Role.findOne({ _id: user.role })
+        console.log(role)
         const permissions = await Permission.findOne({ role: user.role })
         const userRole = role.name
-
+        console.log({ _id: user._id.toString(), email: user.email, agent_name: user.agent_name, role: user.role })
         const token = jwt.sign({ _id: user._id.toString(), email: user.email, agent_name: user.agent_name, role: userRole }, process.env.JWT_SECRET, { expiresIn: '1h' });
         // const token = jwt.sign({ _id: user._id.toString(), email: user.email, agent_name: user.agent_name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
+        console.log(token)
         res.json({ token });
     } catch (error) {
         res.status(500).json({ error: error.message });
