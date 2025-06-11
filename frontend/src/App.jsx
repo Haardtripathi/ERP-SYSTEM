@@ -34,6 +34,12 @@ import Users from "./components/admin/Users";
 import DeliveredPage from "./components/section5/DeliveredPage";
 import PaymentPage from "./components/section5/PaymentPage";
 import EditUserData from "./components/admin/EditUserData";
+
+
+import AddRole from "./components/admin/AddRole";
+import Roles from "./components/admin/Roles";
+import EditRolePage from "./components/admin/EditRolePage";
+
 import Chat from "./components/chat/Chat";
 import AdminChatView from "./components/chat/AdminChatView";
 
@@ -65,19 +71,24 @@ const App = () => {
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<AuthOnlyRoute><Login /></AuthOnlyRoute>} />
                 {/* <Route path="/signup" element={<AuthOnlyRoute><Signup /></AuthOnlyRoute>} /> */}
+
                 <Route path="/add-user" element={<ProtectedRoute><AdminOnlyRoute><AddUser /></AdminOnlyRoute></ProtectedRoute>} />
+                {/* <Route path="/add-user" element={<AddUser />} /> */}
+                <Route path="/add-role" element={<ProtectedRoute><AdminOnlyRoute><AddRole /></AdminOnlyRoute></ProtectedRoute>} />
+                <Route path="/roles" element={<ProtectedRoute><AdminOnlyRoute><Roles /></AdminOnlyRoute></ProtectedRoute>} />
+
+
+
                 <Route path="/users" element={<ProtectedRoute><AdminOnlyRoute><Users /></AdminOnlyRoute></ProtectedRoute>} />
                 <Route path="/edit-user-data/:id" element={<ProtectedRoute><AdminOnlyRoute><EditUserData /></AdminOnlyRoute></ProtectedRoute>} />
 
-
-                {/* <Route path="/add-user" element={<AddUser />} /> */}
 
                 <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/incoming" element={<ProtectedRoute><IncomingPage /></ProtectedRoute>} />
                 <Route path="/add-incoming-data" element={<ProtectedRoute><AddIncomingData /></ProtectedRoute>} />
                 <Route path="/edit-incoming-data/:id" element={<ProtectedRoute><EditIncomingData /></ProtectedRoute>} />
-                <Route path="/lead" element={<ProtectedRoute><LeadPage /></ProtectedRoute>} />
+                <Route path="/leads" element={<ProtectedRoute><LeadPage /></ProtectedRoute>} />
                 <Route path="/add-lead-data" element={<ProtectedRoute><AddLeadData /></ProtectedRoute>} />
                 <Route path="/edit-lead-data/:id" element={<ProtectedRoute><EditLeadData /></ProtectedRoute>} />
                 <Route path="/workbook" element={<ProtectedRoute><WorkbookPage /></ProtectedRoute>} />
@@ -91,6 +102,7 @@ const App = () => {
                 <Route path="/complain" element={<ProtectedRoute><ComplainPage /></ProtectedRoute>} />
                 <Route path="/delivered" element={<ProtectedRoute><DeliveredPage /></ProtectedRoute>} />
                 <Route path="/payment" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
+                <Route path="/edit-role-data/:id" element={<ProtectedRoute><AdminOnlyRoute><EditRolePage /></AdminOnlyRoute></ProtectedRoute>} />
                 <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
                 <Route path="/admin/chat" element={<ProtectedRoute><AdminOnlyRoute><AdminChatView /></AdminOnlyRoute></ProtectedRoute>} />
 

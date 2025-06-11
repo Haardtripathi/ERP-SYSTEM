@@ -1,8 +1,8 @@
 import axiosInstance from '../axiosInstance'
 
 
-export const getAllReturn = async () => {
-    const response = await axiosInstance.get(`/return/get-return-data`);
+export const getAllReturn = async (queryString = "") => {
+    const response = await axiosInstance.get(`/return/get-return-data?${queryString}`);
     return response;
 };
 

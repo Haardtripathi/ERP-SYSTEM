@@ -3,7 +3,7 @@ const router = express.Router();
 const leadController = require("../controllers/section1/leadControllers")
 const { isAuthenticated } = require("../middlewares/authMiddleware")
 const multer = require("multer");
-
+const { checkPermission } = require("../middlewares/permissionMiddleware")
 const upload = multer();
 
 

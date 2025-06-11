@@ -15,6 +15,7 @@ const axiosInstance = axios.create({
     headers: {
         'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),
+        "X-Page-URL": window.location.href
     },
 });
 

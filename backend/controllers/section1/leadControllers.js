@@ -6,6 +6,7 @@ const mongoose = require("mongoose")
 const fs = require("fs");
 const jwt = require('jsonwebtoken');
 
+
 const csv = require('csv-parser')
 
 
@@ -110,45 +111,77 @@ exports.postAddLeadData = async (req, res) => {
     }
 };
 
+// Escape regex characters to avoid MongoDB crash
+const escapeRegex = (input) => {
+    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 exports.getAllLeadData = async (req, res) => {
-    const token = req.header('Authorization').split(" ")[1];
+    const token = req.header("Authorization").split(" ")[1];
 
     try {
-        // Get page and limit from query parameters (default values are 1 and 10)
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = decoded.agent_name
-        const page = parseInt(req.query.page, 10) || 1;
-        const limit = parseInt(req.query.limit, 10) || 10;
+        const user = decoded;
 
-        // Calculate the number of items to skip
+        const page = Number.parseInt(req.query.page, 10) || 1;
+        const limit = Number.parseInt(req.query.limit, 10) || 10;
         const skip = (page - 1) * limit;
 
-        // Fetch data with pagination
-        let data
-        let totalCount
-        // const data = await Lead.find({ is_sent_to_pending: false, isDeleted: false })
-        if (user == "Panchved") {
-            data = await Lead.find({ isDeleted: false }).sort({ createdAt: -1 });
+        const filter = req.query.status;
+        const rawSearch = req.query.search || "";
+        const searchColumn = req.query.searchColumn || "";
+        // Instead of doing a numeric check, treat all as strings since we store phone and similar as strings
+        const regexSafeSearch = escapeRegex(rawSearch);
 
+        const query = { isDeleted: false };
+
+        // If user is not an Admin, filter by the agent's name
+        if (user.role !== "Admin") {
+            query["agent_name.value"] = user.agent_name;
         }
-        else {
-            data = await Lead.find({ isDeleted: false, "agent_name.value": user }).sort({ createdAt: -1 });
 
+        if (filter === "true") query.is_sent_to_pending = true;
+        else if (filter === "false") query.is_sent_to_pending = false;
+
+        if (rawSearch) {
+            if (searchColumn) {
+                // Determine if the field is nested so we can reference the correct property
+                const isNested = ["agent_name", "state", "language", "disease", "remark", "source"].includes(searchColumn);
+                const searchField = isNested ? `${searchColumn}.value` : searchColumn;
+
+                // For columns that were previously numeric but are now strings, use regex for partial matches.
+                if (["cm_phone", "alternate_phone", "age", "height", "weight"].includes(searchField)) {
+                    query[searchField] = { $regex: regexSafeSearch, $options: "i" };
+                } else {
+                    // Regular regex search for non-numeric fields.
+                    query[searchField] = { $regex: regexSafeSearch, $options: "i" };
+                }
+            } else {
+                // When no specific search column is provided, search multiple fields using $or
+                query["$or"] = [
+                    { "cm_first_name": { $regex: regexSafeSearch, $options: "i" } },
+                    { "cm_last_name": { $regex: regexSafeSearch, $options: "i" } },
+                    // For phone and similar fields, assume stored as strings for partial matching
+                    { "cm_phone": { $regex: regexSafeSearch, $options: "i" } },
+                    { "alternate_phone": { $regex: regexSafeSearch, $options: "i" } },
+                    { "agent_name.value": { $regex: regexSafeSearch, $options: "i" } },
+                    { "language.value": { $regex: regexSafeSearch, $options: "i" } },
+                    { "disease.value": { $regex: regexSafeSearch, $options: "i" } },
+                    { "age": { $regex: regexSafeSearch, $options: "i" } },
+                    { "height": { $regex: regexSafeSearch, $options: "i" } },
+                    { "weight": { $regex: regexSafeSearch, $options: "i" } },
+                    { "state.value": { $regex: regexSafeSearch, $options: "i" } },
+                    { "city": { $regex: regexSafeSearch, $options: "i" } },
+                    { "remark.value": { $regex: regexSafeSearch, $options: "i" } },
+                    { "comment": { $regex: regexSafeSearch, $options: "i" } },
+                    { "date": { $regex: regexSafeSearch, $options: "i" } },
+                    { "source.value": { $regex: regexSafeSearch, $options: "i" } }
+                ];
+            }
         }
 
-        // (data);
-
-        // Get total count of documents
-        if (user == "Panchved") {
-            totalCount = await Lead.countDocuments({ isDeleted: false });
-
-
-        }
-        else {
-            totalCount = await Lead.countDocuments({ isDeleted: false, "agent_name.value": user });
-
-
-        }
+        const data = await Lead.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit);
+        const totalCount = await Lead.countDocuments(query);
 
         return res.status(200).json({
             message: "Lead data fetched successfully.",
@@ -156,14 +189,24 @@ exports.getAllLeadData = async (req, res) => {
             totalCount,
             totalPages: Math.ceil(totalCount / limit),
             currentPage: page,
+            filter: filter || null,
+            search: rawSearch,
+            searchColumn: searchColumn || null,
         });
+
     } catch (error) {
-        console.error("Error fetching incoming data:", error);
+        console.error("Error fetching lead data:", error);
         return res.status(500).json({
-            message: "An error occurred while fetching incoming data.",
+            message: "An error occurred while fetching lead data.",
         });
     }
 };
+
+
+
+
+
+
 
 exports.deleteLeadData = async (req, res) => {
     const dataId = req.params.id

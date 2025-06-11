@@ -4,11 +4,569 @@ const jwt = require('jsonwebtoken');
 
 const bcrypt = require('bcryptjs');
 
+const Role = require("../models/Role");
+const Permission = require("../models/Permission");
+const Lead = require("../models/Lead");
+const Incoming = require("../models/Incoming");
+const Workbook = require("../models/Workbook");
+const Pending = require("../models/Pending");
+const Confirmed = require("../models/Confirmed");
+// const SheetGenerator = require("../models/Confirmed");
+// const LabelGenerator = require("../models/Confirmed");
+const Dispatched = require("../models/Dispatched");
+const Complain = require("../models/Complain");
+const Return = require("../models/Return");
+const Delivered = require("../models/Delivered");
+const Payment = require("../models/Payment");
 
+
+
+
+
+
+exports.getAllRolesAndPermissions = async (req, res) => {
+    try {
+        const roles = await Role.find().lean();
+
+        const rolesWithPermissions = await Promise.all(
+            roles.map(async (role) => {
+                const permissions = await Permission.findOne({ role: role._id }).lean();
+                return { ...role, permissions: permissions ? permissions.permissions : [] };
+            })
+        );
+        // console.log(rolesWithPermissions)
+        // console.log("ABC")
+        // const roleName = req.user.role
+
+        // const userRole = await Role.findOne({ name: roleName })
+        // const permissions = await Permission.findOne({ role: userRole._id })
+
+        // console.log(permissions)
+
+        res.status(200).json(rolesWithPermissions);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching roles", error });
+    }
+};
+
+exports.getAllPermissionsOfRole = async (req, res) => {
+    try {
+        const roleName = req.user.role
+
+        const userRole = await Role.findOne({ name: roleName })
+
+        const permissions = await Permission.findOne({ role: userRole._id })
+
+        res.status(200).json(permissions)
+    }
+    catch (error) {
+        res.status(500).json({ message: "Error fetching permissions", error });
+
+    }
+}
+
+
+
+
+// Add a new role
+exports.addRole = async (req, res) => {
+    try {
+
+        const { roleName, permissions } = req.body;
+        // Create a new role
+        const role = new Role({ name: roleName });
+        await role.save();
+
+        // Save permissions
+        await Permission.create({
+            role: role._id,
+            permissions: permissions,
+        });
+
+        res.status(201).json({ message: "Role created successfully" });
+    } catch (error) {
+        res.status(500).json({ error: "Error creating role" });
+    }
+};
+
+
+// exports.getPagesAndColumns = async (req, res) => {
+//     try {
+//         // Define all sections and related database models
+//         const sections = [
+//             {
+//                 section: "Lead Management",
+//                 models: { Lead: Lead.schema.paths },
+//                 pages: ["/leads", "/add-lead-data", "/edit-lead-data/:id"],
+//             },
+//             {
+//                 section: "Incoming Management",
+//                 models: { Incoming: Incoming.schema.paths },
+//                 pages: ["/incoming", "/add-incoming-data", "/edit-incoming-data/:id"],
+//             },
+//         ];
+
+//         // Generate the response dynamically
+//         const pages = sections.map((section) => {
+//             // First, collect all unique columns from all models in this section
+//             const allColumnsInSection = new Set();
+
+//             // Extract columns from all models in this section
+//             Object.values(section.models).forEach(modelPaths => {
+//                 Object.keys(modelPaths).forEach(col => {
+//                     if (!["__v", "timestamps", "createdAt", "updatedAt"].includes(col)) {
+//                         allColumnsInSection.add(col);
+//                     }
+//                 });
+//             });
+
+//             // Convert Set to Array for consistent ordering
+//             const sectionColumns = Array.from(allColumnsInSection);
+
+//             return {
+//                 section: section.section,
+//                 pages: [
+//                     // Apply the same columns to all database model pages
+//                     // ...Object.keys(section.models).map((page) => ({
+//                     //     name: page,
+//                     //     columns: sectionColumns,
+//                     // })),
+//                     // Include extra pages with the same columns
+//                     ...section.pages.map((page) => ({
+//                         name: page,
+//                         columns: sectionColumns
+//                     })),
+//                 ],
+//             };
+//         });
+
+//         res.status(200).json(pages);
+//     } catch (error) {
+//         console.error("Error fetching pages and columns:", error);
+//         res.status(500).json({ error: "Error fetching pages and columns" });
+//     }
+// };
+
+
+exports.getUpdateRole = async (req, res) => {
+    const { id } = req.params
+    const role = await Role.find({ _id: id }).lean();
+
+    const rolesWithPermissions = await Promise.all(
+        role.map(async (role) => {
+            const permissions = await Permission.findOne({ role: role._id }).lean();
+            return { ...role, permissions: permissions ? permissions.permissions : [] };
+        })
+    );
+
+    res.status(200).json(rolesWithPermissions);
+}
+
+exports.postUpdateRole = async (req, res) => {
+    const roleData = req.body
+    const roleName = roleData.data.roleName
+    const rolePermissions = roleData.data.permissions
+    const role = await Role.findOne({ _id: roleData.id })
+    role.name = roleName
+    await role.save()
+
+    const permission = await Permission.findOne({ role: roleData.id })
+    permission.permissions = rolePermissions
+
+    await permission.save()
+
+    res.status(201).json({ message: "Role updated successfully" });
+
+
+}
+
+
+exports.deleteRole = async (req, res) => {
+    try {
+        const { roleID } = req.body;
+
+        if (!roleID) {
+            return res.status(400).json({ success: false, message: "Role ID is required" });
+        }
+        // // console.log("ABc")
+
+        const roleResult = await Role.deleteOne({ _id: roleID });
+        // console.log("ABc")
+
+        const permissionResult = await Permission.deleteOne({ role: roleID });
+
+        // console.log("ABc")
+
+        res.status(200).json({
+            success: true,
+            message: "Role and its permissions deleted successfully",
+        });
+    } catch (error) {
+        console.error("Error deleting role:", error);
+        res.status(500).json({ success: false, message: "Server error while deleting role" });
+    }
+};
+
+
+exports.getPagesAndColumns = async (req, res) => {
+    try {
+        // Define all sections and related database models
+        const sections = [
+            {
+                section: "Lead Management",
+                models: { Lead: Lead.schema.paths, },
+                view: { pages: ["/leads"] },
+                edit: { pages: ["/add-lead-data", "/edit-lead-data/:id"] }
+            },
+            {
+                section: "Incoming Management",
+                models: { Incoming: Incoming.schema.paths },
+                view: { pages: ["/incoming"] },
+                edit: { pages: ["/add-incoming-data", "/edit-incoming-data/:id"] }
+            },
+            {
+                section: "Workbook Management",
+                models: {
+                    // Workbook fields (including nested 'data')
+                    Workbook: Object.keys(Workbook.schema.paths).filter(key =>
+                        !["__v", "createdAt", "updatedAt"].includes(key)
+                    ),
+
+                    // Lead fields (shared with Incoming)
+                    Lead: Object.keys(Lead.schema.paths).filter(key =>
+                        !["__v", "createdAt", "updatedAt"].includes(key)
+                    )
+                },
+                view: { pages: ["/workbook"] },
+                edit: { pages: [] }
+            },
+            {
+                section: "Pending Management",
+                models: {
+                    Pending: Object.keys(Pending.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                    )
+                },
+                view: {
+                    pages: ["/pending"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: ["/edit-pending-data/:id"] // ✅ Optional: add more here
+                }
+            },
+            {
+                section: "Confirmed Management",
+                models: {
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt", "location_and_date"].includes(key)
+                    )
+                },
+                view: {
+                    pages: ["/confirmed"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: [] // ✅ Optional: add more here
+                }
+            },
+            {
+                section: "Sheet Generator Management",
+                models: {
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt", "isHold", "isCancelled", "isDispatched", "location_and_date", "awb_number"].includes(key)
+                    )
+                },
+                view: {
+                    pages: ["/sheet-generator"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: [] // ✅ Optional: add more here
+                }
+            },
+            {
+                section: "Label Generator Management",
+                models: {
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt", "isHold", "isCancelled", "isDispatched", "location_and_date"].includes(key)
+                    )
+                },
+                view: {
+                    pages: ["/labels-generator"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: [] // ✅ Optional: add more here
+                }
+            },
+            {
+                section: "Dispatched Management",
+                models: {
+
+                    Dispatched: Object.keys(Dispatched.schema.paths).filter(key =>
+                        !["__v", "createdAt", "updatedAt"].includes(key)
+                    ),
+
+
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(key =>
+                        !["__v", "createdAt", "updatedAt", "isHold", "isCancelled",].includes(key)
+                    )
+                },
+                view: { pages: ["/dispatched"] },
+                edit: { pages: [] }
+            },
+            {
+                section: "Complain Management",
+                models: {
+                    Complain: Object.keys(Complain.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                    ),
+
+                    Dispatched: Object.keys(Dispatched.schema.paths).filter(
+                        key => !["__v",
+                            "createdAt",
+                            "updatedAt",
+                            "confirmedId",
+                            "date",
+                            "time",
+                            "location_and_date",
+                            "isDeleted",
+                            "isDelivered",
+                            "deliveredDate",
+                            "returnDate",
+                            "isComplain",
+                            "isReturn"].includes(key)
+                    ),
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(
+                        key => !["__v",
+                            "createdAt",
+                            "updatedAt",
+                            "dataId",
+                            "date",
+                            "time",
+                            "data",
+                            "source",
+                            "payment_type",
+                            "sale_type",
+                            "agent_name",
+                            "email",
+                            "status",
+                            "remark",
+                            "comment",
+                            "shipment_type",
+                            "post_type",
+                            "post",
+                            "disease",
+                            "amount",
+                            "products",
+                            "isDispatched",
+                            "isHold",
+                            "isCancelled",
+                            "isDeleted",
+                            "location_and_date"].includes(key)
+                    ),
+                },
+                view: {
+                    pages: ["/complain"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: [] // ✅ Optional: add more here
+                }
+            },
+            {
+                section: "Return Management",
+                models: {
+                    Return: Object.keys(Return.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                    ),
+                    Dispatched: Object.keys(Dispatched.schema.paths).filter(
+                        key => !["__v",
+                            "createdAt",
+                            "updatedAt",
+                            "confirmedId",
+                            "date",
+                            "time",
+                            "location_and_date",
+                            "isDeleted",
+                            "isDelivered",
+                            "deliveredDate",
+                            "returnDate",
+                            "isComplain",
+                            "isReturn"].includes(key)
+                    ),
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(
+                        key => !["__v",
+                            "createdAt",
+                            "updatedAt",
+                            "dataId",
+                            "date",
+                            "time",
+                            "data",
+                            "source",
+                            "email",
+                            "status",
+                            "remark",
+                            "comment",
+                            "post_type",
+                            "post",
+                            "disease",
+                            "isDispatched",
+                            "isHold",
+                            "isCancelled",
+                            "isDeleted",
+                            "location_and_date"].includes(key)
+                    ),
+                },
+                view: {
+                    pages: ["/return"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: [] // ✅ Optional: add more here
+                }
+            },
+            {
+                section: "Delivered Management",
+                models: {
+                    Delivered: Object.keys(Delivered.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                    ),
+                    Dispatched: Object.keys(Dispatched.schema.paths).filter(
+                        key => !["__v",
+                            "createdAt",
+                            "updatedAt",
+                            "confirmedId",
+                            "date",
+                            "time",
+                            "location_and_date",
+                            "isDeleted",
+                            "isDelivered",
+                            "deliveredDate",
+                            "returnDate",
+                            "isComplain",
+                            "isReturn"].includes(key)
+                    ),
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(
+                        key => !["__v",
+                            "createdAt",
+                            "updatedAt",
+                            "dataId",
+                            "date",
+                            "time",
+                            "data",
+                            "source",
+                            "email",
+                            "status",
+                            "remark",
+                            "comment",
+                            "post_type",
+                            "post",
+                            "disease",
+                            "isDispatched",
+                            "isHold",
+                            "isCancelled",
+                            "isDeleted",
+                            "location_and_date"].includes(key)
+                    ),
+                },
+                view: {
+                    pages: ["/delivered"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: [] // ✅ Optional: add more here
+                }
+            },
+            {
+                section: "Payment Management",
+                models: {
+                    Payment: Object.keys(Payment.schema.paths).filter(
+                        key => !["__v", "createdAt", "updatedAt"].includes(key)
+                    ),
+                    Confirmed: Object.keys(Confirmed.schema.paths).filter(
+                        key => !["__v",
+                            "createdAt",
+                            "updatedAt",
+                            "dataId",
+                            "date",
+                            "time",
+                            "data",
+                            "source",
+                            "email",
+                            "status",
+                            "remark",
+                            "comment",
+                            "post_type",
+                            "post",
+                            "disease",
+                            "isDispatched",
+                            "isHold",
+                            "isCancelled",
+                            "isDeleted",
+                            "location_and_date"].includes(key)
+                    ),
+                },
+                view: {
+                    pages: ["/payment"] // ✅ Add more if needed
+                },
+                edit: {
+                    pages: [] // ✅ Optional: add more here
+                }
+            },
+
+
+
+
+        ];
+
+        // Generate the response dynamically
+        const pages = sections.map((section) => {
+            // Collect all unique columns from all models in this section
+            const allColumnsInSection = new Set();
+
+            // Extract columns from all models in this section
+            Object.values(section.models).forEach((model) => {
+                if (Array.isArray(model)) {
+                    model.forEach((col) => allColumnsInSection.add(col));
+                } else {
+                    Object.keys(model).forEach((col) => {
+                        if (!["__v", "timestamps", "createdAt", "updatedAt"].includes(col)) {
+                            allColumnsInSection.add(col);
+                        }
+                    });
+                }
+            });
+            // allColumnsInSection.add("delete");
+            // allColumnsInSection.add("update");
+
+
+
+
+            // Convert Set to Array for consistent ordering
+            const sectionColumns = Array.from(allColumnsInSection);
+
+            return {
+                section: section.section,
+                pages: [
+                    ...section.view.pages.map((page) => ({
+                        name: page,
+                        type: "view",
+                        columns: sectionColumns
+                    })),
+                    ...section.edit.pages.map((page) => ({
+                        name: page,
+                        type: "edit",
+                        columns: sectionColumns
+                    }))
+                ],
+            };
+        });
+
+        res.status(200).json(pages);
+    } catch (error) {
+        console.error("Error fetching pages and columns:", error);
+        res.status(500).json({ error: "Error fetching pages and columns" });
+    }
+};
 
 exports.getAllUserData = async (req, res) => {
     try {
-        const users = await User.find({});
+        const users = await User.find({}).populate('role');
 
         // Process each user in the array
         const userData = users.map((user) => {
@@ -35,7 +593,7 @@ exports.getUserById = async (req, res) => {
     const { id } = req.params
 
     try {
-        const user = await User.findById(id);
+        const user = await User.findById(id).populate('role')
         if (!user) {
             return res.status(404).json({ error: 'User  not found' });
         }
@@ -71,6 +629,7 @@ exports.editUserData = async (req, res) => {
             companyNumber,
             phoneNumber,
             address,
+            role,
             localAddress,
             aadharNumber,
             bankName,
@@ -89,6 +648,7 @@ exports.editUserData = async (req, res) => {
             phone_number: phoneNumber,
             agent_name: agentName,
             address,
+            role,
             local_address: localAddress,
             aadhar_number: aadharNumber,
             bank_name: bankName,
@@ -152,3 +712,53 @@ exports.editUserData = async (req, res) => {
         });
     }
 };
+
+
+
+
+
+
+exports.getUserAccessPages = async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            return res.status(401).json({ message: "Authorization header is missing" });
+        }
+
+        const token = authHeader.split(" ")[1]; // Extract the token (e.g., "Bearer <token>")
+        if (!token) {
+            return res.status(401).json({ message: "Token is missing" });
+        }
+
+        // Verify the token
+        const secretKey = process.env.JWT_SECRET || "yourSecretKey"; // Use your secret key
+        const decoded = jwt.verify(token, secretKey);
+
+        // Attach user data to the request for further use
+        req.user = decoded;
+        const roleName = req.user.role;
+        // console.log(role)
+
+        // Step 1: Find the role object
+        const userRole = await Role.findOne({ name: roleName });
+        if (!userRole) {
+            return res.status(404).json({ message: "Role not found" });
+        }
+
+        // Step 2: Find the permission doc
+        const permissionDoc = await Permission.findOne({ role: userRole._id });
+        if (!permissionDoc || !Array.isArray(permissionDoc.permissions)) {
+            return res.status(404).json({ message: "No permissions found for this role" });
+        }
+
+        // Step 3: Extract the "page" values
+        const pageList = permissionDoc.permissions
+            .map((perm) => perm.page)
+            .filter((page) => typeof page === "string"); // safety check
+
+        return res.status(200).json({ pages: pageList });
+    } catch (error) {
+        console.error("Error fetching permission pages:", error);
+        res.status(500).json({ message: "Error fetching permission pages", error });
+    }
+}

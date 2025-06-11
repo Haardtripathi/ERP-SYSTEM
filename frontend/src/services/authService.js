@@ -14,6 +14,7 @@ export const register = async (formData) => {
                 'Authorization': `Bearer ${token}`
             },
         });
+        console.log(response)
         return response.data;
     } catch (error) {
         console.error('Registration error:', error.response?.data || error.message);
@@ -30,5 +31,11 @@ export const login = async (userData) => {
 
 export const getAgentList = async () => {
     const response = await axiosInstance.get('/auth/agentList');
+    return response.data;
+}
+
+
+export const getRoleList = async () => {
+    const response = await axiosInstance.get('/auth/roleList');
     return response.data;
 }

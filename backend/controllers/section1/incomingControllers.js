@@ -167,40 +167,131 @@ exports.postAddIncomingData = async (req, res) => {
 
 
 
+// exports.getAllIncomingData = async (req, res) => {
+//     const token = req.header("Authorization").split(" ")[1]
+
+//     try {
+//         // Decode JWT token
+//         const decoded = jwt.verify(token, process.env.JWT_SECRET)
+//         const user = decoded
+
+//         // Get page and limit from query parameters (default: page 1, limit 10)
+//         const page = Number.parseInt(req.query.page, 10) || 1
+//         const limit = Number.parseInt(req.query.limit, 10) || 10
+//         const skip = (page - 1) * limit
+
+//         // Get filter from query parameters (default: all)
+//         const filter = req.query.filter || "all"
+
+//         const query = { isDeleted: false }
+
+//         // Apply user role-based filtering
+//         if (user.role !== "Admin") {
+//             query["agent_name.value"] = user.agent_name
+//         }
+
+//         // Apply filter based on sent status
+//         if (filter === "issent") {
+//             query.isSent = true
+//         } else if (filter === "isnotsent") {
+//             query.isSent = false
+//         }
+//         // For "all", we don't add any additional filter
+
+//         // Fetch paginated data
+//         const data = await Incoming.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit)
+
+//         // Get total count of documents matching the query
+//         const totalCount = await Incoming.countDocuments(query)
+
+//         return res.status(200).json({
+//             message: "Incoming data fetched successfully.",
+//             data,
+//             totalCount,
+//             totalPages: Math.ceil(totalCount / limit),
+//             currentPage: page,
+//             filter: filter, // Include the current filter in the response
+//         })
+//     } catch (error) {
+//         console.error("Error fetching incoming data:", error)
+//         return res.status(500).json({
+//             message: "An error occurred while fetching incoming data.",
+//         })
+//     }
+// }
+
+// Regex escape helper
+const escapeRegex = (input) => {
+    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 exports.getAllIncomingData = async (req, res) => {
-    const token = req.header('Authorization').split(" ")[1];
+    const token = req.header("Authorization").split(" ")[1];
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = decoded.agent_name
-        // Get page and limit from query parameters (default values are 1 and 10)
-        const page = parseInt(req.query.page, 10) || 1;
-        const limit = parseInt(req.query.limit, 10) || 10;
+        const user = decoded;
 
-        // Calculate the number of items to skip
+        const page = Number.parseInt(req.query.page, 10) || 1;
+        const limit = Number.parseInt(req.query.limit, 10) || 10;
         const skip = (page - 1) * limit;
 
-        let data
-        let totalCount
-        // const data = await Lead.find({ is_sent_to_pending: false, isDeleted: false })
-        if (user == "Panchved") {
-            data = await Incoming.find({ isDeleted: false }).sort({ createdAt: -1 });
+        const filter = req.query.status;
+        const rawSearch = req.query.search || "";
+        const searchColumn = req.query.searchColumn || "";
+        const isNumeric = !isNaN(rawSearch);
+        const regexSafeSearch = escapeRegex(rawSearch);
 
-        }
-        else {
-            data = await Incoming.find({ isDeleted: false, "agent_name.value": user }).sort({ createdAt: -1 });
+        const query = { isDeleted: false };
 
+        // Role-based access
+        if (user.role !== "Admin") {
+            query["agent_name.value"] = user.agent_name;
         }
 
-        // (data);
+        // Sent to pending filter
+        if (filter === "true") query.is_sent_to_pending = true;
+        else if (filter === "false") query.is_sent_to_pending = false;
 
-        // Get total count of documents
-        if (user == "Panchved") {
-            totalCount = await Incoming.countDocuments({ isDeleted: false });
+        // Apply search
+        if (rawSearch) {
+            if (searchColumn) {
+                const isNested = ["agent_name", "state", "language", "disease", "remark", "source"].includes(searchColumn);
+                const field = isNested ? `${searchColumn}.value` : searchColumn;
+
+                if (["cm_phone", "alternate_phone", "age", "height", "weight"].includes(field) && isNumeric) {
+                    query[field] = Number(rawSearch);
+                } else {
+                    query[field] = { $regex: regexSafeSearch, $options: "i" };
+                }
+            } else {
+                query["$or"] = [
+                    { "cm_first_name": { $regex: regexSafeSearch, $options: "i" } },
+                    { "cm_last_name": { $regex: regexSafeSearch, $options: "i" } },
+                    ...(isNumeric ? [{ "cm_phone": Number(rawSearch) }] : []),
+                    ...(isNumeric ? [{ "alternate_phone": Number(rawSearch) }] : []),
+                    { "agent_name.value": { $regex: regexSafeSearch, $options: "i" } },
+                    { "language.value": { $regex: regexSafeSearch, $options: "i" } },
+                    { "disease.value": { $regex: regexSafeSearch, $options: "i" } },
+                    ...(isNumeric ? [{ "age": Number(rawSearch) }] : []),
+                    ...(isNumeric ? [{ "height": Number(rawSearch) }] : []),
+                    ...(isNumeric ? [{ "weight": Number(rawSearch) }] : []),
+                    { "state.value": { $regex: regexSafeSearch, $options: "i" } },
+                    { "city": { $regex: regexSafeSearch, $options: "i" } },
+                    { "remark.value": { $regex: regexSafeSearch, $options: "i" } },
+                    { "comment": { $regex: regexSafeSearch, $options: "i" } },
+                    { "date": { $regex: regexSafeSearch, $options: "i" } },
+                    { "source.value": { $regex: regexSafeSearch, $options: "i" } }
+                ];
+            }
         }
-        else {
-            totalCount = await Incoming.countDocuments({ isDeleted: false, "agent_name.value": user });
-        }
+
+        const data = await Incoming.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        const totalCount = await Incoming.countDocuments(query);
 
         return res.status(200).json({
             message: "Incoming data fetched successfully.",
@@ -208,6 +299,9 @@ exports.getAllIncomingData = async (req, res) => {
             totalCount,
             totalPages: Math.ceil(totalCount / limit),
             currentPage: page,
+            filter: filter || null,
+            search: rawSearch,
+            searchColumn: searchColumn || null,
         });
     } catch (error) {
         console.error("Error fetching incoming data:", error);
@@ -221,7 +315,7 @@ exports.getAllIncomingData = async (req, res) => {
 exports.deleteIncomingData = async (req, res) => {
     // (req.params)
     const dataId = new mongoose.Types.ObjectId(req.params.id)
-    const data = await Lead.findOne({ _id: dataId });
+    const data = await Incoming.findOne({ _id: dataId });
     if (data.is_sent_to_pending || data.isDeleted) {
         return res.status(400).json({
             message: "Data already sent to pending or already deleted.",

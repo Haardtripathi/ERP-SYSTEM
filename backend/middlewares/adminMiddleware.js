@@ -16,7 +16,7 @@ module.exports.isAdmin = (req, res, next) => {
         // Verify the token
         const secretKey = process.env.JWT_SECRET || "yourSecretKey"; // Use your secret key
         const decoded = jwt.verify(token, secretKey);
-        if (decoded.agent_name !== "Panchved") {
+        if (decoded.role !== "Admin") {
 
             return res.status(403).json({ message: "Unauthorized access" });
 
