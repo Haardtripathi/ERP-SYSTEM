@@ -30,43 +30,71 @@ const createBlobUrl = (uint8Array, contentType) => {
     return { url, blob };
 };
 
-const processImageBuffer = (buffer, contentType) => {
-    console.log('processImageBuffer: Received buffer (before check):', buffer);
-    console.log('processImageBuffer: Received buffer.data (before check):', buffer?.data);
-    console.log('processImageBuffer: Received contentType:', contentType);
+const processAttachmentBuffer = (buffer, contentType) => {
+    console.log('processAttachmentBuffer: Received buffer (before check):', buffer);
+    console.log('processAttachmentBuffer: Received buffer.data (before check):', buffer?.data);
+    console.log('processAttachmentBuffer: Received contentType:', contentType);
 
     let uint8ArrayData = null;
 
     if (buffer && buffer.data && Array.isArray(buffer.data)) {
-        console.log('processImageBuffer: Processing Buffer object with .data');
+        console.log('processAttachmentBuffer: Processing Buffer object with .data');
         uint8ArrayData = buffer.data;
     } else if (buffer instanceof ArrayBuffer) {
-        console.log('processImageBuffer: Processing raw ArrayBuffer');
+        console.log('processAttachmentBuffer: Processing raw ArrayBuffer');
         uint8ArrayData = new Uint8Array(buffer);
     } else if (typeof buffer === 'string' && buffer.startsWith('data:')) {
-        console.log('processImageBuffer: Processing data URL string');
+        console.log('processAttachmentBuffer: Processing data URL string');
         try {
             const base64Data = buffer.split('base64,')[1];
             uint8ArrayData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
         } catch (error) {
-            console.error('processImageBuffer: Error decoding base64 string:', error);
+            console.error('processAttachmentBuffer: Error decoding base64 string:', error);
             return null;
         }
     }
 
     if (!uint8ArrayData) {
-        console.error('processImageBuffer: Unrecognized or invalid buffer format', buffer);
+        console.error('processAttachmentBuffer: Unrecognized or invalid buffer format', buffer);
         return null;
     }
 
     try {
         const uint8Array = new Uint8Array(uint8ArrayData);
-        console.log('processImageBuffer: Created Uint8Array (length):', uint8Array.length);
+        console.log('processAttachmentBuffer: Created Uint8Array (length):', uint8Array.length);
         const { url, blob } = createBlobUrl(uint8Array, contentType);
         useChatStore.getState().activeImageUrls.add(url);
         return { url, blob };
     } catch (error) {
-        console.error('processImageBuffer: Error processing image:', error);
+        console.error('processAttachmentBuffer: Error processing attachment:', error);
+        return null;
+    }
+};
+
+// Helper function to determine file type
+const getFileType = (file) => {
+    const type = file.type.toLowerCase();
+    if (type.startsWith('image/')) return 'image';
+    if (type === 'application/pdf') return 'pdf';
+    if (type.includes('spreadsheet') || type.includes('excel') || type.includes('csv')) return 'spreadsheet';
+    if (type.includes('document') || type.includes('word') || type.includes('text')) return 'document';
+    return 'other';
+};
+
+// Helper function to process file data
+const processFileData = async (file) => {
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        return {
+            data: Array.from(uint8Array),
+            contentType: file.type,
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: getFileType(file)
+        };
+    } catch (error) {
+        console.error('Error processing file:', error);
         return null;
     }
 };
@@ -85,6 +113,7 @@ const useChatStore = create((set, get) => ({
     unreadMessages: {},
     chatPagination: {}, // Stores pagination info per chat: { chatId: { hasMore: true, oldestMessageId: null, isLoading: false } },
     isMonitoringAdminView: false, // New state to indicate if in admin monitoring mode
+    currentFetchId: null,
 
     // Actions
     setMessages: (newMessages) => {
@@ -250,59 +279,42 @@ const useChatStore = create((set, get) => ({
                         // Check if this is a response to our sent message (has matching temp ID)
                         const existingMessage = get().messages.find(msg => {
                             if (!msg._id || typeof msg._id !== 'string') return false;
-                            if (msg._id === message._id) return true;
-                            return msg._id.startsWith('temp_') &&
-                                msg.sender === message.sender &&
-                                msg.receiver === message.receiver &&
-                                msg.group === message.group &&
-                                Math.abs(new Date(msg.createdAt) - new Date(message.createdAt)) < 5000;
+                            // Check if the _id matches or if it's a temporary ID that matches by content/sender/receiver/group/time
+                            return msg._id === message._id ||
+                                (msg._id.startsWith('temp_') &&
+                                    msg.sender === message.sender &&
+                                    (msg.receiver === message.receiver || msg.group === message.group) &&
+                                    Math.abs(new Date(msg.createdAt).getTime() - new Date(message.createdAt).getTime()) < 5000);
                         });
 
                         if (existingMessage) {
                             console.log('Found existing message to replace:', existingMessage._id);
-                            // Process images if present for the main message
-                            let processedMessage = { ...message };
-                            if (message.images && message.images.length > 0) {
-                                const processedImages = await Promise.all(message.images.map(async (img) => {
-                                    const imageData = processImageBuffer(img.data, img.contentType);
-                                    return imageData ? {
-                                        url: imageData.url,
-                                        blob: imageData.blob
-                                    } : null;
+
+                            let processedMessage = { ...message }; // Start with server's message data
+
+                            // If the optimistic message already had client-generated attachment URLs,
+                            // use those to prevent flickering. Only process from server if no optimistic URL exists.
+                            if (existingMessage.attachmentUrls && existingMessage.attachmentUrls.length > 0) {
+                                console.log('Keeping optimistic attachment URLs for message:', existingMessage._id);
+                                processedMessage.attachmentUrls = existingMessage.attachmentUrls;
+                                processedMessage.attachmentBlobs = existingMessage.attachmentBlobs; // Keep client-side blobs
+                                processedMessage.attachments = existingMessage.attachments; // Keep client-side attachment metadata
+                            } else if (message.attachments && message.attachments.length > 0) {
+                                // Otherwise, process attachments from the server's buffer data
+                                const processedAttachments = await Promise.all(message.attachments.map(async (attachment) => {
+                                    const attachmentData = processAttachmentBuffer(attachment.data, attachment.contentType);
+                                    return attachmentData ? { ...attachment, url: attachmentData.url, blob: attachmentData.blob } : null;
                                 }));
 
-                                processedMessage = {
-                                    ...message,
-                                    imageUrls: processedImages.map(img => img?.url).filter(Boolean),
-                                    imageBlobs: processedImages.map(img => img?.blob).filter(Boolean)
-                                };
+                                processedMessage.attachmentUrls = processedAttachments.map(att => att?.url).filter(Boolean);
+                                processedMessage.attachmentBlobs = processedAttachments.map(att => att?.blob).filter(Boolean);
+                                processedMessage.attachments = processedAttachments.filter(Boolean);
                             }
 
-                            // Process images in replyTo, if it exists and has images
-                            if (processedMessage.replyTo && processedMessage.replyTo.images && processedMessage.replyTo.images.length > 0) {
-                                console.log('Processing replyTo images for incoming message:', processedMessage._id);
-                                processedMessage.replyTo.images.forEach((img, index) => {
-                                    console.log(`ReplyTo image ${index}: data type - ${typeof img.data}, contentType - ${img.contentType}`);
-                                    // If img.data is an object with a 'data' array, log its length
-                                    if (typeof img.data === 'object' && img.data !== null && Array.isArray(img.data.data)) {
-                                        console.log(`ReplyTo image ${index}: img.data.data length - ${img.data.data.length}`);
-                                    }
-                                });
-                                const processedReplyImages = await Promise.all(processedMessage.replyTo.images.map(async (img) => {
-                                    const imageData = processImageBuffer(img.data, img.contentType);
-                                    return imageData ? {
-                                        url: imageData.url,
-                                        blob: imageData.blob
-                                    } : null;
-                                }));
-                                processedMessage.replyTo = {
-                                    ...processedMessage.replyTo,
-                                    imageUrls: processedReplyImages.map(img => img?.url).filter(Boolean),
-                                    imageBlobs: processedReplyImages.map(img => img?.blob).filter(Boolean)
-                                };
-                            }
+                            // Ensure the _id is updated to the server's actual _id
+                            processedMessage._id = message._id;
 
-                            // Replace the temporary message with the server message
+                            // Replace the temporary message with the server message, preserving client-side URLs if available
                             const updatedMessages = get().messages.map(msg =>
                                 msg._id === existingMessage._id ? processedMessage : msg
                             );
@@ -314,50 +326,25 @@ const useChatStore = create((set, get) => ({
                         const chatId = message.group || (message.sender === get().currentUser._id ? message.receiver : message.sender);
 
                         if (get().selectedChat && get().selectedChat.id === chatId) {
-                            // Process images if present for the main message
+                            // Process attachments if present for the main message
                             let processedMessage = { ...message };
-                            if (message.images && message.images.length > 0) {
-                                const processedImages = await Promise.all(message.images.map(async (img) => {
-                                    const imageData = processImageBuffer(img.data, img.contentType);
-                                    return imageData ? {
-                                        url: imageData.url,
-                                        blob: imageData.blob
-                                    } : null;
+                            if (message.attachments && message.attachments.length > 0) {
+                                const processedAttachments = await Promise.all(message.attachments.map(async (attachment) => {
+                                    // Use processAttachmentBuffer for incoming attachments
+                                    const attachmentData = processAttachmentBuffer(attachment.data, attachment.contentType);
+                                    return attachmentData ? { ...attachment, url: attachmentData.url, blob: attachmentData.blob } : null;
                                 }));
 
                                 processedMessage = {
                                     ...message,
-                                    imageUrls: processedImages.map(img => img?.url).filter(Boolean),
-                                    imageBlobs: processedImages.map(img => img?.blob).filter(Boolean)
+                                    attachmentUrls: processedAttachments.map(att => att?.url).filter(Boolean),
+                                    attachmentBlobs: processedAttachments.map(att => att?.blob).filter(Boolean),
+                                    attachments: processedAttachments.filter(Boolean) // Update attachments with processed data
                                 };
                             }
 
-                            // Process images in replyTo, if it exists and has images
-                            if (processedMessage.replyTo && processedMessage.replyTo.images && processedMessage.replyTo.images.length > 0) {
-                                console.log('Processing replyTo images for incoming message:', processedMessage._id);
-                                processedMessage.replyTo.images.forEach((img, index) => {
-                                    console.log(`ReplyTo image ${index}: data type - ${typeof img.data}, contentType - ${img.contentType}`);
-                                    // If img.data is an object with a 'data' array, log its length
-                                    if (typeof img.data === 'object' && img.data !== null && Array.isArray(img.data.data)) {
-                                        console.log(`ReplyTo image ${index}: img.data.data length - ${img.data.data.length}`);
-                                    }
-                                });
-                                const processedReplyImages = await Promise.all(processedMessage.replyTo.images.map(async (img) => {
-                                    const imageData = processImageBuffer(img.data, img.contentType);
-                                    return imageData ? {
-                                        url: imageData.url,
-                                        blob: imageData.blob
-                                    } : null;
-                                }));
-                                processedMessage.replyTo = {
-                                    ...processedMessage.replyTo,
-                                    imageUrls: processedReplyImages.map(img => img?.url).filter(Boolean),
-                                    imageBlobs: processedReplyImages.map(img => img?.blob).filter(Boolean)
-                                };
-                            }
-
-                            // Add message to current chat
                             get().setMessages([...get().messages, processedMessage]);
+                            get().markMessagesAsRead(chatId);
                         } else {
                             // Increment unread count for other chats
                             get().setUnreadMessages(chatId, (get().unreadMessages[chatId] || 0) + 1);
@@ -439,7 +426,7 @@ const useChatStore = create((set, get) => ({
         }
     },
 
-    sendMessage: async (content, receiverId, groupId = null, imageFiles = [], replyToId = null) => {
+    sendMessage: async (content, receiverId, groupId = null, files = [], replyToId = null) => {
         try {
             if (get().isMonitoringAdminView) {
                 console.warn('sendMessage: Sending messages disabled in admin monitoring view.');
@@ -450,7 +437,7 @@ const useChatStore = create((set, get) => ({
                 content,
                 receiverId,
                 groupId,
-                imageFilesCount: imageFiles.length,
+                filesCount: files.length,
                 replyToId
             });
 
@@ -459,8 +446,8 @@ const useChatStore = create((set, get) => ({
                 console.error('sendMessage: Aborted, currentUser or currentUser._id is null/undefined.', currentUser);
                 return;
             }
-            if (!content && imageFiles.length === 0) {
-                console.warn('sendMessage: Aborted, No content or images provided.');
+            if (!content && files.length === 0) {
+                console.warn('sendMessage: Aborted, No content or files provided.');
                 return;
             }
 
@@ -475,26 +462,24 @@ const useChatStore = create((set, get) => ({
                 }
             }
 
-            const processedImages = [];
-            const imageBlobs = [];
+            const processedFiles = [];
+            const fileBlobs = [];
 
-            for (const imageFile of imageFiles) {
-                console.log('Frontend - Processing image file:', {
-                    name: imageFile.name,
-                    type: imageFile.type,
-                    size: imageFile.size
+            for (const file of files) {
+                console.log('Frontend - Processing file:', {
+                    name: file.name,
+                    type: file.type,
+                    size: file.size
                 });
 
                 try {
-                    const arrayBuffer = await imageFile.arrayBuffer();
-                    const uint8Array = new Uint8Array(arrayBuffer);
-                    processedImages.push({
-                        data: Array.from(uint8Array),
-                        contentType: imageFile.type
-                    });
-                    imageBlobs.push(imageFile);
+                    const processedFile = await processFileData(file);
+                    if (processedFile) {
+                        processedFiles.push(processedFile);
+                        fileBlobs.push(file);
+                    }
                 } catch (error) {
-                    console.error('Frontend - Error processing image:', error);
+                    console.error('Frontend - Error processing file:', error);
                     return;
                 }
             }
@@ -508,16 +493,22 @@ const useChatStore = create((set, get) => ({
                 receiver: receiverId,
                 group: groupId,
                 message: content || null,
-                images: processedImages,
+                attachments: processedFiles,
                 createdAt: new Date(),
                 replyTo: replyToId ? get().messages.find(m => m._id === replyToId) : null
             };
 
-            // Add optimistic update
+            // Add optimistic update with client-side Blob URLs
             const optimisticMessage = {
                 ...message,
-                imageUrls: imageFiles.map(file => URL.createObjectURL(file)),
-                imageBlobs: imageBlobs
+                attachmentUrls: files.map(file => URL.createObjectURL(file)),
+                attachmentBlobs: fileBlobs,
+                attachments: files.map(file => ({
+                    fileName: file.name,
+                    fileSize: file.size,
+                    fileType: getFileType(file),
+                    contentType: file.type,
+                }))
             };
             get().setMessages([...get().messages, optimisticMessage]);
 
@@ -527,7 +518,7 @@ const useChatStore = create((set, get) => ({
                 receiver: message.receiver,
                 group: message.group,
                 message: message.message,
-                images: message.images,
+                attachments: message.attachments,
                 createdAt: message.createdAt,
                 replyTo: message.replyTo
             }, (response) => {
@@ -570,12 +561,25 @@ const useChatStore = create((set, get) => ({
         }
     },
 
-    fetchMessages: async (userId1, userId2, limit = 15, beforeId = null) => {
-        const { currentUser } = get();
+    fetchMessages: async (userId1, userId2, limit = 15, beforeId = null, fetchId = null) => {
+        const { currentUser, selectedChat, currentFetchId } = get();
         if (!currentUser || !currentUser._id) {
             console.error('fetchMessages: Aborted, currentUser or currentUser._id is null/undefined.', currentUser);
             return;
         }
+
+        // Check if this fetch is still valid
+        if (fetchId !== currentFetchId) {
+            console.log('fetchMessages: Aborted, newer fetch in progress');
+            return;
+        }
+
+        // Check if we're still fetching for the currently selected chat
+        if (selectedChat?.type === 'user' && selectedChat.id !== userId2) {
+            console.log('fetchMessages: Aborted, chat selection changed during fetch');
+            return;
+        }
+
         console.log(`fetchMessages: Fetching messages for users: ${userId1} and ${userId2} with limit ${limit} and beforeId ${beforeId}`);
         try {
             set(state => ({
@@ -584,98 +588,120 @@ const useChatStore = create((set, get) => ({
                     [userId2]: { ...state.chatPagination[userId2], isLoading: true }
                 }
             }));
+
             const url = `/chat/history/${userId1}/${userId2}`;
             const params = { limit: limit };
             if (beforeId) {
                 params.beforeId = beforeId;
             }
             const response = await axios.get(url, { params });
+
+            // Check again if this fetch is still valid
+            if (fetchId !== get().currentFetchId) {
+                console.log('fetchMessages: Aborted after fetch, newer fetch in progress');
+                return;
+            }
+
             console.log('fetchMessages: Raw messages received:', response.data.messages.length);
 
             const messagesToProcess = response.data.messages;
 
-            // Process images for the fetched messages
-            const messagesWithProcessedImages = await Promise.all(messagesToProcess.map(async (msg) => {
-                // Only process if image data exists and imageUrl is not already set (handle potential re-fetching)
+            // Process attachments for the fetched messages
+            const messagesWithProcessedAttachments = await Promise.all(messagesToProcess.map(async (msg) => {
                 let processedMsg = { ...msg };
 
-                if (processedMsg.images && processedMsg.images.length > 0 && !processedMsg.imageUrls) {
-                    const processedCurrentImages = await Promise.all(processedMsg.images.map(async (img) => {
-                        const imageData = processImageBuffer(img.data, img.contentType);
-                        return imageData ? { url: imageData.url, blob: imageData.blob } : null;
+                if (processedMsg.attachments && processedMsg.attachments.length > 0) {
+                    const processedCurrentAttachments = await Promise.all(processedMsg.attachments.map(async (att) => {
+                        const attachmentData = processAttachmentBuffer(att.data, att.contentType);
+                        return attachmentData ? { ...att, url: attachmentData.url, blob: attachmentData.blob } : null;
                     }));
-                    processedMsg.imageUrls = processedCurrentImages.map(img => img?.url).filter(Boolean);
-                    processedMsg.imageBlobs = processedCurrentImages.map(img => img?.blob).filter(Boolean);
+                    processedMsg.attachmentUrls = processedCurrentAttachments.map(att => att?.url).filter(Boolean);
+                    processedMsg.attachmentBlobs = processedCurrentAttachments.map(att => att?.blob).filter(Boolean);
+                    processedMsg.attachments = processedCurrentAttachments.filter(Boolean); // Update the attachments array with URL/Blob
                 }
 
-                // Process images in replyTo, if it exists and has images
-                if (processedMsg.replyTo && processedMsg.replyTo.images && processedMsg.replyTo.images.length > 0) {
-                    console.log('Processing replyTo images for fetched message:', processedMsg._id);
-                    processedMsg.replyTo.images.forEach((img, index) => {
-                        console.log(`ReplyTo image ${index}: data type - ${typeof img.data}, contentType - ${img.contentType}`);
-                        // If img.data is an object with a 'data' array, log its length
-                        if (typeof img.data === 'object' && img.data !== null && Array.isArray(img.data.data)) {
-                            console.log(`ReplyTo image ${index}: img.data.data length - ${img.data.data.length}`);
-                        }
-                    });
-                    const processedReplyImages = await Promise.all(processedMsg.replyTo.images.map(async (img) => {
-                        const imageData = processImageBuffer(img.data, img.contentType);
-                        return imageData ? { url: imageData.url, blob: imageData.blob } : null;
+                // Process attachments in replyTo, if it exists and has attachments
+                if (processedMsg.replyTo && processedMsg.replyTo.attachments && processedMsg.replyTo.attachments.length > 0) {
+                    console.log('Processing replyTo attachments for fetched message:', processedMsg._id);
+                    const processedReplyAttachments = await Promise.all(processedMsg.replyTo.attachments.map(async (att) => {
+                        const attachmentData = processAttachmentBuffer(att.data, att.contentType);
+                        return attachmentData ? { ...att, url: attachmentData.url, blob: attachmentData.blob } : null;
                     }));
                     processedMsg.replyTo = {
                         ...processedMsg.replyTo,
-                        imageUrls: processedReplyImages.map(img => img?.url).filter(Boolean),
-                        imageBlobs: processedReplyImages.map(img => img?.blob).filter(Boolean)
+                        attachmentUrls: processedReplyAttachments.map(att => att?.url).filter(Boolean),
+                        attachmentBlobs: processedReplyAttachments.map(att => att?.blob).filter(Boolean),
+                        attachments: processedReplyAttachments.filter(Boolean)
                     };
                 }
 
                 return processedMsg;
             }));
 
+            // Final check if this fetch is still valid
+            if (fetchId !== get().currentFetchId) {
+                console.log('fetchMessages: Aborted after processing, newer fetch in progress');
+                return;
+            }
+
             // If fetching older messages, prepend them to the existing messages
             if (beforeId) {
                 set(state => ({
-                    messages: [...messagesWithProcessedImages, ...state.messages],
+                    messages: [...messagesWithProcessedAttachments, ...state.messages],
                     chatPagination: {
                         ...state.chatPagination,
                         [userId2]: {
                             hasMore: response.data.hasMore,
-                            oldestMessageId: messagesWithProcessedImages[0]?._id || null,
+                            oldestMessageId: messagesWithProcessedAttachments[0]?._id || null,
                             isLoading: false,
                             totalCount: response.data.totalCount
                         }
                     }
                 }));
-                console.log('fetchMessages: Prepended older messages. Total:', get().messages.length);
             } else {
                 // Initial fetch or refetch without beforeId, replace existing messages
                 set(state => ({
-                    messages: messagesWithProcessedImages,
+                    messages: messagesWithProcessedAttachments,
                     chatPagination: {
                         ...state.chatPagination,
                         [userId2]: {
                             hasMore: response.data.hasMore,
-                            oldestMessageId: messagesWithProcessedImages[0]?._id || null,
+                            oldestMessageId: messagesWithProcessedAttachments[0]?._id || null,
                             isLoading: false,
                             totalCount: response.data.totalCount
                         }
                     }
                 }));
-                console.log('fetchMessages: Messages set with processed images. Total:', messagesWithProcessedImages.length);
             }
-
         } catch (error) {
             console.error('fetchMessages: Error fetching messages:', error.message, error.response?.data);
-            set(state => ({
-                chatPagination: {
-                    ...state.chatPagination,
-                    [userId2]: { ...state.chatPagination[userId2], isLoading: false }
-                }
-            }));
+            // Only update loading state if this is still the current fetch
+            if (fetchId === get().currentFetchId) {
+                set(state => ({
+                    chatPagination: {
+                        ...state.chatPagination,
+                        [userId2]: { ...state.chatPagination[userId2], isLoading: false }
+                    }
+                }));
+            }
         }
     },
 
-    fetchGroupMessages: async (groupId, limit = 15, beforeId = null) => {
+    fetchGroupMessages: async (groupId, limit = 15, beforeId = null, fetchId = null) => {
+        const { selectedChat, currentFetchId } = get();
+
+        // Check if this fetch is still valid
+        if (fetchId !== currentFetchId) {
+            console.log('fetchGroupMessages: Aborted, newer fetch in progress');
+            return;
+        }
+
+        // Check if we're still fetching for the currently selected chat
+        if (selectedChat?.type === 'group' && selectedChat.id !== groupId) {
+            console.log('fetchGroupMessages: Aborted, chat selection changed during fetch');
+            return;
+        }
+
         console.log(`fetchGroupMessages: Fetching group messages for group: ${groupId} with limit ${limit} and beforeId ${beforeId}`);
         try {
             set(state => ({
@@ -684,93 +710,102 @@ const useChatStore = create((set, get) => ({
                     [groupId]: { ...state.chatPagination[groupId], isLoading: true }
                 }
             }));
+
             const url = `/chat/group/${groupId}/messages`;
             const params = { limit: limit };
             if (beforeId) {
                 params.beforeId = beforeId;
             }
             const response = await axios.get(url, { params });
+
+            // Check again if this fetch is still valid
+            if (fetchId !== get().currentFetchId) {
+                console.log('fetchGroupMessages: Aborted after fetch, newer fetch in progress');
+                return;
+            }
+
             console.log('fetchGroupMessages: Raw group messages received:', response.data.messages.length);
 
             const messagesToProcess = response.data.messages;
 
-            // Process images for the fetched messages
-            const messagesWithProcessedImages = await Promise.all(messagesToProcess.map(async (msg) => {
+            // Process attachments for the fetched messages
+            const messagesWithProcessedAttachments = await Promise.all(messagesToProcess.map(async (msg) => {
                 let processedMsg = { ...msg };
 
-                if (processedMsg.images && processedMsg.images.length > 0 && !processedMsg.imageUrls) {
-                    const processedCurrentImages = await Promise.all(processedMsg.images.map(async (img) => {
-                        const imageData = processImageBuffer(img.data, img.contentType);
-                        return imageData ? { url: imageData.url, blob: imageData.blob } : null;
+                if (processedMsg.attachments && processedMsg.attachments.length > 0) {
+                    const processedCurrentAttachments = await Promise.all(processedMsg.attachments.map(async (att) => {
+                        const attachmentData = processAttachmentBuffer(att.data, att.contentType);
+                        return attachmentData ? { ...att, url: attachmentData.url, blob: attachmentData.blob } : null;
                     }));
-                    processedMsg.imageUrls = processedCurrentImages.map(img => img?.url).filter(Boolean);
-                    processedMsg.imageBlobs = processedCurrentImages.map(img => img?.blob).filter(Boolean);
+                    processedMsg.attachmentUrls = processedCurrentAttachments.map(att => att?.url).filter(Boolean);
+                    processedMsg.attachmentBlobs = processedCurrentAttachments.map(att => att?.blob).filter(Boolean);
+                    processedMsg.attachments = processedCurrentAttachments.filter(Boolean); // Update the attachments array with URL/Blob
                 }
 
-                // Process images in replyTo, if it exists and has images
-                if (processedMsg.replyTo && processedMsg.replyTo.images && processedMsg.replyTo.images.length > 0) {
-                    console.log('Processing replyTo images for fetched group message:', processedMsg._id);
-                    processedMsg.replyTo.images.forEach((img, index) => {
-                        console.log(`ReplyTo image ${index}: data type - ${typeof img.data}, contentType - ${img.contentType}`);
-                        // If img.data is an object with a 'data' array, log its length
-                        if (typeof img.data === 'object' && img.data !== null && Array.isArray(img.data.data)) {
-                            console.log(`ReplyTo image ${index}: img.data.data length - ${img.data.data.length}`);
-                        }
-                    });
-                    const processedReplyImages = await Promise.all(processedMsg.replyTo.images.map(async (img) => {
-                        const imageData = processImageBuffer(img.data, img.contentType);
-                        return imageData ? { url: imageData.url, blob: imageData.blob } : null;
+                // Process attachments in replyTo, if it exists and has attachments
+                if (processedMsg.replyTo && processedMsg.replyTo.attachments && processedMsg.replyTo.attachments.length > 0) {
+                    console.log('Processing replyTo attachments for fetched group message:', processedMsg._id);
+                    const processedReplyAttachments = await Promise.all(processedMsg.replyTo.attachments.map(async (att) => {
+                        const attachmentData = processAttachmentBuffer(att.data, att.contentType);
+                        return attachmentData ? { ...att, url: attachmentData.url, blob: attachmentData.blob } : null;
                     }));
                     processedMsg.replyTo = {
                         ...processedMsg.replyTo,
-                        imageUrls: processedReplyImages.map(img => img?.url).filter(Boolean),
-                        imageBlobs: processedReplyImages.map(img => img?.blob).filter(Boolean)
+                        attachmentUrls: processedReplyAttachments.map(att => att?.url).filter(Boolean),
+                        attachmentBlobs: processedReplyAttachments.map(att => att?.blob).filter(Boolean),
+                        attachments: processedReplyAttachments.filter(Boolean)
                     };
                 }
 
                 return processedMsg;
             }));
 
+            // Final check if this fetch is still valid
+            if (fetchId !== get().currentFetchId) {
+                console.log('fetchGroupMessages: Aborted after processing, newer fetch in progress');
+                return;
+            }
+
             // If fetching older messages, prepend them to the existing messages
             if (beforeId) {
                 set(state => ({
-                    messages: [...messagesWithProcessedImages, ...state.messages],
+                    messages: [...messagesWithProcessedAttachments, ...state.messages],
                     chatPagination: {
                         ...state.chatPagination,
                         [groupId]: {
                             hasMore: response.data.hasMore,
-                            oldestMessageId: messagesWithProcessedImages[0]?._id || null,
+                            oldestMessageId: messagesWithProcessedAttachments[0]?._id || null,
                             isLoading: false,
                             totalCount: response.data.totalCount
                         }
                     }
                 }));
-                console.log('fetchGroupMessages: Prepended older messages. Total:', get().messages.length);
             } else {
                 // Initial fetch or refetch without beforeId, replace existing messages
                 set(state => ({
-                    messages: messagesWithProcessedImages,
+                    messages: messagesWithProcessedAttachments,
                     chatPagination: {
                         ...state.chatPagination,
                         [groupId]: {
                             hasMore: response.data.hasMore,
-                            oldestMessageId: messagesWithProcessedImages[0]?._id || null,
+                            oldestMessageId: messagesWithProcessedAttachments[0]?._id || null,
                             isLoading: false,
                             totalCount: response.data.totalCount
                         }
                     }
                 }));
-                console.log('fetchGroupMessages: Messages set with processed images. Total:', messagesWithProcessedImages.length);
             }
-
         } catch (error) {
             console.error('fetchGroupMessages: Error fetching group messages:', error.message, error.response?.data);
-            set(state => ({
-                chatPagination: {
-                    ...state.chatPagination,
-                    [groupId]: { ...state.chatPagination[groupId], isLoading: false }
-                }
-            }));
+            // Only update loading state if this is still the current fetch
+            if (fetchId === get().currentFetchId) {
+                set(state => ({
+                    chatPagination: {
+                        ...state.chatPagination,
+                        [groupId]: { ...state.chatPagination[groupId], isLoading: false }
+                    }
+                }));
+            }
         }
     },
 
@@ -802,6 +837,11 @@ const useChatStore = create((set, get) => ({
 
     setSelectedChat: (chat, isMonitoring = false) => {
         console.log('setSelectedChat: Called with chat:', chat, 'isMonitoring:', isMonitoring);
+
+        // Cancel any ongoing fetches by setting a flag
+        const currentFetchId = Date.now();
+        set({ currentFetchId });
+
         // Revoke all existing image URLs when changing chats
         get().activeImageUrls.forEach(url => {
             console.log('setSelectedChat: Revoking Blob URL:', url);
@@ -809,8 +849,18 @@ const useChatStore = create((set, get) => ({
         });
         set({ activeImageUrls: new Set() }); // Clear the set
 
-        set({ selectedChat: chat, isMonitoringAdminView: isMonitoring }); // Update isMonitoringAdminView
+        // Reset loading state for all chats
+        set(state => ({
+            chatPagination: Object.keys(state.chatPagination).reduce((acc, key) => ({
+                ...acc,
+                [key]: { ...state.chatPagination[key], isLoading: false }
+            }), {})
+        }));
+
+        // First clear messages and update selected chat
         set({ messages: [] });
+        set({ selectedChat: chat, isMonitoringAdminView: isMonitoring });
+
         // Mark messages in the newly selected chat as read
         if (chat) {
             get().markMessagesAsRead(chat.id);
@@ -821,11 +871,14 @@ const useChatStore = create((set, get) => ({
             // If socket was created in a previous session, ensure listeners are enabled for this non-monitoring view.
             get().initializeSocket(true);
 
-            if (chat?.type === 'group') {
-                get().fetchGroupMessages(chat.id);
-            } else if (chat?.type === 'user') {
-                get().fetchMessages(get().currentUser?._id, chat.id);
-            }
+            // Use setTimeout to ensure state updates are processed before fetching messages
+            setTimeout(() => {
+                if (chat?.type === 'group') {
+                    get().fetchGroupMessages(chat.id, 15, null, currentFetchId);
+                } else if (chat?.type === 'user') {
+                    get().fetchMessages(get().currentUser?._id, chat.id, 15, null, currentFetchId);
+                }
+            }, 0);
         } else {
             // If in monitoring view, ensure socket listeners are explicitly off.
             get().cleanupSocket();
@@ -878,6 +931,16 @@ const useChatStore = create((set, get) => ({
                     URL.revokeObjectURL(msg.imageUrl);
                     msg.imageUrl = null;
                     msg.imageBlob = null;
+                }
+                // Also clean up attachments if they have Blob URLs
+                if (msg.attachments && msg.attachments.length > 0) {
+                    msg.attachments.forEach(att => {
+                        if (att.url && att.url.startsWith('blob:')) {
+                            URL.revokeObjectURL(att.url);
+                            att.url = null; // Clear URL from the object
+                            att.blob = null; // Clear blob from the object
+                        }
+                    });
                 }
             });
             return { messages };

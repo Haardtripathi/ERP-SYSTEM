@@ -34,7 +34,7 @@ function setupSocket(server) {
                 receiver: messageData.receiver,
                 group: messageData.group,
                 hasMessage: !!messageData.message,
-                imagesCount: messageData.images?.length || 0
+                hasAttachments: !!messageData.attachments?.length
             });
 
             try {
@@ -47,25 +47,28 @@ function setupSocket(server) {
                     replyTo: messageData.replyTo?._id // Include replyTo ID if present
                 };
 
-                // Handle images if present
-                if (messageData.images && messageData.images.length > 0) {
-                    console.log('Backend - Processing images:', {
-                        count: messageData.images.length
+                // Handle attachments if present
+                if (messageData.attachments && messageData.attachments.length > 0) {
+                    console.log('Backend - Processing attachments:', {
+                        count: messageData.attachments.length
                     });
 
                     try {
-                        // Process each image
-                        messageToSave.images = messageData.images.map(img => ({
-                            data: Buffer.from(img.data),
-                            contentType: img.contentType
+                        // Process each attachment
+                        messageToSave.attachments = messageData.attachments.map(attachment => ({
+                            data: Buffer.from(attachment.data),
+                            contentType: attachment.contentType,
+                            fileName: attachment.fileName,
+                            fileSize: attachment.fileSize,
+                            fileType: attachment.fileType
                         }));
 
-                        console.log('Backend - Images processed successfully:', {
-                            count: messageToSave.images.length
+                        console.log('Backend - Attachments processed successfully:', {
+                            count: messageToSave.attachments.length
                         });
                     } catch (error) {
-                        console.error('Backend - Error processing images:', error);
-                        if (callback) callback({ error: 'Failed to process images' });
+                        console.error('Backend - Error processing attachments:', error);
+                        if (callback) callback({ error: 'Failed to process attachments' });
                         return;
                     }
                 }
@@ -79,8 +82,7 @@ function setupSocket(server) {
                 console.log('Backend - Message saved to database and populated:', {
                     id: savedMessage._id,
                     message: savedMessage.message,
-                    imagesCount: savedMessage.images?.length || 0,
-                    replyTo: savedMessage.replyTo ? { _id: savedMessage.replyTo._id, message: savedMessage.replyTo.message } : null
+                    attachmentsCount: savedMessage.attachments?.length || 0
                 });
 
                 // Emit to the appropriate room(s)

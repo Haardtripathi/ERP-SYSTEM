@@ -1,15 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
 import useChatStore from '../../store/chatStore';
-import { Send, Users, Loader2, Image as ImageIcon, XCircle, X, ChevronUp, ChevronDown, Reply, Info } from 'lucide-react';
+import { Send, Users, Loader2, Image as ImageIcon, XCircle, X, ChevronUp, ChevronDown, Reply, Info, Paperclip } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import UserInfoPanel from './UserInfoPanel';
 import { PanelGroup, Panel } from 'react-resizable-panels';
 
+// Helper function to determine file type
+const getFileType = (file) => {
+    const type = file.type.toLowerCase();
+    if (type.startsWith('image/')) return 'image';
+    if (type === 'application/pdf') return 'pdf';
+    if (type.includes('spreadsheet') || type.includes('excel') || type.includes('csv')) return 'spreadsheet';
+    if (type.includes('document') || type.includes('word') || type.includes('text')) return 'document';
+    return 'other';
+};
+
 const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] }) => {
     const [message, setMessage] = useState('');
-    const [selectedImageFiles, setSelectedImageFiles] = useState([]);
-    const [selectedImagePreviews, setSelectedImagePreviews] = useState([]);
-    const [enlargedImage, setEnlargedImage] = useState(null);
+    const [selectedFiles, setSelectedFiles] = useState([]);
+    const [selectedFilePreviews, setSelectedFilePreviews] = useState([]);
+    const [enlargedFile, setEnlargedFile] = useState(null);
     const [replyingTo, setReplyingTo] = useState(null);
     const [showInfoPanel, setShowInfoPanel] = useState(false);
     const messagesEndRef = useRef(null);
@@ -33,7 +43,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         chatPagination,
         users: storeUsers
     } = useChatStore();
-
+    console.log("PAG", chatPagination)
     // Use either prop users or store users
     const allUsers = users.length > 0 ? users : storeUsers;
 
@@ -141,31 +151,45 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         });
     };
 
-    // Update image preview effect
+    // Update file preview effect
     useEffect(() => {
-        if (selectedImageFiles.length === 0) {
-            setSelectedImagePreviews([]);
+        if (selectedFiles.length === 0) {
+            setSelectedFilePreviews([]);
             return;
         }
 
         const newPreviews = [];
         const processFile = async (file) => {
             return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    resolve(reader.result);
-                };
-                reader.readAsDataURL(file);
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        resolve({
+                            url: reader.result,
+                            type: 'image',
+                            fileName: file.name,
+                            fileSize: file.size
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    resolve({
+                        url: null,
+                        type: getFileType(file),
+                        fileName: file.name,
+                        fileSize: file.size
+                    });
+                }
             });
         };
 
         const processFiles = async () => {
-            const previews = await Promise.all(selectedImageFiles.map(processFile));
-            setSelectedImagePreviews(previews);
+            const previews = await Promise.all(selectedFiles.map(processFile));
+            setSelectedFilePreviews(previews);
         };
 
         processFiles();
-    }, [selectedImageFiles]);
+    }, [selectedFiles]);
 
     const handleScroll = () => {
         const container = messagesContainerRef.current;
@@ -276,28 +300,10 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         setReplyingTo(null);
     };
 
-    const handleSend = (e) => {
-        e.preventDefault();
-        if (!message.trim() && selectedImageFiles.length === 0) return;
-
-        sendMessage(
-            message.trim(),
-            selectedChat.type === 'user' ? selectedChat.id : null,
-            selectedChat.type === 'group' ? selectedChat.id : null,
-            selectedImageFiles,
-            replyingTo?._id
-        );
-        setMessage('');
-        setSelectedImageFiles([]);
-        setSelectedImagePreviews([]);
-        setReplyingTo(null);
-        inputRef.current?.focus();
-    };
-
-    const handleImageSelect = (event) => {
+    const handleFileSelect = (event) => {
         const files = Array.from(event.target.files);
         if (files.length > 0) {
-            setSelectedImageFiles(prev => [...prev, ...files]);
+            setSelectedFiles(prev => [...prev, ...files]);
             setTimeout(() => {
                 inputRef.current?.focus();
             }, 100);
@@ -305,16 +311,48 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         event.target.value = null;
     };
 
-    const handleRemoveImage = (index) => {
-        setSelectedImageFiles(prev => prev.filter((_, i) => i !== index));
-        setSelectedImagePreviews(prev => prev.filter((_, i) => i !== index));
+    const handleRemoveFile = (index) => {
+        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+        setSelectedFilePreviews(prev => prev.filter((_, i) => i !== index));
         setTimeout(() => {
             inputRef.current?.focus();
         }, 100);
     };
 
-    const handleImageClick = (imageUrl) => {
-        setEnlargedImage(imageUrl);
+    const handleFileClick = (file) => {
+        if (file.fileType === 'image') {
+            setEnlargedFile(file);
+        } else {
+            // For non-image files, trigger download directly
+            if (file.url) {
+                const link = document.createElement('a');
+                link.href = file.url;
+                link.download = file.fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                console.error('File URL is missing for download:', file);
+            }
+        }
+    };
+
+    const handleSend = (e) => {
+        e.preventDefault();
+        if (!message.trim() && selectedFiles.length === 0) return;
+
+        sendMessage(
+            message.trim(),
+            selectedChat.type === 'user' ? selectedChat.id : null,
+            selectedChat.type === 'group' ? selectedChat.id : null,
+            selectedFiles,
+            replyingTo?._id
+        );
+        setMessage('');
+        setSelectedFiles([]);
+        setSelectedFilePreviews([]);
+        setReplyingTo(null);
+        inputRef.current?.focus();
     };
 
     // Add scrollToMessage function
@@ -494,17 +532,16 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
 
                                         {messages.map((msg) => {
                                             const hasText = msg.message && msg.message.trim().length > 0;
-                                            const hasImages = msg.imageUrls && msg.imageUrls.length > 0;
+                                            const hasAttachments = msg.attachments && msg.attachments.length > 0;
                                             const isMyMessage = msg.sender === currentUser._id;
 
-                                            if (!hasText && !hasImages) return null;
+                                            if (!hasText && !hasAttachments) return null;
 
                                             return (
                                                 <div
                                                     key={msg._id}
                                                     className={cn(
                                                         "flex message-item w-full items-center",
-                                                        // In monitoring view, use the first user's ID as reference for alignment
                                                         isReadOnly
                                                             ? msg.sender === selectedChat.user1Id
                                                                 ? "justify-start"
@@ -586,15 +623,21 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                                                     {msg.replyTo.message && (
                                                                         <p className="truncate">{msg.replyTo.message}</p>
                                                                     )}
-                                                                    {msg.replyTo.images && msg.replyTo.images.length > 0 && (
+                                                                    {msg.replyTo.attachments && msg.replyTo.attachments.length > 0 && (
                                                                         <div className="flex gap-1 mt-1">
-                                                                            {msg.replyTo.images.map((img, index) => (
+                                                                            {msg.replyTo.attachments.map((att, index) => (
                                                                                 <div key={index} className="relative w-8 h-8">
-                                                                                    <img
-                                                                                        src={msg.replyTo.imageUrls?.[index]}
-                                                                                        alt={`Reply image ${index + 1}`}
-                                                                                        className="w-full h-full object-cover rounded"
-                                                                                    />
+                                                                                    {att.fileType === 'image' ? (
+                                                                                        <img
+                                                                                            src={msg.replyTo.attachmentUrls?.[index]}
+                                                                                            alt={`Reply attachment ${index + 1}`}
+                                                                                            className="w-full h-full object-cover rounded"
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded">
+                                                                                            <span className="text-xs">{att.fileType}</span>
+                                                                                        </div>
+                                                                                    )}
                                                                                 </div>
                                                                             ))}
                                                                         </div>
@@ -603,53 +646,60 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                                             </div>
                                                         )}
 
-                                                        {hasImages && (
-                                                            <div className="grid grid-cols-2 gap-2 mb-2 last:mb-0">
-                                                                {msg.imageUrls.map((imageUrl, index) => (
-                                                                    <div key={index} className="relative">
-                                                                        <img
-                                                                            src={imageUrl}
-                                                                            alt={`Shared image ${index + 1}`}
-                                                                            className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                                                            onClick={() => handleImageClick(imageUrl)}
-                                                                            onError={(e) => {
-                                                                                console.error('ChatWindow: Image loading error:', {
-                                                                                    src: e.target.src,
-                                                                                    messageId: msg._id,
-                                                                                    imageIndex: index,
-                                                                                    hasImageBlob: !!msg.imageBlobs?.[index],
-                                                                                    imageUrl: imageUrl,
-                                                                                    retryCount: msg.imageRetryCount?.[index] || 0
-                                                                                });
+                                                        {hasAttachments && msg.attachments && msg.attachments.length > 0 && (
+                                                            <div className="grid grid-cols-1 gap-1 mb-1 last:mb-0">
+                                                                {msg.attachments.map((attachment, index) => {
+                                                                    const attachmentUrl = msg.attachmentUrls?.[index];
+                                                                    if (!attachmentUrl) return null; // Skip if no URL for display/download
 
-                                                                                if (msg.imageBlobs?.[index] && (!msg.imageRetryCount?.[index] || msg.imageRetryCount[index] < 2)) {
-                                                                                    try {
-                                                                                        if (imageUrl && imageUrl.startsWith('blob:')) {
-                                                                                            URL.revokeObjectURL(imageUrl);
-                                                                                        }
-
-                                                                                        const newUrl = URL.createObjectURL(msg.imageBlobs[index]);
-                                                                                        e.target.src = newUrl;
-
-                                                                                        const updatedMessages = messages.map(m =>
-                                                                                            m._id === msg._id ? {
-                                                                                                ...m,
-                                                                                                imageUrls: m.imageUrls.map((url, i) => i === index ? newUrl : url),
-                                                                                                imageRetryCount: {
-                                                                                                    ...m.imageRetryCount,
-                                                                                                    [index]: (m.imageRetryCount?.[index] || 0) + 1
-                                                                                                }
-                                                                                            } : m
-                                                                                        );
-                                                                                        useChatStore.getState().setMessages(updatedMessages);
-                                                                                    } catch (error) {
-                                                                                        console.error('ChatWindow: Error recreating Blob URL:', error);
-                                                                                    }
-                                                                                }
-                                                                            }}
-                                                                        />
-                                                                    </div>
-                                                                ))}
+                                                                    return (
+                                                                        <div key={index} className="relative">
+                                                                            {attachment.fileType === 'image' ? (
+                                                                                <img
+                                                                                    src={attachmentUrl}
+                                                                                    alt={`Shared file ${index + 1}`}
+                                                                                    className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                                                                    onClick={() => handleFileClick({
+                                                                                        url: attachmentUrl,
+                                                                                        fileType: 'image',
+                                                                                        fileName: attachment.fileName,
+                                                                                        fileSize: attachment.fileSize,
+                                                                                        contentType: attachment.contentType // Add contentType for consistency
+                                                                                    })}
+                                                                                />
+                                                                            ) : (
+                                                                                <div
+                                                                                    className="w-full min-h-24 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors flex flex-col items-center justify-center p-1 text-center"
+                                                                                    onClick={() => handleFileClick({
+                                                                                        url: attachmentUrl,
+                                                                                        fileType: attachment.fileType,
+                                                                                        fileName: attachment.fileName,
+                                                                                        fileSize: attachment.fileSize,
+                                                                                        contentType: attachment.contentType // Add contentType for consistency
+                                                                                    })}
+                                                                                >
+                                                                                    <span className="text-2xl mb-1">
+                                                                                        {attachment.fileType === 'pdf' && '📄'}
+                                                                                        {attachment.fileType === 'document' && '📝'}
+                                                                                        {attachment.fileType === 'spreadsheet' && '📊'}
+                                                                                        {attachment.fileType === 'other' && '📎'}
+                                                                                        {/* Fallback icon for any unhandled type */}
+                                                                                        {!['pdf', 'document', 'spreadsheet', 'other'].includes(attachment.fileType) && '📁'}
+                                                                                    </span>
+                                                                                    <p className="text-xs font-medium text-gray-800 truncate w-full px-1">
+                                                                                        {attachment.fileName}
+                                                                                    </p>
+                                                                                    <p className="text-xs text-gray-500 mt-1">
+                                                                                        {(attachment.fileSize / 1024).toFixed(1)} KB
+                                                                                    </p>
+                                                                                    <div className="mt-2 text-blue-600">
+                                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download-cloud"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M12 12v9M8 17l4 4 4-4" /></svg>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         )}
 
@@ -690,16 +740,22 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                                             ? 'yourself'
                                                             : (allUsers.find(u => u._id === replyingTo.sender)?.agent_name || 'Unknown')}
                                                     </p>
-                                                    <p className="text-gray-500 truncate">{replyingTo.message || (replyingTo.imageUrls?.length > 0 ? 'Image' : '')}</p>
-                                                    {replyingTo.imageUrls && replyingTo.imageUrls.length > 0 && (
+                                                    <p className="text-gray-500 truncate">{replyingTo.message || (replyingTo.attachments?.length > 0 ? 'File' : '')}</p>
+                                                    {replyingTo.attachments && replyingTo.attachments.length > 0 && (
                                                         <div className="flex gap-1 mt-1">
-                                                            {replyingTo.imageUrls.map((url, index) => (
+                                                            {replyingTo.attachments.map((att, index) => (
                                                                 <div key={index} className="relative w-8 h-8">
-                                                                    <img
-                                                                        src={url}
-                                                                        alt={`Reply image ${index + 1}`}
-                                                                        className="w-full h-full object-cover rounded"
-                                                                    />
+                                                                    {att.fileType === 'image' ? (
+                                                                        <img
+                                                                            src={replyingTo.attachmentUrls?.[index]}
+                                                                            alt={`Reply attachment ${index + 1}`}
+                                                                            className="w-full h-full object-cover rounded"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded">
+                                                                            <span className="text-xs">{att.fileType}</span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -715,18 +771,35 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                         </div>
                                     )}
 
-                                    {/* Image Previews */}
-                                    {selectedImagePreviews.length > 0 && (
+                                    {/* File Previews */}
+                                    {selectedFilePreviews.length > 0 && (
                                         <div className="mb-2 flex flex-wrap gap-2">
-                                            {selectedImagePreviews.map((preview, index) => (
+                                            {selectedFilePreviews.map((preview, index) => (
                                                 <div key={index} className="relative">
-                                                    <img
-                                                        src={preview}
-                                                        alt={`Preview ${index + 1}`}
-                                                        className="w-20 h-20 object-cover rounded-lg"
-                                                    />
+                                                    {preview.type === 'image' ? (
+                                                        <img
+                                                            src={preview.url}
+                                                            alt={`Preview ${index + 1}`}
+                                                            className="w-20 h-20 object-cover rounded-lg"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-20 h-20 bg-gray-100 rounded-lg flex flex-col items-center justify-center p-2">
+                                                            <span className="text-lg mb-1">
+                                                                {preview.type === 'pdf' && '📄'}
+                                                                {preview.type === 'document' && '📝'}
+                                                                {preview.type === 'spreadsheet' && '📊'}
+                                                                {preview.type === 'other' && '📎'}
+                                                            </span>
+                                                            <p className="text-xs text-center truncate w-full">
+                                                                {preview.fileName}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                {(preview.fileSize / 1024).toFixed(1)} KB
+                                                            </p>
+                                                        </div>
+                                                    )}
                                                     <button
-                                                        onClick={() => handleRemoveImage(index)}
+                                                        onClick={() => handleRemoveFile(index)}
                                                         className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                                                     >
                                                         <X className="w-3 h-3" />
@@ -766,26 +839,26 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                                 onClick={() => fileInputRef.current?.click()}
                                                 className="absolute right-1.5 bottom-1.5 p-1.5 text-gray-500 hover:text-blue-500 rounded-full hover:bg-gray-100 transition-colors"
                                                 disabled={pagination.isLoading && messages.length === 0}
-                                                title="Attach images"
+                                                title="Attach files"
                                             >
-                                                <ImageIcon className="w-4 h-4" />
+                                                <Paperclip className="w-4 h-4" />
                                             </button>
                                             <input
                                                 ref={fileInputRef}
                                                 type="file"
-                                                accept="image/*"
+                                                accept="*/*"
                                                 multiple
-                                                onChange={handleImageSelect}
+                                                onChange={handleFileSelect}
                                                 className="hidden"
                                                 disabled={pagination.isLoading && messages.length === 0}
                                             />
                                         </div>
                                         <button
                                             type="submit"
-                                            disabled={(!message.trim() && selectedImageFiles.length === 0) || (pagination.isLoading && messages.length === 0)}
+                                            disabled={(!message.trim() && selectedFiles.length === 0) || (pagination.isLoading && messages.length === 0)}
                                             className={cn(
                                                 "p-2.5 rounded-full transition-colors",
-                                                (!message.trim() && selectedImageFiles.length === 0) || (pagination.isLoading && messages.length === 0)
+                                                (!message.trim() && selectedFiles.length === 0) || (pagination.isLoading && messages.length === 0)
                                                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                                                     : "bg-blue-500 text-white hover:bg-blue-600 shadow-sm hover:shadow"
                                             )}
@@ -810,16 +883,38 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                 </PanelGroup>
             </div>
 
-            {enlargedImage && (
+            {enlargedFile && (
                 <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
                     <div className="relative max-w-4xl max-h-[90vh]">
-                        <img
-                            src={enlargedImage}
-                            alt="Enlarged image"
-                            className="max-w-full max-h-[90vh] object-contain rounded-lg"
-                        />
+                        {enlargedFile.fileType === 'image' ? (
+                            <img
+                                src={enlargedFile.url}
+                                alt="Enlarged file"
+                                className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                            />
+                        ) : (
+                            <div className="bg-white p-4 rounded-lg">
+                                <p className="text-lg font-medium mb-2">{enlargedFile.fileName}</p>
+                                <p className="text-sm text-gray-500 mb-4">
+                                    {(enlargedFile.fileSize / 1024).toFixed(1)} KB
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        const link = document.createElement('a');
+                                        link.href = enlargedFile.url;
+                                        link.download = enlargedFile.fileName;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                    }}
+                                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+                                >
+                                    Download
+                                </button>
+                            </div>
+                        )}
                         <button
-                            onClick={() => setEnlargedImage(null)}
+                            onClick={() => setEnlargedFile(null)}
                             className="absolute top-4 right-4 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
                         >
                             <X className="w-6 h-6" />

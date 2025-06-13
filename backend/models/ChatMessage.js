@@ -5,9 +5,12 @@ const chatMessageSchema = new mongoose.Schema({
     receiver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     group: { type: mongoose.Schema.Types.ObjectId, ref: "ChatGroup" },
     message: { type: String },
-    images: [{
+    attachments: [{
         data: { type: Buffer },
-        contentType: { type: String }
+        contentType: { type: String },
+        fileName: { type: String },
+        fileSize: { type: Number },
+        fileType: { type: String, enum: ['image', 'document', 'spreadsheet', 'pdf', 'other'] }
     }],
     replyTo: { type: mongoose.Schema.Types.ObjectId, ref: "ChatMessage" },
     seenBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]

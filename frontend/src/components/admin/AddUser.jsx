@@ -1,6 +1,3 @@
-
-
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -182,19 +179,6 @@ export default function AddUser() {
                                             ))}
                                         </SelectContent>
                                     </Select>
-
-                                    <div className="relative">
-                                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            id="agentName"
-                                            name="agentName"
-                                            value={formData.agentName}
-                                            onChange={handleChange}
-                                            placeholder="Enter agent name"
-                                            required
-                                            className="pl-10"
-                                        />
-                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="photo">Photo</Label>

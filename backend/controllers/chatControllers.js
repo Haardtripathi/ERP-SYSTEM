@@ -5,13 +5,13 @@ const mongoose = require('mongoose');
 
 exports.sendMessage = async (req, res) => {
     try {
-        const { sender, receiver, group, message, images } = req.body;
+        const { sender, receiver, group, message, attachments } = req.body;
         console.log('Received message data:', {
             sender,
             receiver,
             group,
-            message,
-            imagesCount: images?.length || 0
+            hasMessage: !!message,
+            attachmentsCount: attachments?.length || 0
         });
 
         // Create message data object
@@ -22,11 +22,14 @@ exports.sendMessage = async (req, res) => {
             message
         };
 
-        // Handle images if present
-        if (images && images.length > 0) {
-            messageData.images = images.map(img => ({
-                data: Buffer.from(img.data),
-                contentType: img.contentType
+        // Handle attachments if present
+        if (attachments && attachments.length > 0) {
+            messageData.attachments = attachments.map(attachment => ({
+                data: Buffer.from(attachment.data),
+                contentType: attachment.contentType,
+                fileName: attachment.fileName,
+                fileSize: attachment.fileSize,
+                fileType: attachment.fileType
             }));
         }
 
@@ -35,7 +38,7 @@ exports.sendMessage = async (req, res) => {
         console.log('Message saved to database:', {
             id: newMsg._id,
             message: newMsg.message,
-            imagesCount: newMsg.images?.length || 0
+            attachmentsCount: newMsg.attachments?.length || 0
         });
 
         res.status(200).json(newMsg);
@@ -208,7 +211,7 @@ exports.getChatMedia = async (req, res) => {
             return res.status(400).json({ error: 'Invalid user IDs' });
         }
 
-        // Aggregation pipeline to get individual images with pagination
+        // Aggregation pipeline to get individual attachments with pagination
         const pipeline = [
             {
                 $match: {
@@ -216,17 +219,20 @@ exports.getChatMedia = async (req, res) => {
                         { sender: new mongoose.Types.ObjectId(userId1), receiver: new mongoose.Types.ObjectId(userId2) },
                         { sender: new mongoose.Types.ObjectId(userId2), receiver: new mongoose.Types.ObjectId(userId1) }
                     ],
-                    images: { $exists: true, $ne: [] } // Only messages with images
+                    attachments: { $exists: true, $ne: [] } // Only messages with attachments
                 }
             },
-            { $unwind: "$images" }, // Deconstruct the images array into separate documents
+            { $unwind: "$attachments" }, // Deconstruct the attachments array into separate documents
             { $sort: { createdAt: -1 } }, // Sort by message creation date (newest message first)
             {
                 $project: {
                     _id: 0, // Exclude _id of the message
                     id: "$_id", // Use message _id as media item id
-                    data: "$images.data",
-                    contentType: "$images.contentType",
+                    data: "$attachments.data",
+                    contentType: "$attachments.contentType",
+                    fileName: "$attachments.fileName",
+                    fileSize: "$attachments.fileSize",
+                    fileType: "$attachments.fileType",
                     timestamp: "$createdAt",
                     sender: "$sender", // Store sender for population
                 }
@@ -244,7 +250,7 @@ exports.getChatMedia = async (req, res) => {
             { $project: { senderInfo: 0 } } // Remove senderInfo field
         ];
 
-        // Get total count of all images matching the query
+        // Get total count of all attachments matching the query
         const totalCountPipeline = [
             {
                 $match: {
@@ -252,16 +258,16 @@ exports.getChatMedia = async (req, res) => {
                         { sender: new mongoose.Types.ObjectId(userId1), receiver: new mongoose.Types.ObjectId(userId2) },
                         { sender: new mongoose.Types.ObjectId(userId2), receiver: new mongoose.Types.ObjectId(userId1) }
                     ],
-                    images: { $exists: true, $ne: [] }
+                    attachments: { $exists: true, $ne: [] }
                 }
             },
-            { $unwind: "$images" },
-            { $count: "totalImages" } // Count total individual images
+            { $unwind: "$attachments" },
+            { $count: "totalAttachments" }
         ];
 
-        const totalImagesResult = await ChatMessage.aggregate(totalCountPipeline);
-        const totalCount = totalImagesResult.length > 0 ? totalImagesResult[0].totalImages : 0;
-        console.log('Total individual images:', totalCount);
+        const totalAttachmentsResult = await ChatMessage.aggregate(totalCountPipeline);
+        const totalCount = totalAttachmentsResult.length > 0 ? totalAttachmentsResult[0].totalAttachments : 0;
+        console.log('Total individual attachments:', totalCount);
 
         // Apply pagination to the main pipeline
         const mediaPipeline = [

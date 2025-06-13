@@ -11,28 +11,94 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
     const [loadingUser, setLoadingUser] = useState(true);
-    const [selectedImage, setSelectedImage] = useState(null);
+    const [selectedMedia, setSelectedMedia] = useState(null);
     const [error, setError] = useState(null);
     const [hasMore, setHasMore] = useState(true);
 
     const { getUserInfo, getChatMedia } = useChatStore();
 
-    // Helper function to convert buffer to base64
-    const bufferToBase64 = (buffer) => {
-        if (!buffer) return '';
-        if (typeof buffer === 'string') return buffer;
-        if (buffer.data && Array.isArray(buffer.data)) {
-            // Process the array in chunks to avoid stack overflow
-            const chunkSize = 1024;
-            let result = '';
-            for (let i = 0; i < buffer.data.length; i += chunkSize) {
-                const chunk = buffer.data.slice(i, i + chunkSize);
-                result += String.fromCharCode.apply(null, chunk);
-            }
-            return btoa(result);
-        }
-        return '';
+    // Helper function to determine file type (similar to ChatWindow.jsx)
+    const getFileType = (file) => {
+        const type = file.contentType?.toLowerCase();
+        if (type?.startsWith('image/')) return 'image';
+        if (type === 'application/pdf') return 'pdf';
+        if (type?.includes('spreadsheet') || type?.includes('excel') || type?.includes('csv')) return 'spreadsheet';
+        if (type?.includes('document') || type?.includes('word') || type?.includes('text')) return 'document';
+        return 'other';
     };
+
+    // Helper function to create Blob URL from buffer data
+    const createMediaBlobUrl = (buffer, contentType) => {
+        console.log('createMediaBlobUrl received - buffer type:', typeof buffer, 'buffer instance:', buffer instanceof ArrayBuffer, 'buffer is array:', Array.isArray(buffer), 'buffer has data property:', !!buffer?.data, 'contentType:', contentType);
+        if (!buffer || !contentType) return null;
+        try {
+            // Handle different buffer formats
+            let uint8Array;
+            if (buffer.data) {
+                // If buffer has a data property, use that
+                if (Array.isArray(buffer.data)) {
+                    uint8Array = new Uint8Array(buffer.data);
+                } else if (buffer.data instanceof ArrayBuffer) {
+                    uint8Array = new Uint8Array(buffer.data);
+                } else if (typeof buffer.data === 'string') {
+                    // Handle base64 string data
+                    const binaryString = atob(buffer.data);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    uint8Array = bytes;
+                } else {
+                    uint8Array = new Uint8Array(buffer.data);
+                }
+            } else if (Array.isArray(buffer)) {
+                uint8Array = new Uint8Array(buffer);
+            } else if (buffer instanceof ArrayBuffer) {
+                uint8Array = new Uint8Array(buffer);
+            } else if (buffer instanceof Uint8Array) {
+                uint8Array = buffer;
+            } else if (typeof buffer === 'string') {
+                // Handle base64 string data
+                const binaryString = atob(buffer);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                uint8Array = bytes;
+            } else {
+                console.error('Unsupported buffer format in createMediaBlobUrl:', buffer);
+                return null;
+            }
+
+            if (!uint8Array || uint8Array.length === 0) {
+                console.error('Failed to create valid Uint8Array from buffer');
+                return null;
+            }
+
+            console.log('createMediaBlobUrl - uint8Array created, length:', uint8Array.length, 'first 10 bytes:', uint8Array.slice(0, 10));
+            const blob = new Blob([uint8Array], { type: contentType });
+            const url = URL.createObjectURL(blob);
+            console.log('createMediaBlobUrl - Blob URL created:', url);
+            return url;
+        } catch (error) {
+            console.error('Error creating Blob URL for media:', error);
+            return null;
+        }
+    };
+
+    // Cleanup Blob URLs when component unmounts or selectedMedia changes
+    useEffect(() => {
+        return () => {
+            // Clean up URLs from selectedMedia if it was an image/downloadable file
+            if (selectedMedia && selectedMedia.url) {
+                URL.revokeObjectURL(selectedMedia.url);
+            }
+            // Also clean up all Blob URLs generated for the gallery items
+            media.forEach(item => {
+                if (item.url) URL.revokeObjectURL(item.url);
+            });
+        };
+    }, [selectedMedia, media]);
 
     useEffect(() => {
         const fetchUserInfo = async () => {
@@ -69,14 +135,43 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
                 console.log('Media response:', data);
 
                 if (data && data.media) {
-                    const processedMedia = data.media.map(item => ({
-                        ...item,
-                        base64Data: bufferToBase64(item.data)
-                    }));
+                    const processedMedia = data.media.map(item => {
+                        console.log('Processing media item before URL creation:', {
+                            fileName: item.fileName,
+                            contentType: item.contentType,
+                            hasData: !!item.data,
+                            dataType: item.data ? typeof item.data : 'no data',
+                            // Log the actual item.data for inspection
+                            dataContent: item.data // BE CAREFUL WITH LARGE DATA, ONLY FOR DEBUGGING
+                        });
+
+                        // For images, ensure we're handling the data correctly
+                        if (item.contentType?.startsWith('image/')) {
+                            const url = createMediaBlobUrl(item.data, item.contentType);
+                            console.log('Generated image URL for ', item.fileName, ':', url);
+                            if (!url) {
+                                console.error('Blob URL creation failed for image:', item.fileName);
+                            }
+                            return {
+                                ...item,
+                                url: url,
+                                fileType: 'image'
+                            };
+                        }
+
+                        // For other file types
+                        const url = createMediaBlobUrl(item.data, item.contentType);
+                        console.log('Generated URL for ', item.fileName, ':', url);
+                        return {
+                            ...item,
+                            url: url,
+                            fileType: getFileType(item)
+                        };
+                    });
 
                     // For first page, replace media. For subsequent pages, prepend to maintain newest-first order.
                     setMedia(prevMedia =>
-                        currentPage === 1 ? processedMedia : [...processedMedia, ...prevMedia]
+                        currentPage === 1 ? processedMedia : [...prevMedia, ...processedMedia]
                     );
 
                     if (data.pagination) {
@@ -118,8 +213,22 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
         }
     };
 
-    const handleImageClick = (image) => {
-        setSelectedImage(image);
+    const handleMediaClick = (mediaItem) => {
+        if (mediaItem.fileType === 'image') {
+            setSelectedMedia(mediaItem);
+        } else {
+            // For non-image files, trigger download directly
+            if (mediaItem.url) {
+                const link = document.createElement('a');
+                link.href = mediaItem.url;
+                link.download = mediaItem.fileName || 'download';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                console.error('Cannot download media item: missing URL', mediaItem);
+            }
+        }
     };
 
     const handleLoadMore = () => {
@@ -163,7 +272,7 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
                             <div className="flex flex-col items-center mb-4">
                                 {userInfo.photo ? (
                                     <img
-                                        src={`data:${userInfo.photo.contentType};base64,${bufferToBase64(userInfo.photo.data)}`}
+                                        src={createMediaBlobUrl(userInfo.photo.data, userInfo.photo.contentType)}
                                         alt={userInfo.agent_name}
                                         className="w-24 h-24 rounded-full object-cover mb-2"
                                     />
@@ -221,16 +330,42 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
                                     {media.map((item) => (
                                         <div
                                             key={item.id}
-                                            className="aspect-square relative cursor-pointer group"
-                                            onClick={() => handleImageClick(item)}
+                                            className="aspect-square relative cursor-pointer group rounded-lg overflow-hidden"
+                                            onClick={() => handleMediaClick(item)}
                                         >
-                                            <img
-                                                src={`data:${item.contentType};base64,${item.base64Data}`}
-                                                alt="Shared media"
-                                                className="w-full h-full object-cover rounded-lg"
-                                            />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                                                <span className="text-white text-xs">{new Date(item.timestamp).toLocaleDateString()}</span>
+                                            {item.fileType === 'image' ? (
+                                                <img
+                                                    src={item.url}
+                                                    alt={item.fileName || "Shared media"}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        console.error('Failed to load image:', item.fileName);
+                                                        e.target.style.display = 'none';
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 p-2 text-center">
+                                                    <span className="text-3xl mb-1">
+                                                        {item.fileType === 'pdf' && '📄'}
+                                                        {item.fileType === 'document' && '📝'}
+                                                        {item.fileType === 'spreadsheet' && '📊'}
+                                                        {item.fileType === 'other' && '📎'}
+                                                        {!['pdf', 'document', 'spreadsheet', 'other'].includes(item.fileType) && '📁'}
+                                                    </span>
+                                                    <p className="text-xs font-medium text-gray-800 truncate w-full px-1">
+                                                        {item.fileName || 'File'}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        {(item.fileSize / 1024).toFixed(1)} KB
+                                                    </p>
+                                                    <div className="mt-2 text-blue-600">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download-cloud"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M12 12v9M8 17l4 4 4-4" /></svg>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col items-center justify-center text-white text-sm">
+                                                <p className="font-semibold mb-1">{item.fileName}</p>
+                                                <p className="text-xs">{new Date(item.timestamp).toLocaleDateString()}</p>
                                             </div>
                                         </div>
                                     ))}
@@ -266,21 +401,63 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
                 </div>
             </Panel>
 
-            {/* Image Preview Modal */}
-            {selectedImage && (
+            {/* Image/Media Preview Modal */}
+            {selectedMedia && (
                 <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
                     <div className="relative max-w-4xl max-h-[90vh]">
-                        <img
-                            src={`data:${selectedImage.contentType};base64,${selectedImage.base64Data}`}
-                            alt="Preview"
-                            className="max-w-full max-h-[90vh] object-contain rounded-lg"
-                        />
-                        <div className="absolute bottom-4 left-4 right-4 bg-black/50 text-white p-2 rounded-lg text-sm">
-                            <p>Sent by {selectedImage.sender}</p>
-                            <p>{new Date(selectedImage.timestamp).toLocaleString()}</p>
+                        {selectedMedia.fileType === 'image' ? (
+                            <img
+                                src={selectedMedia.url}
+                                alt={selectedMedia.fileName || "Preview"}
+                                className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                                onError={(e) => {
+                                    console.error('Failed to load image preview:', selectedMedia.fileName);
+                                    e.target.style.display = 'none';
+                                }}
+                            />
+                        ) : (
+                            <div className="bg-white p-4 rounded-lg text-center">
+                                <span className="text-5xl mb-4 block">
+                                    {selectedMedia.fileType === 'pdf' && '📄'}
+                                    {selectedMedia.fileType === 'document' && '📝'}
+                                    {selectedMedia.fileType === 'spreadsheet' && '📊'}
+                                    {selectedMedia.fileType === 'other' && '📎'}
+                                    {!['pdf', 'document', 'spreadsheet', 'other'].includes(selectedMedia.fileType) && '📁'}
+                                </span>
+                                <p className="text-lg font-medium mb-2">{selectedMedia.fileName || 'File'}</p>
+                                <p className="text-sm text-gray-500 mb-4">
+                                    {(selectedMedia.fileSize / 1024).toFixed(1)} KB
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        if (selectedMedia.url) {
+                                            const link = document.createElement('a');
+                                            link.href = selectedMedia.url;
+                                            link.download = selectedMedia.fileName || 'download';
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                        }
+                                        setSelectedMedia(null);
+                                    }}
+                                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors inline-flex items-center justify-center"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download-cloud mr-2"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M12 12v9M8 17l4 4 4-4" /></svg>
+                                    Download
+                                </button>
+                            </div>
+                        )}
+                        <div className="absolute bottom-4 left-4 right-4 bg-black/50 text-white p-2 rounded-lg text-sm flex justify-between items-center">
+                            {selectedMedia.fileName && <p className="truncate">{selectedMedia.fileName}</p>}
+                            {selectedMedia.timestamp && <p>{new Date(selectedMedia.timestamp).toLocaleDateString()}</p>}
                         </div>
                         <button
-                            onClick={() => setSelectedImage(null)}
+                            onClick={() => {
+                                if (selectedMedia.url) {
+                                    URL.revokeObjectURL(selectedMedia.url);
+                                }
+                                setSelectedMedia(null);
+                            }}
                             className="absolute top-4 right-4 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
                         >
                             <X className="w-6 h-6" />
