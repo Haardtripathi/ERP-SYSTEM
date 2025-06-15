@@ -226,7 +226,7 @@ const useChatStore = create((set, get) => ({
                     reconnectionAttempts: 5,
                     reconnectionDelay: 1000,
                     transports: ['websocket', 'polling'],
-                    maxHttpBufferSize: 1e8, // Increase buffer size to 100MB
+                    maxHttpBufferSize: 10e8, // Increase buffer size to 100MB
                     timeout: 60000 // Increase timeout to 60 seconds
                 });
 
@@ -243,6 +243,13 @@ const useChatStore = create((set, get) => ({
                             get().joinChat(get().currentUser._id);
                             // Request current online users list
                             socket.emit('get-online-users');
+                            
+                            // Re-join group if in a group chat
+                            const selectedChat = get().selectedChat;
+                            if (selectedChat?.type === 'group') {
+                                console.log('Re-joining group after connection:', selectedChat.id);
+                                get().joinGroup(selectedChat.id);
+                            }
                         }
                     });
 
@@ -324,13 +331,17 @@ const useChatStore = create((set, get) => ({
 
                         // Process the message (new message or non-optimistic update)
                         const chatId = message.group || (message.sender === get().currentUser._id ? message.receiver : message.sender);
+                        const selectedChat = get().selectedChat;
 
-                        if (get().selectedChat && get().selectedChat.id === chatId) {
-                            // Process attachments if present for the main message
+                        // Only update messages if we're in the correct chat
+                        if (selectedChat && 
+                            ((selectedChat.type === 'group' && selectedChat.id === message.group) ||
+                             (selectedChat.type === 'user' && selectedChat.id === chatId))) {
+                            
+                            // Process attachments if present
                             let processedMessage = { ...message };
                             if (message.attachments && message.attachments.length > 0) {
                                 const processedAttachments = await Promise.all(message.attachments.map(async (attachment) => {
-                                    // Use processAttachmentBuffer for incoming attachments
                                     const attachmentData = processAttachmentBuffer(attachment.data, attachment.contentType);
                                     return attachmentData ? { ...attachment, url: attachmentData.url, blob: attachmentData.blob } : null;
                                 }));
@@ -339,7 +350,7 @@ const useChatStore = create((set, get) => ({
                                     ...message,
                                     attachmentUrls: processedAttachments.map(att => att?.url).filter(Boolean),
                                     attachmentBlobs: processedAttachments.map(att => att?.blob).filter(Boolean),
-                                    attachments: processedAttachments.filter(Boolean) // Update attachments with processed data
+                                    attachments: processedAttachments.filter(Boolean)
                                 };
                             }
 
@@ -711,6 +722,19 @@ const useChatStore = create((set, get) => ({
                 }
             }));
 
+            // First fetch the group details to get member information
+            const groupResponse = await axios.get(`/chat/group/${groupId}`);
+            const groupData = groupResponse.data;
+            
+            // Update users state with group members if they're not already present
+            set(state => {
+                const existingUserIds = new Set(state.users.map(u => u._id));
+                const newUsers = groupData.members.filter(member => !existingUserIds.has(member._id));
+                return {
+                    users: [...state.users, ...newUsers]
+                };
+            });
+
             const url = `/chat/group/${groupId}/messages`;
             const params = { limit: limit };
             if (beforeId) {
@@ -739,7 +763,7 @@ const useChatStore = create((set, get) => ({
                     }));
                     processedMsg.attachmentUrls = processedCurrentAttachments.map(att => att?.url).filter(Boolean);
                     processedMsg.attachmentBlobs = processedCurrentAttachments.map(att => att?.blob).filter(Boolean);
-                    processedMsg.attachments = processedCurrentAttachments.filter(Boolean); // Update the attachments array with URL/Blob
+                    processedMsg.attachments = processedCurrentAttachments.filter(Boolean);
                 }
 
                 // Process attachments in replyTo, if it exists and has attachments
@@ -874,6 +898,9 @@ const useChatStore = create((set, get) => ({
             // Use setTimeout to ensure state updates are processed before fetching messages
             setTimeout(() => {
                 if (chat?.type === 'group') {
+                    // Join the group socket room
+                    get().joinGroup(chat.id);
+                    // Fetch group messages
                     get().fetchGroupMessages(chat.id, 15, null, currentFetchId);
                 } else if (chat?.type === 'user') {
                     get().fetchMessages(get().currentUser?._id, chat.id, 15, null, currentFetchId);

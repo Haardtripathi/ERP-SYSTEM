@@ -24,6 +24,7 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
         if (type === 'application/pdf') return 'pdf';
         if (type?.includes('spreadsheet') || type?.includes('excel') || type?.includes('csv')) return 'spreadsheet';
         if (type?.includes('document') || type?.includes('word') || type?.includes('text')) return 'document';
+        if (type?.startsWith('audio/')) return 'audio';
         return 'other';
     };
 
@@ -343,14 +344,29 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
                                                         e.target.style.display = 'none';
                                                     }}
                                                 />
+                                            ) : item.fileType === 'audio' ? (
+                                                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 p-2">
+                                                    <audio 
+                                                        controls 
+                                                        className="w-full"
+                                                        src={item.url}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        Your browser does not support the audio element.
+                                                    </audio>
+                                                    <p className="text-xs font-medium text-gray-800 mt-2 truncate w-full text-center">
+                                                        {item.fileName || 'Audio file'}
+                                                    </p>
+                                                </div>
                                             ) : (
                                                 <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 p-2 text-center">
                                                     <span className="text-3xl mb-1">
                                                         {item.fileType === 'pdf' && '📄'}
                                                         {item.fileType === 'document' && '📝'}
                                                         {item.fileType === 'spreadsheet' && '📊'}
+                                                        {item.fileType === 'audio' && '🎵'}
                                                         {item.fileType === 'other' && '📎'}
-                                                        {!['pdf', 'document', 'spreadsheet', 'other'].includes(item.fileType) && '📁'}
+                                                        {!['pdf', 'document', 'spreadsheet', 'audio', 'other'].includes(item.fileType) && '📁'}
                                                     </span>
                                                     <p className="text-xs font-medium text-gray-800 truncate w-full px-1">
                                                         {item.fileName || 'File'}
@@ -421,8 +437,9 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
                                     {selectedMedia.fileType === 'pdf' && '📄'}
                                     {selectedMedia.fileType === 'document' && '📝'}
                                     {selectedMedia.fileType === 'spreadsheet' && '📊'}
+                                    {selectedMedia.fileType === 'audio' && '🎵'}
                                     {selectedMedia.fileType === 'other' && '📎'}
-                                    {!['pdf', 'document', 'spreadsheet', 'other'].includes(selectedMedia.fileType) && '📁'}
+                                    {!['pdf', 'document', 'spreadsheet', 'audio', 'other'].includes(selectedMedia.fileType) && '📁'}
                                 </span>
                                 <p className="text-lg font-medium mb-2">{selectedMedia.fileName || 'File'}</p>
                                 <p className="text-sm text-gray-500 mb-4">

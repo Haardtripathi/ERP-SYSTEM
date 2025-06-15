@@ -4,6 +4,8 @@ import { Send, Users, Loader2, Image as ImageIcon, XCircle, X, ChevronUp, Chevro
 import { cn } from "@/lib/utils";
 import UserInfoPanel from './UserInfoPanel';
 import { PanelGroup, Panel } from 'react-resizable-panels';
+import AudioPlayer from './AudioPlayer';
+import AudioRecorder from './AudioRecorder';
 
 // Helper function to determine file type
 const getFileType = (file) => {
@@ -12,6 +14,7 @@ const getFileType = (file) => {
     if (type === 'application/pdf') return 'pdf';
     if (type.includes('spreadsheet') || type.includes('excel') || type.includes('csv')) return 'spreadsheet';
     if (type.includes('document') || type.includes('word') || type.includes('text')) return 'document';
+    if (type.startsWith('audio/')) return 'audio';
     return 'other';
 };
 
@@ -29,6 +32,8 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
     const isInitialLoadRef = useRef(true);
     const isAtBottomRef = useRef(true);
     const [showNewMessageButton, setShowNewMessageButton] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordedAudio, setRecordedAudio] = useState(null);
 
     const {
         messages,
@@ -339,15 +344,34 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
 
     const handleSend = (e) => {
         e.preventDefault();
-        if (!message.trim() && selectedFiles.length === 0) return;
+        if (!message.trim() && selectedFiles.length === 0 && !recordedAudio) return;
 
-        sendMessage(
-            message.trim(),
-            selectedChat.type === 'user' ? selectedChat.id : null,
-            selectedChat.type === 'group' ? selectedChat.id : null,
-            selectedFiles,
-            replyingTo?._id
-        );
+        // If there's a recorded audio, send it along with the message
+        if (recordedAudio) {
+            const audioFile = new File([recordedAudio.blob], 'voice-message.webm', {
+                type: 'audio/webm;codecs=opus'
+            });
+            Object.defineProperty(audioFile, 'duration', {
+                value: recordedAudio.duration,
+                writable: false
+            });
+            sendMessage(
+                message.trim(),
+                selectedChat.type === 'user' ? selectedChat.id : null,
+                selectedChat.type === 'group' ? selectedChat.id : null,
+                [audioFile],
+                replyingTo?._id
+            );
+            setRecordedAudio(null);
+        } else {
+            sendMessage(
+                message.trim(),
+                selectedChat.type === 'user' ? selectedChat.id : null,
+                selectedChat.type === 'group' ? selectedChat.id : null,
+                selectedFiles,
+                replyingTo?._id
+            );
+        }
         setMessage('');
         setSelectedFiles([]);
         setSelectedFilePreviews([]);
@@ -414,6 +438,142 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
             // Start the loading process
             tryLoadAndScroll();
         }
+    };
+
+    const handleRecordingComplete = async (audioBlob, audioUrl) => {
+        // Create a temporary audio element to get the duration
+        const tempAudio = new Audio(audioUrl);
+        
+        // Wait for metadata to load to get the duration
+        await new Promise((resolve) => {
+            tempAudio.addEventListener('loadedmetadata', () => {
+                resolve();
+            });
+            tempAudio.load();
+        });
+
+        setRecordedAudio({
+            blob: audioBlob,
+            url: audioUrl,
+            fileName: 'Voice Message',
+            fileSize: audioBlob.size,
+            fileType: 'audio/webm',
+            duration: tempAudio.duration
+        });
+    };
+
+    const handleSendRecordedAudio = async () => {
+        if (!recordedAudio) return;
+
+        try {
+            // Create a File object from the blob with the correct MIME type and duration
+            const audioFile = new File([recordedAudio.blob], 'voice-message.webm', {
+                type: 'audio/webm;codecs=opus'
+            });
+
+            // Add duration to the file metadata
+            Object.defineProperty(audioFile, 'duration', {
+                value: recordedAudio.duration,
+                writable: false
+            });
+
+            // Send the message with the audio file and any text message
+            sendMessage(
+                message.trim(), // Include the text message
+                selectedChat.type === 'user' ? selectedChat.id : null,
+                selectedChat.type === 'group' ? selectedChat.id : null,
+                [audioFile]
+            );
+            setRecordedAudio(null);
+            setMessage(''); // Clear the message input
+        } catch (error) {
+            console.error('Error sending audio message:', error);
+        }
+    };
+
+    const handleCancelRecordedAudio = () => {
+        setRecordedAudio(null);
+    };
+
+    const renderMessageContent = (message) => {
+        if (message.type === 'text') {
+            return <p className="text-gray-800">{message.content}</p>;
+        } else if (message.attachments && message.attachments.length > 0) {
+            return (
+                <div className="grid grid-cols-1 gap-1 mb-1 last:mb-0">
+                    {message.attachments.map((attachment, index) => {
+                        const attachmentUrl = message.attachmentUrls?.[index];
+                        if (!attachmentUrl) return null;
+
+                        // Check if the file is an audio file
+                        const isAudio = attachment.contentType?.startsWith('audio/') || 
+                                      attachment.fileName?.toLowerCase().endsWith('.mp3') ||
+                                      attachment.fileName?.toLowerCase().endsWith('.wav') ||
+                                      attachment.fileName?.toLowerCase().endsWith('.ogg') ||
+                                      attachment.fileName?.toLowerCase().endsWith('.webm');
+
+                        if (isAudio) {
+                            return (
+                                <div key={index} className="w-full">
+                                    <AudioPlayer
+                                        url={attachmentUrl}
+                                        fileName={attachment.fileName}
+                                        isMyMessage={message.sender === currentUser._id}
+                                    />
+                                </div>
+                            );
+                        } else if (attachment.fileType === 'image') {
+                            return (
+                                <img
+                                    key={index}
+                                    src={attachmentUrl}
+                                    alt={`Shared file ${index + 1}`}
+                                    className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                    onClick={() => handleFileClick({
+                                        url: attachmentUrl,
+                                        fileType: 'image',
+                                        fileName: attachment.fileName,
+                                        fileSize: attachment.fileSize,
+                                        contentType: attachment.contentType
+                                    })}
+                                />
+                            );
+                        } else {
+                            return (
+                                <div
+                                    key={index}
+                                    className="w-full min-h-24 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors flex flex-col items-center justify-center p-1 text-center"
+                                    onClick={() => handleFileClick({
+                                        url: attachmentUrl,
+                                        fileType: attachment.fileType,
+                                        fileName: attachment.fileName,
+                                        fileSize: attachment.fileSize,
+                                        contentType: attachment.contentType
+                                    })}
+                                >
+                                    <span className="text-2xl mb-1">
+                                        {attachment.fileType === 'pdf' && '📄'}
+                                        {attachment.fileType === 'document' && '📝'}
+                                        {attachment.fileType === 'spreadsheet' && '📊'}
+                                        {attachment.fileType === 'other' && '📎'}
+                                    </span>
+                                    <p className="text-xs font-medium text-gray-800 truncate w-full px-1">
+                                        {attachment.fileName}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {(attachment.fileSize / 1024).toFixed(1)} KB
+                                    </p>
+                                    <div className="mt-2 text-blue-600">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download-cloud"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M12 12v9M8 17l4 4 4-4" /></svg>
+                                    </div>
+                                </div>
+                            );
+                        }
+                    })}
+                </div>
+            );
+        }
+        return null;
     };
 
     if (!selectedChat) {
@@ -646,68 +806,13 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                                             </div>
                                                         )}
 
-                                                        {hasAttachments && msg.attachments && msg.attachments.length > 0 && (
-                                                            <div className="grid grid-cols-1 gap-1 mb-1 last:mb-0">
-                                                                {msg.attachments.map((attachment, index) => {
-                                                                    const attachmentUrl = msg.attachmentUrls?.[index];
-                                                                    if (!attachmentUrl) return null; // Skip if no URL for display/download
-
-                                                                    return (
-                                                                        <div key={index} className="relative">
-                                                                            {attachment.fileType === 'image' ? (
-                                                                                <img
-                                                                                    src={attachmentUrl}
-                                                                                    alt={`Shared file ${index + 1}`}
-                                                                                    className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                                                                    onClick={() => handleFileClick({
-                                                                                        url: attachmentUrl,
-                                                                                        fileType: 'image',
-                                                                                        fileName: attachment.fileName,
-                                                                                        fileSize: attachment.fileSize,
-                                                                                        contentType: attachment.contentType // Add contentType for consistency
-                                                                                    })}
-                                                                                />
-                                                                            ) : (
-                                                                                <div
-                                                                                    className="w-full min-h-24 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors flex flex-col items-center justify-center p-1 text-center"
-                                                                                    onClick={() => handleFileClick({
-                                                                                        url: attachmentUrl,
-                                                                                        fileType: attachment.fileType,
-                                                                                        fileName: attachment.fileName,
-                                                                                        fileSize: attachment.fileSize,
-                                                                                        contentType: attachment.contentType // Add contentType for consistency
-                                                                                    })}
-                                                                                >
-                                                                                    <span className="text-2xl mb-1">
-                                                                                        {attachment.fileType === 'pdf' && '📄'}
-                                                                                        {attachment.fileType === 'document' && '📝'}
-                                                                                        {attachment.fileType === 'spreadsheet' && '📊'}
-                                                                                        {attachment.fileType === 'other' && '📎'}
-                                                                                        {/* Fallback icon for any unhandled type */}
-                                                                                        {!['pdf', 'document', 'spreadsheet', 'other'].includes(attachment.fileType) && '📁'}
-                                                                                    </span>
-                                                                                    <p className="text-xs font-medium text-gray-800 truncate w-full px-1">
-                                                                                        {attachment.fileName}
-                                                                                    </p>
-                                                                                    <p className="text-xs text-gray-500 mt-1">
-                                                                                        {(attachment.fileSize / 1024).toFixed(1)} KB
-                                                                                    </p>
-                                                                                    <div className="mt-2 text-blue-600">
-                                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download-cloud"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M12 12v9M8 17l4 4 4-4" /></svg>
-                                                                                    </div>
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        )}
-
                                                         {hasText && (
                                                             <div className="break-all whitespace-pre-wrap overflow-hidden">
                                                                 <p className="text-sm mb-1 last:mb-0 break-words">{msg.message}</p>
                                                             </div>
                                                         )}
+
+                                                        {hasAttachments && renderMessageContent(msg)}
 
                                                         <span className={cn(
                                                             "text-xs mt-1 block",
@@ -788,6 +893,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                                                 {preview.type === 'pdf' && '📄'}
                                                                 {preview.type === 'document' && '📝'}
                                                                 {preview.type === 'spreadsheet' && '📊'}
+                                                                {preview.type === 'audio' && '🎵'}
                                                                 {preview.type === 'other' && '📎'}
                                                             </span>
                                                             <p className="text-xs text-center truncate w-full">
@@ -806,6 +912,39 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                                     </button>
                                                 </div>
                                             ))}
+                                        </div>
+                                    )}
+
+                                    {/* Recorded Audio Preview */}
+                                    {recordedAudio && (
+                                        <div className="mb-2 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                                        <span className="text-xl">🎵</span>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium text-gray-800">Voice Message</p>
+                                                        <p className="text-xs text-gray-500">
+                                                            {(recordedAudio.fileSize / 1024).toFixed(1)} KB
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={handleCancelRecordedAudio}
+                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                                    title="Cancel voice message"
+                                                >
+                                                    <X className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                            <audio 
+                                                controls 
+                                                className="w-full"
+                                                src={recordedAudio.url}
+                                            >
+                                                Your browser does not support the audio element.
+                                            </audio>
                                         </div>
                                     )}
 
@@ -834,15 +973,18 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                                     e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
                                                 }}
                                             />
-                                            <button
-                                                type="button"
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="absolute right-1.5 bottom-1.5 p-1.5 text-gray-500 hover:text-blue-500 rounded-full hover:bg-gray-100 transition-colors"
-                                                disabled={pagination.isLoading && messages.length === 0}
-                                                title="Attach files"
-                                            >
-                                                <Paperclip className="w-4 h-4" />
-                                            </button>
+                                            <div className="absolute right-1.5 bottom-1.5 flex items-center gap-1">
+                                                <AudioRecorder onRecordingComplete={handleRecordingComplete} />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className="p-1.5 text-gray-500 hover:text-blue-500 rounded-full hover:bg-gray-100 transition-colors"
+                                                    disabled={pagination.isLoading && messages.length === 0}
+                                                    title="Attach files"
+                                                >
+                                                    <Paperclip className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                             <input
                                                 ref={fileInputRef}
                                                 type="file"

@@ -300,3 +300,21 @@ exports.getChatMedia = async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch chat media' });
     }
 };
+
+exports.getGroupDetails = async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        const group = await ChatGroup.findById(groupId)
+            .populate('members', 'agent_name _id')
+            .populate('createdBy', 'agent_name _id');
+        
+        if (!group) {
+            return res.status(404).json({ error: 'Group not found' });
+        }
+        
+        res.json(group);
+    } catch (error) {
+        console.error('Error in getGroupDetails:', error);
+        res.status(500).json({ error: error.message });
+    }
+};

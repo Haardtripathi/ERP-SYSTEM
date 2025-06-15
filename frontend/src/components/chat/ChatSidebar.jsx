@@ -241,7 +241,10 @@ const ChatSidebar = () => {
                             filteredGroups.map(group => (
                                 <div
                                     key={group._id}
-                                    onClick={() => setSelectedChat({ type: 'group', id: group._id, name: group.name })}
+                                    onClick={() => {
+                                        setSelectedChat({ type: 'group', id: group._id, name: group.name });
+                                        useChatStore.getState().joinGroup(group._id);
+                                    }}
                                     className="flex items-center p-3 hover:bg-gray-100 cursor-pointer rounded-lg transition-colors last:mb-0 mb-2"
                                 >
                                     <div className="flex-shrink-0">
