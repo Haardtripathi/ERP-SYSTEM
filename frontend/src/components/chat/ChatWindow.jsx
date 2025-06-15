@@ -246,9 +246,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         // Get the correct chat ID based on chat type and monitoring status
         let chatId;
         if (selectedChat.type === 'user') {
-            // In monitoring view, we need to use both user IDs
             if (isReadOnly) {
-                // For monitoring view, we need to get the other user's ID from the messages
                 const firstMessage = messages[0];
                 if (firstMessage) {
                     chatId = firstMessage.sender === selectedChat.id ? firstMessage.receiver : firstMessage.sender;
@@ -263,37 +261,46 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         const pagination = chatPagination[chatId];
 
         if (pagination?.hasMore && !pagination?.isLoading) {
+            // Store current scroll position and height
+            const scrollPosition = container.scrollTop;
+            const scrollHeight = container.scrollHeight;
+
+            // Generate a new fetch ID
+            const newFetchId = Date.now();
+            useChatStore.getState().currentFetchId = newFetchId;
+
             if (selectedChat.type === 'user') {
                 if (isReadOnly) {
-                    // For monitoring view, use both user IDs
                     const firstMessage = messages[0];
                     if (firstMessage) {
                         const user1Id = firstMessage.sender;
                         const user2Id = firstMessage.receiver;
-                        fetchMessages(user1Id, user2Id, 15, pagination.oldestMessageId);
+                        fetchMessages(user1Id, user2Id, 15, pagination.oldestMessageId, newFetchId);
                     }
                 } else {
-                    fetchMessages(currentUser._id, selectedChat.id, 15, pagination.oldestMessageId);
+                    fetchMessages(currentUser._id, selectedChat.id, 15, pagination.oldestMessageId, newFetchId);
                 }
             } else if (selectedChat.type === 'group') {
-                fetchGroupMessages(selectedChat.id, 15, pagination.oldestMessageId);
+                fetchGroupMessages(selectedChat.id, 15, pagination.oldestMessageId, newFetchId);
             }
-        }
 
-        // After messages are loaded (which triggers a re-render),
-        // scroll to the message that was previously at the top.
-        // This will bring the newly loaded messages into view above it.
-        setTimeout(() => {
-            if (container && oldestDisplayedMessageId) {
-                const previouslyOldestMessageElement = container.querySelector(`[data-message-id="${oldestDisplayedMessageId}"]`);
-                if (previouslyOldestMessageElement) {
-                    previouslyOldestMessageElement.scrollIntoView({
-                        behavior: 'auto',
-                        block: 'start' // Scroll so the start of the element is at the top of the container
-                    });
+            // After messages are loaded, restore scroll position
+            setTimeout(() => {
+                if (container) {
+                    const newScrollHeight = container.scrollHeight;
+                    const scrollDiff = newScrollHeight - scrollHeight;
+                    container.scrollTop = scrollPosition + scrollDiff;
+
+                    // If we have the oldest displayed message ID, try to scroll to it
+                    if (oldestDisplayedMessageId) {
+                        const messageElement = container.querySelector(`[data-message-id="${oldestDisplayedMessageId}"]`);
+                        if (messageElement) {
+                            messageElement.scrollIntoView({ behavior: 'auto', block: 'start' });
+                        }
+                    }
                 }
-            }
-        }, 50); // Small timeout to allow DOM to render new messages
+            }, 100);
+        }
     };
 
     const handleReply = (message) => {
@@ -744,6 +751,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                                     return (
                                                         <div
                                                             key={msg._id}
+                                                            data-message-id={msg._id}
                                                             className={cn(
                                                                 "flex message-item w-full items-center",
                                                                 isReadOnly
@@ -754,7 +762,6 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                                                         ? "justify-end"
                                                                         : "justify-start"
                                                             )}
-                                                            data-message-id={msg._id}
                                                         >
                                                             {/* Reply button */}
                                                             <div className={cn(

@@ -579,8 +579,8 @@ const useChatStore = create((set, get) => ({
             return;
         }
 
-        // Check if this fetch is still valid
-        if (fetchId !== currentFetchId) {
+        // Only abort if there's a newer fetch in progress
+        if (fetchId && currentFetchId && fetchId < currentFetchId) {
             console.log('fetchMessages: Aborted, newer fetch in progress');
             return;
         }
@@ -608,7 +608,7 @@ const useChatStore = create((set, get) => ({
             const response = await axios.get(url, { params });
 
             // Check again if this fetch is still valid
-            if (fetchId !== get().currentFetchId) {
+            if (fetchId && currentFetchId && fetchId < currentFetchId) {
                 console.log('fetchMessages: Aborted after fetch, newer fetch in progress');
                 return;
             }
@@ -616,44 +616,26 @@ const useChatStore = create((set, get) => ({
             console.log('fetchMessages: Raw messages received:', response.data.messages.length);
 
             const messagesToProcess = response.data.messages;
+            const messagesWithProcessedAttachments = await Promise.all(
+                messagesToProcess.map(async (message) => {
+                    if (message.attachments && message.attachments.length > 0) {
+                        const processedAttachments = await Promise.all(
+                            message.attachments.map(async (attachment) => {
+                                const attachmentData = processAttachmentBuffer(attachment.data, attachment.contentType);
+                                return attachmentData ? { ...attachment, url: attachmentData.url, blob: attachmentData.blob } : null;
+                            })
+                        );
 
-            // Process attachments for the fetched messages
-            const messagesWithProcessedAttachments = await Promise.all(messagesToProcess.map(async (msg) => {
-                let processedMsg = { ...msg };
-
-                if (processedMsg.attachments && processedMsg.attachments.length > 0) {
-                    const processedCurrentAttachments = await Promise.all(processedMsg.attachments.map(async (att) => {
-                        const attachmentData = processAttachmentBuffer(att.data, att.contentType);
-                        return attachmentData ? { ...att, url: attachmentData.url, blob: attachmentData.blob } : null;
-                    }));
-                    processedMsg.attachmentUrls = processedCurrentAttachments.map(att => att?.url).filter(Boolean);
-                    processedMsg.attachmentBlobs = processedCurrentAttachments.map(att => att?.blob).filter(Boolean);
-                    processedMsg.attachments = processedCurrentAttachments.filter(Boolean); // Update the attachments array with URL/Blob
-                }
-
-                // Process attachments in replyTo, if it exists and has attachments
-                if (processedMsg.replyTo && processedMsg.replyTo.attachments && processedMsg.replyTo.attachments.length > 0) {
-                    console.log('Processing replyTo attachments for fetched message:', processedMsg._id);
-                    const processedReplyAttachments = await Promise.all(processedMsg.replyTo.attachments.map(async (att) => {
-                        const attachmentData = processAttachmentBuffer(att.data, att.contentType);
-                        return attachmentData ? { ...att, url: attachmentData.url, blob: attachmentData.blob } : null;
-                    }));
-                    processedMsg.replyTo = {
-                        ...processedMsg.replyTo,
-                        attachmentUrls: processedReplyAttachments.map(att => att?.url).filter(Boolean),
-                        attachmentBlobs: processedReplyAttachments.map(att => att?.blob).filter(Boolean),
-                        attachments: processedReplyAttachments.filter(Boolean)
-                    };
-                }
-
-                return processedMsg;
-            }));
-
-            // Final check if this fetch is still valid
-            if (fetchId !== get().currentFetchId) {
-                console.log('fetchMessages: Aborted after processing, newer fetch in progress');
-                return;
-            }
+                        return {
+                            ...message,
+                            attachmentUrls: processedAttachments.map(att => att?.url).filter(Boolean),
+                            attachmentBlobs: processedAttachments.map(att => att?.blob).filter(Boolean),
+                            attachments: processedAttachments.filter(Boolean)
+                        };
+                    }
+                    return message;
+                })
+            );
 
             // If fetching older messages, prepend them to the existing messages
             if (beforeId) {
@@ -687,7 +669,7 @@ const useChatStore = create((set, get) => ({
         } catch (error) {
             console.error('fetchMessages: Error fetching messages:', error.message, error.response?.data);
             // Only update loading state if this is still the current fetch
-            if (fetchId === get().currentFetchId) {
+            if (!fetchId || !currentFetchId || fetchId >= currentFetchId) {
                 set(state => ({
                     chatPagination: {
                         ...state.chatPagination,

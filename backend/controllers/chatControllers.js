@@ -92,7 +92,8 @@ exports.getPrivateChat = async (req, res) => {
         res.json({
             messages: messages.reverse(), // Reverse to get oldest first for display
             hasMore,
-            totalCount
+            totalCount,
+            oldestMessageId: messages[0]?._id || null
         });
     } catch (error) {
         console.error('Error in getPrivateChat:', error);
