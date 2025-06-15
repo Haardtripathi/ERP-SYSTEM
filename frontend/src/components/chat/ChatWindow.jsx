@@ -576,6 +576,37 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         return null;
     };
 
+    // Add new function to group messages by date
+    const groupMessagesByDate = (messages) => {
+        const groups = [];
+        let currentDate = null;
+
+        messages.forEach((message) => {
+            const messageDate = new Date(message.createdAt);
+            const dateStr = messageDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            if (dateStr !== currentDate) {
+                currentDate = dateStr;
+                groups.push({
+                    type: 'date',
+                    date: messageDate,
+                    dateStr: dateStr
+                });
+            }
+            groups.push({
+                type: 'message',
+                message: message
+            });
+        });
+
+        return groups;
+    };
+
     if (!selectedChat) {
         return (
             <div className="flex items-center justify-center h-full bg-gray-50">
@@ -690,140 +721,155 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                             </div>
                                         )}
 
-                                        {messages.map((msg) => {
-                                            const hasText = msg.message && msg.message.trim().length > 0;
-                                            const hasAttachments = msg.attachments && msg.attachments.length > 0;
-                                            const isMyMessage = msg.sender === currentUser._id;
-
-                                            if (!hasText && !hasAttachments) return null;
-
-                                            return (
-                                                <div
-                                                    key={msg._id}
-                                                    className={cn(
-                                                        "flex message-item w-full items-center",
-                                                        isReadOnly
-                                                            ? msg.sender === selectedChat.user1Id
-                                                                ? "justify-start"
-                                                                : "justify-end"
-                                                            : isMyMessage
-                                                                ? "justify-end"
-                                                                : "justify-start"
-                                                    )}
-                                                    data-message-id={msg._id}
-                                                >
-                                                    {/* Reply button */}
-                                                    <div className={cn(
-                                                        "flex-shrink-0",
-                                                        isReadOnly
-                                                            ? msg.sender === selectedChat.user1Id
-                                                                ? "order-last ml-2"
-                                                                : "order-first mr-2"
-                                                            : isMyMessage
-                                                                ? "order-first mr-2"
-                                                                : "order-last ml-2"
-                                                    )}>
-                                                        <button
-                                                            onClick={() => handleReply(msg)}
-                                                            className="p-1 rounded-full transition-colors text-gray-500 hover:bg-gray-100"
-                                                            title="Reply"
-                                                        >
-                                                            <Reply className={cn(
-                                                                "w-4 h-4",
-                                                                isReadOnly
-                                                                    ? msg.sender === selectedChat.user1Id
-                                                                        ? ""
-                                                                        : "rotate-180"
-                                                                    : isMyMessage
-                                                                        ? "rotate-180"
-                                                                        : ""
-                                                            )} />
-                                                        </button>
-                                                    </div>
-
-                                                    {/* Message Bubble */}
-                                                    <div
-                                                        className={cn(
-                                                            "max-w-[70%] min-w-0 rounded-xl p-3 shadow-sm relative",
-                                                            isReadOnly
-                                                                ? msg.sender === selectedChat.user1Id
-                                                                    ? "bg-white text-gray-800 rounded-bl-none border border-gray-200"
-                                                                    : "bg-blue-500 text-white rounded-br-none"
-                                                                : isMyMessage
-                                                                    ? "bg-blue-500 text-white rounded-br-none"
-                                                                    : "bg-white text-gray-800 rounded-bl-none border border-gray-200"
-                                                        )}
-                                                    >
-                                                        {/* Show sender name for both group chats and monitoring view */}
-                                                        {(selectedChat?.type === 'group' || isReadOnly) && (
-                                                            <p className={cn(
-                                                                "text-xs font-semibold mb-1",
-                                                                isReadOnly
-                                                                    ? msg.sender === selectedChat.user1Id
-                                                                        ? "text-gray-600"
-                                                                        : "text-blue-100"
-                                                                    : "opacity-90"
-                                                            )}>
-                                                                {allUsers.find(u => u._id === msg.sender)?.agent_name || 'Unknown User'}
-                                                            </p>
-                                                        )}
-
-                                                        {msg.replyTo && (
-                                                            <div
-                                                                className={cn(
-                                                                    "mb-2 p-2 rounded-lg text-xs cursor-pointer hover:bg-opacity-80 transition-colors",
-                                                                    isMyMessage ? "bg-blue-600" : "bg-gray-100"
-                                                                )}
-                                                                onClick={() => scrollToMessage(msg.replyTo._id)}
-                                                            >
-                                                                <p className="font-medium mb-1">
-                                                                    Replying to {msg.replyTo.sender === currentUser._id ? 'yourself' : (allUsers.find(u => u._id === msg.replyTo.sender)?.agent_name || 'Unknown')}
-                                                                </p>
-                                                                <div className="opacity-90">
-                                                                    {msg.replyTo.message && (
-                                                                        <p className="truncate">{msg.replyTo.message}</p>
-                                                                    )}
-                                                                    {msg.replyTo.attachments && msg.replyTo.attachments.length > 0 && (
-                                                                        <div className="flex gap-1 mt-1">
-                                                                            {msg.replyTo.attachments.map((att, index) => (
-                                                                                <div key={index} className="relative w-8 h-8">
-                                                                                    {att.fileType === 'image' ? (
-                                                                                        <img
-                                                                                            src={msg.replyTo.attachmentUrls?.[index]}
-                                                                                            alt={`Reply attachment ${index + 1}`}
-                                                                                            className="w-full h-full object-cover rounded"
-                                                                                        />
-                                                                                    ) : (
-                                                                                        <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded">
-                                                                                            <span className="text-xs">{att.fileType}</span>
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    )}
+                                        {messages.length > 0 && (
+                                            <>
+                                                {groupMessagesByDate(messages).map((item, index) => {
+                                                    if (item.type === 'date') {
+                                                        return (
+                                                            <div key={`date-${index}`} className="flex justify-center my-4">
+                                                                <div className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full">
+                                                                    {item.dateStr}
                                                                 </div>
                                                             </div>
-                                                        )}
+                                                        );
+                                                    }
 
-                                                        {hasText && (
-                                                            <div className="break-all whitespace-pre-wrap overflow-hidden">
-                                                                <p className="text-sm mb-1 last:mb-0 break-words">{msg.message}</p>
+                                                    const msg = item.message;
+                                                    const hasText = msg.message && msg.message.trim().length > 0;
+                                                    const hasAttachments = msg.attachments && msg.attachments.length > 0;
+                                                    const isMyMessage = msg.sender === currentUser._id;
+
+                                                    if (!hasText && !hasAttachments) return null;
+
+                                                    return (
+                                                        <div
+                                                            key={msg._id}
+                                                            className={cn(
+                                                                "flex message-item w-full items-center",
+                                                                isReadOnly
+                                                                    ? msg.sender === selectedChat.user1Id
+                                                                        ? "justify-start"
+                                                                        : "justify-end"
+                                                                    : isMyMessage
+                                                                        ? "justify-end"
+                                                                        : "justify-start"
+                                                            )}
+                                                            data-message-id={msg._id}
+                                                        >
+                                                            {/* Reply button */}
+                                                            <div className={cn(
+                                                                "flex-shrink-0",
+                                                                isReadOnly
+                                                                    ? msg.sender === selectedChat.user1Id
+                                                                        ? "order-last ml-2"
+                                                                        : "order-first mr-2"
+                                                                    : isMyMessage
+                                                                        ? "order-first mr-2"
+                                                                        : "order-last ml-2"
+                                                            )}>
+                                                                <button
+                                                                    onClick={() => handleReply(msg)}
+                                                                    className="p-1 rounded-full transition-colors text-gray-500 hover:bg-gray-100"
+                                                                    title="Reply"
+                                                                >
+                                                                    <Reply className={cn(
+                                                                        "w-4 h-4",
+                                                                        isReadOnly
+                                                                            ? msg.sender === selectedChat.user1Id
+                                                                                ? ""
+                                                                                : "rotate-180"
+                                                                            : isMyMessage
+                                                                                ? "rotate-180"
+                                                                                : ""
+                                                                    )} />
+                                                                </button>
                                                             </div>
-                                                        )}
 
-                                                        {hasAttachments && renderMessageContent(msg)}
+                                                            {/* Message Bubble */}
+                                                            <div
+                                                                className={cn(
+                                                                    "max-w-[70%] min-w-0 rounded-xl p-3 shadow-sm relative",
+                                                                    isReadOnly
+                                                                        ? msg.sender === selectedChat.user1Id
+                                                                            ? "bg-white text-gray-800 rounded-bl-none border border-gray-200"
+                                                                            : "bg-blue-500 text-white rounded-br-none"
+                                                                        : isMyMessage
+                                                                            ? "bg-blue-500 text-white rounded-br-none"
+                                                                            : "bg-white text-gray-800 rounded-bl-none border border-gray-200"
+                                                                )}
+                                                            >
+                                                                {/* Show sender name for both group chats and monitoring view */}
+                                                                {(selectedChat?.type === 'group' || isReadOnly) && (
+                                                                    <p className={cn(
+                                                                        "text-xs font-semibold mb-1",
+                                                                        isReadOnly
+                                                                            ? msg.sender === selectedChat.user1Id
+                                                                                ? "text-gray-600"
+                                                                                : "text-blue-100"
+                                                                            : "opacity-90"
+                                                                    )}>
+                                                                        {allUsers.find(u => u._id === msg.sender)?.agent_name || 'Unknown User'}
+                                                                    </p>
+                                                                )}
 
-                                                        <span className={cn(
-                                                            "text-xs mt-1 block",
-                                                            isMyMessage ? "text-blue-100" : "text-gray-500"
-                                                        )}>
-                                                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
+                                                                {msg.replyTo && (
+                                                                    <div
+                                                                        className={cn(
+                                                                            "mb-2 p-2 rounded-lg text-xs cursor-pointer hover:bg-opacity-80 transition-colors",
+                                                                            isMyMessage ? "bg-blue-600" : "bg-gray-100"
+                                                                        )}
+                                                                        onClick={() => scrollToMessage(msg.replyTo._id)}
+                                                                    >
+                                                                        <p className="font-medium mb-1">
+                                                                            Replying to {msg.replyTo.sender === currentUser._id ? 'yourself' : (allUsers.find(u => u._id === msg.replyTo.sender)?.agent_name || 'Unknown')}
+                                                                        </p>
+                                                                        <div className="opacity-90">
+                                                                            {msg.replyTo.message && (
+                                                                                <p className="truncate">{msg.replyTo.message}</p>
+                                                                            )}
+                                                                            {msg.replyTo.attachments && msg.replyTo.attachments.length > 0 && (
+                                                                                <div className="flex gap-1 mt-1">
+                                                                                    {msg.replyTo.attachments.map((att, index) => (
+                                                                                        <div key={index} className="relative w-8 h-8">
+                                                                                            {att.fileType === 'image' ? (
+                                                                                                <img
+                                                                                                    src={msg.replyTo.attachmentUrls?.[index]}
+                                                                                                    alt={`Reply attachment ${index + 1}`}
+                                                                                                    className="w-full h-full object-cover rounded"
+                                                                                                />
+                                                                                            ) : (
+                                                                                                <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded">
+                                                                                                    <span className="text-xs">{att.fileType}</span>
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {hasText && (
+                                                                    <div className="break-all whitespace-pre-wrap overflow-hidden">
+                                                                        <p className="text-sm mb-1 last:mb-0 break-words">{msg.message}</p>
+                                                                    </div>
+                                                                )}
+
+                                                                {hasAttachments && renderMessageContent(msg)}
+
+                                                                <span className={cn(
+                                                                    "text-xs mt-1 block",
+                                                                    isMyMessage ? "text-blue-100" : "text-gray-500"
+                                                                )}>
+                                                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </>
+                                        )}
                                     </>
                                 )}
                                 <div ref={messagesEndRef} />
