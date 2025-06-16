@@ -44,8 +44,9 @@ app.use(cors({
     origin: ["http://localhost:5173"],
     credentials: true
 }));
-app.use(bodyParser.json({ limit: "100mb" }));
-app.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
+const MAX_FILE_SIZE = 1000 * 1024 * 1024; // 100MB in bytes
+app.use(bodyParser.json({ limit: MAX_FILE_SIZE }));
+app.use(bodyParser.urlencoded({ limit: MAX_FILE_SIZE, extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);

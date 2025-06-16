@@ -10,7 +10,7 @@ const chatMessageSchema = new mongoose.Schema({
         contentType: { type: String },
         fileName: { type: String },
         fileSize: { type: Number },
-        fileType: { type: String, enum: ['image', 'document', 'spreadsheet', 'pdf', 'other'] }
+        fileType: { type: String, enum: ['image', 'document', 'spreadsheet', 'pdf','video', 'other'] }
     }],
     replyTo: { type: mongoose.Schema.Types.ObjectId, ref: "ChatMessage" },
     seenBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]

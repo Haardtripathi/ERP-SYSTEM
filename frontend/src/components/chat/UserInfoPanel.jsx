@@ -3,6 +3,7 @@ import { X, Image as ImageIcon, ChevronLeft, ChevronRight, Loader2 } from 'lucid
 import { cn } from "@/lib/utils";
 import useChatStore from '../../store/chatStore';
 import { Panel, PanelResizeHandle } from 'react-resizable-panels';
+import VideoPlayer from './VideoPlayer';
 
 const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
     const [userInfo, setUserInfo] = useState(null);
@@ -25,6 +26,7 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
         if (type?.includes('spreadsheet') || type?.includes('excel') || type?.includes('csv')) return 'spreadsheet';
         if (type?.includes('document') || type?.includes('word') || type?.includes('text')) return 'document';
         if (type?.startsWith('audio/')) return 'audio';
+        if (type?.startsWith('video/')) return 'video';
         return 'other';
     };
 
@@ -217,8 +219,10 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
     const handleMediaClick = (mediaItem) => {
         if (mediaItem.fileType === 'image') {
             setSelectedMedia(mediaItem);
+        } else if (mediaItem.fileType === 'video') {
+            setSelectedMedia(mediaItem);
         } else {
-            // For non-image files, trigger download directly
+            // For non-image/video files, trigger download directly
             if (mediaItem.url) {
                 const link = document.createElement('a');
                 link.href = mediaItem.url;
@@ -331,33 +335,21 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
                                     {media.map((item) => (
                                         <div
                                             key={item.id}
-                                            className="aspect-square relative cursor-pointer group rounded-lg overflow-hidden"
+                                            className="relative aspect-square cursor-pointer"
                                             onClick={() => handleMediaClick(item)}
                                         >
                                             {item.fileType === 'image' ? (
                                                 <img
                                                     src={item.url}
-                                                    alt={item.fileName || "Shared media"}
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e) => {
-                                                        console.error('Failed to load image:', item.fileName);
-                                                        e.target.style.display = 'none';
-                                                    }}
+                                                    alt={item.fileName || 'Media'}
+                                                    className="w-full h-full object-cover rounded-lg"
                                                 />
-                                            ) : item.fileType === 'audio' ? (
-                                                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 p-2">
-                                                    <audio 
-                                                        controls 
-                                                        className="w-full"
-                                                        src={item.url}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        Your browser does not support the audio element.
-                                                    </audio>
-                                                    <p className="text-xs font-medium text-gray-800 mt-2 truncate w-full text-center">
-                                                        {item.fileName || 'Audio file'}
-                                                    </p>
-                                                </div>
+                                            ) : item.fileType === 'video' ? (
+                                                <VideoPlayer
+                                                    url={item.url}
+                                                    fileName={item.fileName}
+                                                    isMyMessage={false}
+                                                />
                                             ) : (
                                                 <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 p-2 text-center">
                                                     <span className="text-3xl mb-1">
@@ -365,8 +357,8 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
                                                         {item.fileType === 'document' && '📝'}
                                                         {item.fileType === 'spreadsheet' && '📊'}
                                                         {item.fileType === 'audio' && '🎵'}
+                                                        {item.fileType === 'video' && '🎥'}
                                                         {item.fileType === 'other' && '📎'}
-                                                        {!['pdf', 'document', 'spreadsheet', 'audio', 'other'].includes(item.fileType) && '📁'}
                                                     </span>
                                                     <p className="text-xs font-medium text-gray-800 truncate w-full px-1">
                                                         {item.fileName || 'File'}
@@ -431,6 +423,12 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
                                     e.target.style.display = 'none';
                                 }}
                             />
+                        ) : selectedMedia.fileType === 'video' ? (
+                            <VideoPlayer
+                                url={selectedMedia.url}
+                                fileName={selectedMedia.fileName}
+                                isMyMessage={false}
+                            />
                         ) : (
                             <div className="bg-white p-4 rounded-lg text-center">
                                 <span className="text-5xl mb-4 block">
@@ -438,8 +436,9 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
                                     {selectedMedia.fileType === 'document' && '📝'}
                                     {selectedMedia.fileType === 'spreadsheet' && '📊'}
                                     {selectedMedia.fileType === 'audio' && '🎵'}
+                                    {selectedMedia.fileType === 'video' && '🎥'}
                                     {selectedMedia.fileType === 'other' && '📎'}
-                                    {!['pdf', 'document', 'spreadsheet', 'audio', 'other'].includes(selectedMedia.fileType) && '📁'}
+                                    {!['pdf', 'document', 'spreadsheet', 'audio', 'video', 'other'].includes(selectedMedia.fileType) && '📁'}
                                 </span>
                                 <p className="text-lg font-medium mb-2">{selectedMedia.fileName || 'File'}</p>
                                 <p className="text-sm text-gray-500 mb-4">

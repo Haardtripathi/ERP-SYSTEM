@@ -6,6 +6,9 @@ import io from 'socket.io-client';
 let socket = null;
 let isSocketInitialized = false;
 
+// Add this near the top of the file, after imports
+const MAX_FILE_SIZE = 1000 * 1024 * 1024; // 100MB in bytes
+
 // Helper function to ensure socket is initialized
 // This function is now removed. Its logic is integrated into initializeSocket.
 
@@ -63,7 +66,14 @@ const processAttachmentBuffer = (buffer, contentType) => {
         const uint8Array = new Uint8Array(uint8ArrayData);
         console.log('processAttachmentBuffer: Created Uint8Array (length):', uint8Array.length);
         const { url, blob } = createBlobUrl(uint8Array, contentType);
-        useChatStore.getState().activeImageUrls.add(url);
+        
+        // Store the blob URL in the activeImageUrls set for both images and videos
+        if (contentType.startsWith('image/') || contentType.startsWith('video/')) {
+            const store = useChatStore.getState();
+            store.activeImageUrls.add(url);
+            console.log('Added URL to activeImageUrls:', url);
+        }
+        
         return { url, blob };
     } catch (error) {
         console.error('processAttachmentBuffer: Error processing attachment:', error);
@@ -78,24 +88,48 @@ const getFileType = (file) => {
     if (type === 'application/pdf') return 'pdf';
     if (type.includes('spreadsheet') || type.includes('excel') || type.includes('csv')) return 'spreadsheet';
     if (type.includes('document') || type.includes('word') || type.includes('text')) return 'document';
+    if (type.startsWith('video/')) return 'video';
     return 'other';
 };
 
 // Helper function to process file data
 const processFileData = async (file) => {
     try {
+        console.log('Processing file:', {
+            name: file.name,
+            type: file.type,
+            size: file.size
+        });
+
+        // Add file size check
+        if (file.size > MAX_FILE_SIZE) {
+            throw new Error(`File size exceeds the maximum limit of ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
+        }
+
         const arrayBuffer = await file.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
+        
+        // Create a blob URL for immediate preview
+        const blob = new Blob([uint8Array], { type: file.type });
+        const url = URL.createObjectURL(blob);
+        
+        // Add to activeImageUrls if it's an image or video
+        if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+            useChatStore.getState().activeImageUrls.add(url);
+        }
+
         return {
             data: Array.from(uint8Array),
             contentType: file.type,
             fileName: file.name,
             fileSize: file.size,
-            fileType: getFileType(file)
+            fileType: getFileType(file),
+            url: url,
+            blob: blob
         };
     } catch (error) {
         console.error('Error processing file:', error);
-        return null;
+        throw error; // Propagate the error to handle it in the UI
     }
 };
 
@@ -119,45 +153,34 @@ const useChatStore = create((set, get) => ({
     setMessages: (newMessages) => {
         console.log('setMessages: Setting messages:', newMessages.length);
 
-        // Identify messages being removed from the state
-        const currentMessageIds = new Set(get().messages.map(msg => msg._id));
-        const newMessageIds = new Set(newMessages.map(msg => msg._id));
-
-        get().messages.forEach(msg => {
-            if (!newMessageIds.has(msg._id) && msg.imageUrl && msg.imageUrl.startsWith('blob:')) {
-                // Message is being removed, revoke its Blob URL
-                console.log('setMessages: Revoking Blob URL for removed message:', msg._id, msg.imageUrl);
-                URL.revokeObjectURL(msg.imageUrl);
-                // Also remove from activeImageUrls set
-                useChatStore.getState().activeImageUrls.delete(msg.imageUrl);
-            }
-        });
-
-        // Log details of messages with images before updating state
-        newMessages.forEach(msg => {
-            if (msg.image || msg.imageBlob) {
-                console.log('setMessages: Before state update - Message:', msg._id, {
-                    hasImage: !!msg.image,
-                    hasImageBlob: !!msg.imageBlob,
-                    imageUrl: msg.imageUrl,
-                    imageRetryCount: msg.imageRetryCount
+        // Process attachments before updating messages
+        const processedMessages = newMessages.map(msg => {
+            if (msg.attachments && msg.attachments.length > 0) {
+                const processedAttachments = msg.attachments.map(attachment => {
+                    if (attachment.data) {
+                        const processed = processAttachmentBuffer(attachment.data, attachment.contentType);
+                        if (processed) {
+                            return {
+                                ...attachment,
+                                url: processed.url,
+                                blob: processed.blob
+                            };
+                        }
+                    }
+                    return attachment;
                 });
+
+                return {
+                    ...msg,
+                    attachments: processedAttachments,
+                    attachmentUrls: processedAttachments.map(att => att.url).filter(Boolean),
+                    attachmentBlobs: processedAttachments.map(att => att.blob).filter(Boolean)
+                };
             }
+            return msg;
         });
 
-        set({ messages: newMessages });
-
-        // Log details of messages with images after updating state (note: might not reflect immediate DOM update)
-        get().messages.forEach(msg => {
-            if (msg.image || msg.imageBlob) {
-                console.log('setMessages: After state update (get().messages) - Message:', msg._id, {
-                    hasImage: !!msg.image,
-                    hasImageBlob: !!msg.imageBlob,
-                    imageUrl: msg.imageUrl,
-                    imageRetryCount: msg.imageRetryCount
-                });
-            }
-        });
+        set({ messages: processedMessages });
     },
 
     setCurrentUser: (user) => {
@@ -226,7 +249,7 @@ const useChatStore = create((set, get) => ({
                     reconnectionAttempts: 5,
                     reconnectionDelay: 1000,
                     transports: ['websocket', 'polling'],
-                    maxHttpBufferSize: 10e8, // Increase buffer size to 100MB
+                    maxHttpBufferSize: MAX_FILE_SIZE, // Increased to 100MB
                     timeout: 60000 // Increase timeout to 60 seconds
                 });
 
@@ -512,16 +535,21 @@ const useChatStore = create((set, get) => ({
             // Add optimistic update with client-side Blob URLs
             const optimisticMessage = {
                 ...message,
-                attachmentUrls: files.map(file => URL.createObjectURL(file)),
+                attachmentUrls: processedFiles.map(file => file.url),
                 attachmentBlobs: fileBlobs,
-                attachments: files.map(file => ({
-                    fileName: file.name,
-                    fileSize: file.size,
-                    fileType: getFileType(file),
-                    contentType: file.type,
+                attachments: processedFiles.map(file => ({
+                    fileName: file.fileName,
+                    fileSize: file.fileSize,
+                    fileType: file.fileType,
+                    contentType: file.contentType,
+                    url: file.url
                 }))
             };
-            get().setMessages([...get().messages, optimisticMessage]);
+
+            // Add the optimistic message to the state
+            set(state => ({
+                messages: [...state.messages, optimisticMessage]
+            }));
 
             // Emit the message
             socket.emit('send-message', {
@@ -536,7 +564,10 @@ const useChatStore = create((set, get) => ({
                 console.log('Frontend - Received server response:', response);
                 if (response && response.error) {
                     console.error('Frontend - Server error:', response.error);
-                    get().setMessages(get().messages.filter(msg => msg._id !== tempId));
+                    // Remove the optimistic message if there was an error
+                    set(state => ({
+                        messages: state.messages.filter(msg => msg._id !== tempId)
+                    }));
                 }
             });
 
@@ -926,33 +957,27 @@ const useChatStore = create((set, get) => ({
 
     cleanupBlobUrls: () => {
         console.log('cleanupBlobUrls: Cleaning up all Blob URLs');
-        get().activeImageUrls.forEach(url => {
-            console.log('cleanupBlobUrls: Revoking Blob URL:', url);
-            URL.revokeObjectURL(url);
+        const store = get();
+        
+        // Only revoke URLs that are no longer in use
+        const activeUrls = new Set();
+        store.messages.forEach(msg => {
+            if (msg.attachments) {
+                msg.attachments.forEach(att => {
+                    if (att.url && att.url.startsWith('blob:')) {
+                        activeUrls.add(att.url);
+                    }
+                });
+            }
         });
-        set({ activeImageUrls: new Set() });
 
-        // Also clean up any remaining Blob URLs in messages
-        set((state) => {
-            const messages = [...state.messages];
-            messages.forEach((msg) => {
-                if (msg.imageUrl && msg.imageUrl.startsWith('blob:')) {
-                    URL.revokeObjectURL(msg.imageUrl);
-                    msg.imageUrl = null;
-                    msg.imageBlob = null;
-                }
-                // Also clean up attachments if they have Blob URLs
-                if (msg.attachments && msg.attachments.length > 0) {
-                    msg.attachments.forEach(att => {
-                        if (att.url && att.url.startsWith('blob:')) {
-                            URL.revokeObjectURL(att.url);
-                            att.url = null; // Clear URL from the object
-                            att.blob = null; // Clear blob from the object
-                        }
-                    });
-                }
-            });
-            return { messages };
+        // Revoke URLs that are no longer active
+        store.activeImageUrls.forEach(url => {
+            if (!activeUrls.has(url)) {
+                console.log('Revoking unused URL:', url);
+                URL.revokeObjectURL(url);
+                store.activeImageUrls.delete(url);
+            }
         });
     },
 

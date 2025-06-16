@@ -1,17 +1,19 @@
 const { Server } = require("socket.io");
 const ChatMessage = require("../models/ChatMessage");
+const MAX_FILE_SIZE = 1000 * 1024 * 1024; // 100MB in bytes
 
 let io;
 
 function setupSocket(server) {
     io = new Server(server, {
         cors: {
-            origin: "http://localhost:5173",
+            origin: "http://localhost:3000",
+            methods: ["GET", "POST"],
             credentials: true
         },
-        maxHttpBufferSize: 1e8, // Increase buffer size to 100MB
-        pingTimeout: 60000, // Increase ping timeout to 60 seconds
-        pingInterval: 25000, // Increase ping interval to 25 seconds
+        maxHttpBufferSize: MAX_FILE_SIZE, // Increase buffer size to 100MB
+        pingTimeout: 60000, // Increase timeout to 60 seconds
+        pingInterval: 25000, // Increase ping interval
         transports: ['websocket', 'polling']
     });
 

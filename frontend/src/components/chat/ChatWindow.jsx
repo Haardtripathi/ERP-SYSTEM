@@ -6,6 +6,7 @@ import UserInfoPanel from './UserInfoPanel';
 import { PanelGroup, Panel } from 'react-resizable-panels';
 import AudioPlayer from './AudioPlayer';
 import AudioRecorder from './AudioRecorder';
+import VideoPlayer from './VideoPlayer';
 
 // Helper function to determine file type
 const getFileType = (file) => {
@@ -15,6 +16,7 @@ const getFileType = (file) => {
     if (type.includes('spreadsheet') || type.includes('excel') || type.includes('csv')) return 'spreadsheet';
     if (type.includes('document') || type.includes('word') || type.includes('text')) return 'document';
     if (type.startsWith('audio/')) return 'audio';
+    if (type.startsWith('video/')) return 'video';
     return 'other';
 };
 
@@ -363,7 +365,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                 writable: false
             });
             sendMessage(
-                message.trim(),
+                message.trim() || '🎤 Voice Message', // Add default text for voice messages
                 selectedChat.type === 'user' ? selectedChat.id : null,
                 selectedChat.type === 'group' ? selectedChat.id : null,
                 [audioFile],
@@ -519,6 +521,12 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                       attachment.fileName?.toLowerCase().endsWith('.ogg') ||
                                       attachment.fileName?.toLowerCase().endsWith('.webm');
 
+                        // Check if the file is a video file
+                        const isVideo = attachment.contentType?.startsWith('video/') ||
+                                      attachment.fileName?.toLowerCase().endsWith('.mp4') ||
+                                      attachment.fileName?.toLowerCase().endsWith('.webm') ||
+                                      attachment.fileName?.toLowerCase().endsWith('.mov');
+
                         if (isAudio) {
                             return (
                                 <div key={index} className="w-full">
@@ -529,7 +537,21 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                     />
                                 </div>
                             );
-                        } else if (attachment.fileType === 'image') {
+                        }
+
+                        if (isVideo) {
+                            return (
+                                <div key={index} className="w-full">
+                                    <VideoPlayer
+                                        url={attachmentUrl}
+                                        fileName={attachment.fileName}
+                                        isMyMessage={message.sender === currentUser._id}
+                                    />
+                                </div>
+                            );
+                        }
+
+                        if (attachment.contentType?.startsWith('image/')) {
                             return (
                                 <img
                                     key={index}
@@ -545,37 +567,35 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                     })}
                                 />
                             );
-                        } else {
-                            return (
-                                <div
-                                    key={index}
-                                    className="w-full min-h-24 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors flex flex-col items-center justify-center p-1 text-center"
-                                    onClick={() => handleFileClick({
-                                        url: attachmentUrl,
-                                        fileType: attachment.fileType,
-                                        fileName: attachment.fileName,
-                                        fileSize: attachment.fileSize,
-                                        contentType: attachment.contentType
-                                    })}
-                                >
-                                    <span className="text-2xl mb-1">
-                                        {attachment.fileType === 'pdf' && '📄'}
-                                        {attachment.fileType === 'document' && '📝'}
-                                        {attachment.fileType === 'spreadsheet' && '📊'}
-                                        {attachment.fileType === 'other' && '📎'}
-                                    </span>
-                                    <p className="text-xs font-medium text-gray-800 truncate w-full px-1">
-                                        {attachment.fileName}
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        {(attachment.fileSize / 1024).toFixed(1)} KB
-                                    </p>
-                                    <div className="mt-2 text-blue-600">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download-cloud"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M12 12v9M8 17l4 4 4-4" /></svg>
-                                    </div>
-                                </div>
-                            );
                         }
+
+                        return (
+                            <div
+                                key={index}
+                                className="w-full min-h-24 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors flex flex-col items-center justify-center p-1 text-center"
+                                onClick={() => handleFileClick({
+                                    url: attachmentUrl,
+                                    fileType: attachment.fileType,
+                                    fileName: attachment.fileName,
+                                    fileSize: attachment.fileSize,
+                                    contentType: attachment.contentType
+                                })}
+                            >
+                                <span className="text-lg mb-1">
+                                    {attachment.fileType === 'pdf' && '📄'}
+                                    {attachment.fileType === 'document' && '📝'}
+                                    {attachment.fileType === 'spreadsheet' && '📊'}
+                                    {attachment.fileType === 'video' && '🎥'}
+                                    {attachment.fileType === 'other' && '📎'}
+                                </span>
+                                <p className="text-sm font-medium text-gray-800 truncate w-full px-2">
+                                    {attachment.fileName}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                    {(attachment.fileSize / 1024).toFixed(1)} KB
+                                </p>
+                            </div>
+                        );
                     })}
                 </div>
             );
@@ -947,6 +967,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                                                 {preview.type === 'document' && '📝'}
                                                                 {preview.type === 'spreadsheet' && '📊'}
                                                                 {preview.type === 'audio' && '🎵'}
+                                                                {preview.type === 'video' && '🎥'}
                                                                 {preview.type === 'other' && '📎'}
                                                             </span>
                                                             <p className="text-xs text-center truncate w-full">
@@ -1050,10 +1071,10 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                         </div>
                                         <button
                                             type="submit"
-                                            disabled={(!message.trim() && selectedFiles.length === 0) || (pagination.isLoading && messages.length === 0)}
+                                            disabled={(!message.trim() && selectedFiles.length === 0 && !recordedAudio) || (pagination.isLoading && messages.length === 0)}
                                             className={cn(
                                                 "p-2.5 rounded-full transition-colors",
-                                                (!message.trim() && selectedFiles.length === 0) || (pagination.isLoading && messages.length === 0)
+                                                (!message.trim() && selectedFiles.length === 0 && !recordedAudio) || (pagination.isLoading && messages.length === 0)
                                                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                                                     : "bg-blue-500 text-white hover:bg-blue-600 shadow-sm hover:shadow"
                                             )}
