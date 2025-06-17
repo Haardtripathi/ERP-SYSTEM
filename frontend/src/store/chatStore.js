@@ -145,6 +145,7 @@ const useChatStore = create((set, get) => ({
     isAdmin: false,
     activeImageUrls: new Set(), // To keep track of active Blob URLs for revocation
     unreadMessages: {},
+    unreadChats: 0, // New state to track total number of unread chats
     chatPagination: {}, // Stores pagination info per chat: { chatId: { hasMore: true, oldestMessageId: null, isLoading: false } },
     isMonitoringAdminView: false, // New state to indicate if in admin monitoring mode
     currentFetchId: null,
@@ -1005,9 +1006,15 @@ const useChatStore = create((set, get) => ({
     },
 
     setUnreadMessages: (chatId, count) => {
-        set((state) => ({
-            unreadMessages: { ...state.unreadMessages, [chatId]: count }
-        }));
+        set((state) => {
+            const newUnreadMessages = { ...state.unreadMessages, [chatId]: count };
+            // Calculate total number of chats with unread messages
+            const unreadChats = Object.values(newUnreadMessages).filter(count => count > 0).length;
+            return {
+                unreadMessages: newUnreadMessages,
+                unreadChats
+            };
+        });
         console.log(`setUnreadMessages: Updated unread count for ${chatId} to ${count}`);
     },
 

@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { Users, MessageSquare, Eye } from "lucide-react";
 import useAuthStore from "@/store/authStore";
+import useChatStore from "@/store/chatStore";
 import { getAuthUserAccessPages } from "@/services/adminService";
 
 const Sidenav = () => {
     const { isAdmin } = useAuthStore();
+    const { unreadChats } = useChatStore();
     const [allowedPages, setAllowedPages] = useState([]);
 
     useEffect(() => {
@@ -89,7 +91,14 @@ const Sidenav = () => {
                             }`
                         }
                     >
-                        <MessageSquare className="w-5 h-5" />
+                        <div className="relative">
+                            <MessageSquare className="w-5 h-5" />
+                            {unreadChats > 0 && (
+                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                    {unreadChats}
+                                </span>
+                            )}
+                        </div>
                         <span>Chat</span>
                     </NavLink>
                 </nav>
