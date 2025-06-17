@@ -15,4 +15,6 @@ router.get("/mygroups/:userId", isAuthenticated, chatController.getGroupsForUser
 router.get("/user-info/:userId", isAuthenticated, chatController.getUserInfo);
 router.get("/chat-media/:userId1/:userId2", isAuthenticated, chatController.getChatMedia);
 
+router.post('/mark-seen', chatController.markMessagesAsSeen);
+
 module.exports = router;

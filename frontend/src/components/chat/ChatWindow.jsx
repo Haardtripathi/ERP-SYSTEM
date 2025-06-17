@@ -48,7 +48,9 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         fetchMessages,
         fetchGroupMessages,
         chatPagination,
-        users: storeUsers
+        users: storeUsers,
+        unreadMessages,
+        markMessagesAsSeen
     } = useChatStore();
     console.log("PAG", chatPagination)
     // Use either prop users or store users
@@ -452,7 +454,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
     const handleRecordingComplete = async (audioBlob, audioUrl) => {
         // Create a temporary audio element to get the duration
         const tempAudio = new Audio(audioUrl);
-        
+
         // Wait for metadata to load to get the duration
         await new Promise((resolve) => {
             tempAudio.addEventListener('loadedmetadata', () => {
@@ -515,17 +517,17 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                         if (!attachmentUrl) return null;
 
                         // Check if the file is an audio file
-                        const isAudio = attachment.contentType?.startsWith('audio/') || 
-                                      attachment.fileName?.toLowerCase().endsWith('.mp3') ||
-                                      attachment.fileName?.toLowerCase().endsWith('.wav') ||
-                                      attachment.fileName?.toLowerCase().endsWith('.ogg') ||
-                                      attachment.fileName?.toLowerCase().endsWith('.webm');
+                        const isAudio = attachment.contentType?.startsWith('audio/') ||
+                            attachment.fileName?.toLowerCase().endsWith('.mp3') ||
+                            attachment.fileName?.toLowerCase().endsWith('.wav') ||
+                            attachment.fileName?.toLowerCase().endsWith('.ogg') ||
+                            attachment.fileName?.toLowerCase().endsWith('.webm');
 
                         // Check if the file is a video file
                         const isVideo = attachment.contentType?.startsWith('video/') ||
-                                      attachment.fileName?.toLowerCase().endsWith('.mp4') ||
-                                      attachment.fileName?.toLowerCase().endsWith('.webm') ||
-                                      attachment.fileName?.toLowerCase().endsWith('.mov');
+                            attachment.fileName?.toLowerCase().endsWith('.mp4') ||
+                            attachment.fileName?.toLowerCase().endsWith('.webm') ||
+                            attachment.fileName?.toLowerCase().endsWith('.mov');
 
                         if (isAudio) {
                             return (
@@ -634,6 +636,20 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         return groups;
     };
 
+    // Add effect to mark messages as seen when chat is selected
+    useEffect(() => {
+        if (selectedChat && currentUser) {
+            markMessagesAsSeen(selectedChat.id, selectedChat.type === 'group');
+        }
+    }, [selectedChat, currentUser]);
+
+    // Add effect to mark messages as seen when scrolling to bottom
+    useEffect(() => {
+        if (selectedChat && currentUser && isAtBottomRef.current) {
+            markMessagesAsSeen(selectedChat.id, selectedChat.type === 'group');
+        }
+    }, [messages, selectedChat, currentUser]);
+
     if (!selectedChat) {
         return (
             <div className="flex items-center justify-center h-full bg-gray-50">
@@ -665,7 +681,14 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
     return (
         <div className="flex flex-col h-full bg-white relative">
             <div className="p-4 border-b bg-white shadow-sm flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-800">{selectedChat.name || 'Select a Chat'}</h2>
+                <div className="flex items-center space-x-2">
+                    <h2 className="text-lg font-semibold text-gray-800">{selectedChat.name || 'Select a Chat'}</h2>
+                    {unreadMessages[selectedChat?.id] > 0 && (
+                        <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                            {unreadMessages[selectedChat.id]} new
+                        </span>
+                    )}
+                </div>
                 <div className="flex items-center space-x-2">
                     {isTyping && (
                         <div className="flex items-center text-sm text-gray-500">
@@ -1012,8 +1035,8 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                                     <X className="w-5 h-5" />
                                                 </button>
                                             </div>
-                                            <audio 
-                                                controls 
+                                            <audio
+                                                controls
                                                 className="w-full"
                                                 src={recordedAudio.url}
                                             >

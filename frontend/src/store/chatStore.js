@@ -66,14 +66,14 @@ const processAttachmentBuffer = (buffer, contentType) => {
         const uint8Array = new Uint8Array(uint8ArrayData);
         console.log('processAttachmentBuffer: Created Uint8Array (length):', uint8Array.length);
         const { url, blob } = createBlobUrl(uint8Array, contentType);
-        
+
         // Store the blob URL in the activeImageUrls set for both images and videos
         if (contentType.startsWith('image/') || contentType.startsWith('video/')) {
             const store = useChatStore.getState();
             store.activeImageUrls.add(url);
             console.log('Added URL to activeImageUrls:', url);
         }
-        
+
         return { url, blob };
     } catch (error) {
         console.error('processAttachmentBuffer: Error processing attachment:', error);
@@ -108,11 +108,11 @@ const processFileData = async (file) => {
 
         const arrayBuffer = await file.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
-        
+
         // Create a blob URL for immediate preview
         const blob = new Blob([uint8Array], { type: file.type });
         const url = URL.createObjectURL(blob);
-        
+
         // Add to activeImageUrls if it's an image or video
         if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
             useChatStore.getState().activeImageUrls.add(url);
@@ -148,6 +148,7 @@ const useChatStore = create((set, get) => ({
     chatPagination: {}, // Stores pagination info per chat: { chatId: { hasMore: true, oldestMessageId: null, isLoading: false } },
     isMonitoringAdminView: false, // New state to indicate if in admin monitoring mode
     currentFetchId: null,
+    lastSeenMessages: {}, // Track last seen message IDs per chat
 
     // Actions
     setMessages: (newMessages) => {
@@ -266,7 +267,7 @@ const useChatStore = create((set, get) => ({
                             get().joinChat(get().currentUser._id);
                             // Request current online users list
                             socket.emit('get-online-users');
-                            
+
                             // Re-join group if in a group chat
                             const selectedChat = get().selectedChat;
                             if (selectedChat?.type === 'group') {
@@ -349,6 +350,21 @@ const useChatStore = create((set, get) => ({
                                 msg._id === existingMessage._id ? processedMessage : msg
                             );
                             get().setMessages(updatedMessages);
+
+                            // Check if this is a new message for the current chat
+                            const selectedChat = get().selectedChat;
+                            const chatId = message.group || (message.sender === get().currentUser._id ? message.receiver : message.sender);
+
+                            if (selectedChat &&
+                                ((selectedChat.type === 'group' && selectedChat.id === message.group) ||
+                                    (selectedChat.type === 'user' && selectedChat.id === chatId))) {
+                                // If we're in the chat, mark it as seen
+                                get().markMessagesAsSeen(chatId, selectedChat.type === 'group');
+                            } else {
+                                // If we're not in the chat, increment unread count
+                                get().setUnreadMessages(chatId, (get().unreadMessages[chatId] || 0) + 1);
+                            }
+
                             return;
                         }
 
@@ -357,10 +373,10 @@ const useChatStore = create((set, get) => ({
                         const selectedChat = get().selectedChat;
 
                         // Only update messages if we're in the correct chat
-                        if (selectedChat && 
+                        if (selectedChat &&
                             ((selectedChat.type === 'group' && selectedChat.id === message.group) ||
-                             (selectedChat.type === 'user' && selectedChat.id === chatId))) {
-                            
+                                (selectedChat.type === 'user' && selectedChat.id === chatId))) {
+
                             // Process attachments if present
                             let processedMessage = { ...message };
                             if (message.attachments && message.attachments.length > 0) {
@@ -697,6 +713,13 @@ const useChatStore = create((set, get) => ({
                     }
                 }));
             }
+
+            // After fetching messages, mark them as seen if this is the selected chat
+            if (selectedChat &&
+                ((selectedChat.type === 'user' && selectedChat.id === userId2) ||
+                    (selectedChat.type === 'group' && selectedChat.id === userId2))) {
+                get().markMessagesAsSeen(userId2, selectedChat.type === 'group');
+            }
         } catch (error) {
             console.error('fetchMessages: Error fetching messages:', error.message, error.response?.data);
             // Only update loading state if this is still the current fetch
@@ -738,7 +761,7 @@ const useChatStore = create((set, get) => ({
             // First fetch the group details to get member information
             const groupResponse = await axios.get(`/chat/group/${groupId}`);
             const groupData = groupResponse.data;
-            
+
             // Update users state with group members if they're not already present
             set(state => {
                 const existingUserIds = new Set(state.users.map(u => u._id));
@@ -958,7 +981,7 @@ const useChatStore = create((set, get) => ({
     cleanupBlobUrls: () => {
         console.log('cleanupBlobUrls: Cleaning up all Blob URLs');
         const store = get();
-        
+
         // Only revoke URLs that are no longer in use
         const activeUrls = new Set();
         store.messages.forEach(msg => {
@@ -992,6 +1015,39 @@ const useChatStore = create((set, get) => ({
         if (get().unreadMessages[chatId] > 0) {
             get().setUnreadMessages(chatId, 0);
             console.log(`markMessagesAsRead: Marked chat ${chatId} as read.`);
+        }
+    },
+
+    markMessagesAsSeen: async (chatId, isGroup = false) => {
+        try {
+            const { currentUser } = get();
+            if (!currentUser) return;
+
+            const response = await fetch('/api/chat/mark-seen', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: currentUser._id,
+                    chatId,
+                    isGroup
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to mark messages as seen');
+            }
+
+            // Update local state
+            set(state => ({
+                unreadMessages: {
+                    ...state.unreadMessages,
+                    [chatId]: 0
+                }
+            }));
+        } catch (error) {
+            console.error('Error marking messages as seen:', error);
         }
     }
 }));

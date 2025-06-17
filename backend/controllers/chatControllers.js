@@ -308,14 +308,45 @@ exports.getGroupDetails = async (req, res) => {
         const group = await ChatGroup.findById(groupId)
             .populate('members', 'agent_name _id')
             .populate('createdBy', 'agent_name _id');
-        
+
         if (!group) {
             return res.status(404).json({ error: 'Group not found' });
         }
-        
+
         res.json(group);
     } catch (error) {
         console.error('Error in getGroupDetails:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.markMessagesAsSeen = async (req, res) => {
+    try {
+        const { userId, chatId, isGroup } = req.body;
+
+        // Build the query based on whether it's a group chat or private chat
+        const query = isGroup
+            ? { group: chatId, seenBy: { $ne: userId } }
+            : {
+                $or: [
+                    { sender: chatId, receiver: userId },
+                    { sender: userId, receiver: chatId }
+                ],
+                seenBy: { $ne: userId }
+            };
+
+        // Update all unread messages
+        const result = await ChatMessage.updateMany(
+            query,
+            { $addToSet: { seenBy: userId } }
+        );
+
+        res.status(200).json({
+            success: true,
+            updatedCount: result.modifiedCount
+        });
+    } catch (error) {
+        console.error('Error in markMessagesAsSeen:', error);
         res.status(500).json({ error: error.message });
     }
 };
