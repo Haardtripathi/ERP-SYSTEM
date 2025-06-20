@@ -108,6 +108,43 @@ function setupSocket(server) {
             socket.join(groupId);
         });
 
+        socket.on("message-seen", async (data) => {
+            console.log('Message seen event received:', data);
+            const { messageId, seenBy } = data;
+
+            try {
+                // Update the message in the database
+                const message = await ChatMessage.findById(messageId);
+                if (message) {
+                    // Ensure seenBy is an array and contains unique values
+                    const uniqueSeenBy = [...new Set([...message.seenBy, ...seenBy])];
+                    message.seenBy = uniqueSeenBy;
+                    await message.save();
+
+                    // Broadcast the update to all relevant users
+                    if (message.group) {
+                        // For group messages, emit to all group members
+                        io.to(message.group.toString()).emit('message-seen', {
+                            messageId,
+                            seenBy: uniqueSeenBy
+                        });
+                    } else {
+                        // For private messages, emit to both sender and receiver
+                        io.to(message.sender.toString()).emit('message-seen', {
+                            messageId,
+                            seenBy: uniqueSeenBy
+                        });
+                        io.to(message.receiver.toString()).emit('message-seen', {
+                            messageId,
+                            seenBy: uniqueSeenBy
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating message seen status:', error);
+            }
+        });
+
         socket.on("disconnect", (reason) => {
             console.log('Socket disconnected:', socket.id, 'Reason:', reason);
             for (let [id, sockId] of onlineUsers.entries()) {
@@ -121,6 +158,10 @@ function setupSocket(server) {
     });
 }
 
-module.exports = { setupSocket };
+function getIo() {
+    return io;
+}
+
+module.exports = { setupSocket, getIo };
 
 

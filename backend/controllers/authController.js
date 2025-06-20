@@ -80,10 +80,10 @@ exports.register = [
             const existingUser = await User.findOne({
                 $or: [
                     { email: email },
-                    { company_number: companyNumber },
+                    // { company_number: companyNumber },
                     { agent_name: agentName },
-                    { aadhar_number: aadharNumber },
-                    { phone_number: phoneNumber }
+                    // { aadhar_number: aadharNumber },
+                    // { phone_number: phoneNumber }
                 ]
             });
 
@@ -91,10 +91,10 @@ exports.register = [
             if (existingUser) {
                 let conflictField = '';
                 if (existingUser.email === email) conflictField = 'email';
-                else if (existingUser.company_number === companyNumber) conflictField = 'company number';
+                // else if (existingUser.company_number === companyNumber) conflictField = 'company number';
                 else if (existingUser.agent_name === agentName) conflictField = 'agent name';
-                else if (existingUser.aadhar_number === aadharNumber) conflictField = 'Aadhar number';
-                else if (existingUser.phone_number === phoneNumber) conflictField = 'phone number';
+                // else if (existingUser.aadhar_number === aadharNumber) conflictField = 'Aadhar number';
+                // else if (existingUser.phone_number === phoneNumber) conflictField = 'phone number';
 
                 return res.status(400).json({
                     message: `User with this ${conflictField} already exists`
@@ -125,7 +125,6 @@ exports.register = [
                     contentType: req.file.mimetype
                 };
             }
-            console.log(newUser)
             await newUser.save();
             res.status(201).json({ message: 'User registered successfully' });
         } catch (error) {
@@ -145,13 +144,10 @@ exports.login = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
         const role = await Role.findOne({ _id: user.role })
-        console.log(role)
         const permissions = await Permission.findOne({ role: user.role })
         const userRole = role.name
-        console.log({ _id: user._id.toString(), email: user.email, agent_name: user.agent_name, role: user.role })
         const token = jwt.sign({ _id: user._id.toString(), email: user.email, agent_name: user.agent_name, role: userRole }, process.env.JWT_SECRET, { expiresIn: '1h' });
         // const token = jwt.sign({ _id: user._id.toString(), email: user.email, agent_name: user.agent_name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        console.log(token)
         res.json({ token });
     } catch (error) {
         res.status(500).json({ error: error.message });

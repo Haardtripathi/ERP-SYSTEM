@@ -6,20 +6,16 @@ const mongoose = require('mongoose');
 exports.sendMessage = async (req, res) => {
     try {
         const { sender, receiver, group, message, attachments } = req.body;
-        console.log('Received message data:', {
-            sender,
-            receiver,
-            group,
-            hasMessage: !!message,
-            attachmentsCount: attachments?.length || 0
-        });
 
         // Create message data object
         const messageData = {
             sender,
             receiver,
             group,
-            message
+            message,
+            // Initialize seenBy array with sender's ID for group messages
+            // For private chats, only add sender to seenBy if they are the receiver
+            seenBy: group ? [sender] : []
         };
 
         // Handle attachments if present
@@ -35,11 +31,6 @@ exports.sendMessage = async (req, res) => {
 
         // Create the message
         const newMsg = await ChatMessage.create(messageData);
-        console.log('Message saved to database:', {
-            id: newMsg._id,
-            message: newMsg.message,
-            attachmentsCount: newMsg.attachments?.length || 0
-        });
 
         res.status(200).json(newMsg);
     } catch (error) {
@@ -174,22 +165,17 @@ exports.getAllUsers = async (req, res) => {
 exports.getUserInfo = async (req, res) => {
     try {
         const { userId } = req.params;
-        console.log('getUserInfo request:', { userId });
 
         if (!mongoose.Types.ObjectId.isValid(userId)) {
-            console.log('Invalid user ID:', userId);
             return res.status(400).json({ message: "Invalid user ID" });
         }
 
         const user = await User.findById(userId).select('-password');
-        console.log('Found user:', user ? 'yes' : 'no');
 
         if (!user) {
-            console.log('User not found:', userId);
             return res.status(404).json({ message: "User not found" });
         }
 
-        console.log('Sending user info response');
         res.json(user);
     } catch (error) {
         console.error('Error in getUserInfo:', error);
@@ -204,11 +190,9 @@ exports.getChatMedia = async (req, res) => {
         const limit = parseInt(req.query.limit) || 12;
         const skip = (page - 1) * limit;
 
-        console.log('Getting chat media with params:', { userId1, userId2, page, limit, skip });
 
         // Validate user IDs
         if (!mongoose.Types.ObjectId.isValid(userId1) || !mongoose.Types.ObjectId.isValid(userId2)) {
-            console.error('Invalid user IDs:', { userId1, userId2 });
             return res.status(400).json({ error: 'Invalid user IDs' });
         }
 
@@ -268,7 +252,6 @@ exports.getChatMedia = async (req, res) => {
 
         const totalAttachmentsResult = await ChatMessage.aggregate(totalCountPipeline);
         const totalCount = totalAttachmentsResult.length > 0 ? totalAttachmentsResult[0].totalAttachments : 0;
-        console.log('Total individual attachments:', totalCount);
 
         // Apply pagination to the main pipeline
         const mediaPipeline = [
@@ -278,13 +261,11 @@ exports.getChatMedia = async (req, res) => {
         ];
 
         const mediaItems = await ChatMessage.aggregate(mediaPipeline);
-        console.log('Found media items for current page:', mediaItems.length);
 
         // Calculate total pages
         const totalPages = Math.ceil(totalCount / limit);
         const hasMoreCalculated = (page * limit) < totalCount;
 
-        console.log('Pagination Info:', { currentPage: page, totalPages, totalItems: totalCount, hasMore: hasMoreCalculated });
 
         // Return response with pagination info
         res.json({
@@ -306,8 +287,8 @@ exports.getGroupDetails = async (req, res) => {
     try {
         const { groupId } = req.params;
         const group = await ChatGroup.findById(groupId)
-            .populate('members', 'agent_name _id')
-            .populate('createdBy', 'agent_name _id');
+            .populate('members', 'agent_name _id email photo')
+            .populate('createdBy', 'agent_name _id email photo');
 
         if (!group) {
             return res.status(404).json({ error: 'Group not found' });
@@ -335,18 +316,188 @@ exports.markMessagesAsSeen = async (req, res) => {
                 seenBy: { $ne: userId }
             };
 
+
         // Update all unread messages
         const result = await ChatMessage.updateMany(
             query,
             { $addToSet: { seenBy: userId } }
         );
 
+        // Fetch the updated messages to return the latest seenBy status
+        const updatedMessages = await ChatMessage.find(query).select('_id seenBy');
+
+
         res.status(200).json({
             success: true,
-            updatedCount: result.modifiedCount
+            updatedCount: result.modifiedCount,
+            messages: updatedMessages
         });
     } catch (error) {
         console.error('Error in markMessagesAsSeen:', error);
         res.status(500).json({ error: error.message });
     }
+};
+
+exports.updateGroup = async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        const { name, members } = req.body;
+
+        // Check if user is admin of the group
+        const group = await ChatGroup.findById(groupId);
+        if (!group) {
+            return res.status(404).json({ error: 'Group not found' });
+        }
+
+        if (group.createdBy.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Only group admin can update group details' });
+        }
+
+        // Update group
+        const updatedGroup = await ChatGroup.findByIdAndUpdate(
+            groupId,
+            { name, members },
+            { new: true }
+        ).populate('members', 'agent_name _id email photo')
+            .populate('createdBy', 'agent_name _id email photo');
+
+        res.json(updatedGroup);
+    } catch (error) {
+        console.error('Error in updateGroup:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.getGroupMedia = async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+        const skip = (page - 1) * limit;
+
+        console.log('Getting group media with params:', { groupId, page, limit, skip });
+
+        // Aggregation pipeline to get individual attachments with pagination
+        const pipeline = [
+            {
+                $match: {
+                    group: new mongoose.Types.ObjectId(groupId),
+                    attachments: { $exists: true, $ne: [] }
+                }
+            },
+            { $unwind: "$attachments" }, // Deconstruct the attachments array into separate documents
+            { $sort: { createdAt: -1 } }, // Sort by message creation date (newest first)
+            {
+                $project: {
+                    _id: 0, // Exclude _id of the message
+                    id: "$_id", // Use message _id as media item id
+                    data: "$attachments.data",
+                    contentType: "$attachments.contentType",
+                    fileName: "$attachments.fileName",
+                    fileSize: "$attachments.fileSize",
+                    fileType: "$attachments.fileType",
+                    timestamp: "$createdAt"
+                }
+            }
+        ];
+
+        // Get total count of all attachments matching the query
+        const totalCountPipeline = [
+            {
+                $match: {
+                    group: new mongoose.Types.ObjectId(groupId),
+                    attachments: { $exists: true, $ne: [] }
+                }
+            },
+            { $unwind: "$attachments" },
+            { $count: "totalAttachments" }
+        ];
+
+        const totalAttachmentsResult = await ChatMessage.aggregate(totalCountPipeline);
+        const totalCount = totalAttachmentsResult.length > 0 ? totalAttachmentsResult[0].totalAttachments : 0;
+        console.log('Total individual attachments:', totalCount);
+
+        // Apply pagination to the main pipeline
+        const mediaPipeline = [
+            ...pipeline,
+            { $skip: skip },
+            { $limit: limit }
+        ];
+
+        const mediaItems = await ChatMessage.aggregate(mediaPipeline);
+        console.log('Found media items for current page:', mediaItems.length);
+
+        // Calculate total pages
+        const totalPages = Math.ceil(totalCount / limit);
+        const hasMore = (page * limit) < totalCount;
+
+        console.log('Group media response:', {
+            mediaCount: mediaItems.length,
+            totalCount,
+            totalPages,
+            hasMore
+        });
+
+        res.json({
+            media: mediaItems,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalItems: totalCount,
+                hasMore
+            }
+        });
+    } catch (error) {
+        console.error('Error in getGroupMedia:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.getUnreadCounts = async (req, res) => {
+    const userId = req.params.userId;
+    if (!userId) return res.status(400).json({ error: "Missing userId" });
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    // 1-1 chats: Only count messages where user is the receiver
+    const userUnreadAgg = await ChatMessage.aggregate([
+        {
+            $match: {
+                receiver: userObjectId,
+                seenBy: { $ne: userObjectId },
+                group: null // Only private chats
+            }
+        },
+        {
+            $group: {
+                _id: "$sender",
+                count: { $sum: 1 }
+            }
+        }
+    ]);
+
+    // Groups: Only count messages not sent by the user
+    const groupUnreadAgg = await ChatMessage.aggregate([
+        {
+            $match: {
+                group: { $ne: null },
+                seenBy: { $ne: userObjectId },
+                sender: { $ne: userObjectId }
+            }
+        },
+        {
+            $group: {
+                _id: "$group",
+                count: { $sum: 1 }
+            }
+        }
+    ]);
+
+    const userUnread = {};
+    userUnreadAgg.forEach(row => { userUnread[row._id] = row.count; });
+
+    const groupUnread = {};
+    groupUnreadAgg.forEach(row => { groupUnread[row._id] = row.count; });
+    console.log(userUnread, groupUnread)
+
+    res.json({ userUnread, groupUnread });
 };

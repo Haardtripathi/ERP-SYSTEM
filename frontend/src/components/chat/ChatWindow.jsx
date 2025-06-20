@@ -3,6 +3,7 @@ import useChatStore from '../../store/chatStore';
 import { Send, Users, Loader2, Image as ImageIcon, XCircle, X, ChevronUp, ChevronDown, Reply, Info, Paperclip } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import UserInfoPanel from './UserInfoPanel';
+import GroupInfoPanel from './GroupInfoPanel';
 import { PanelGroup, Panel } from 'react-resizable-panels';
 import AudioPlayer from './AudioPlayer';
 import AudioRecorder from './AudioRecorder';
@@ -247,21 +248,8 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         const oldestDisplayedMessageElement = messageElements.length > 0 ? messageElements[0] : null;
         const oldestDisplayedMessageId = oldestDisplayedMessageElement ? oldestDisplayedMessageElement.dataset.messageId : null;
 
-        // Get the correct chat ID based on chat type and monitoring status
-        let chatId;
-        if (selectedChat.type === 'user') {
-            if (isReadOnly) {
-                const firstMessage = messages[0];
-                if (firstMessage) {
-                    chatId = firstMessage.sender === selectedChat.id ? firstMessage.receiver : firstMessage.sender;
-                }
-            } else {
-                chatId = selectedChat.id;
-            }
-        } else {
-            chatId = selectedChat.id;
-        }
-
+        // Get the correct chat ID based on chat type
+        const chatId = selectedChat.id;
         const pagination = chatPagination[chatId];
 
         if (pagination?.hasMore && !pagination?.isLoading) {
@@ -306,6 +294,31 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
             }, 100);
         }
     };
+
+    // Add new useEffect to handle initial group message loading
+    useEffect(() => {
+        if (selectedChat && selectedChat.type === 'group') {
+            // Generate a new fetch ID for initial load
+            const newFetchId = Date.now();
+            useChatStore.getState().currentFetchId = newFetchId;
+            fetchGroupMessages(selectedChat.id, 15, null, newFetchId);
+        }
+    }, [selectedChat?.id, selectedChat?.type]);
+
+    // Add new useEffect to handle scroll position restoration after loading older messages
+    useEffect(() => {
+        if (messages.length > 0 && !isInitialLoadRef.current) {
+            const container = messagesContainerRef.current;
+            if (container) {
+                const { scrollHeight, clientHeight, scrollTop } = container;
+                const isAtBottom = scrollHeight - clientHeight - scrollTop < 10;
+
+                if (isAtBottom) {
+                    scrollToBottom();
+                }
+            }
+        }
+    }, [messages]);
 
     const handleReply = (message) => {
         setReplyingTo(message);
@@ -402,7 +415,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
             }, 2000);
         } else {
             // Message not found in current view, try to load older messages
-            const chatId = selectedChat.type === 'user' ? selectedChat.id : selectedChat.id;
+            const chatId = selectedChat.id; // Simplified - we can use selectedChat.id directly since it's the same for both user and group
             const pagination = chatPagination[chatId];
 
             // Keep track of attempts to prevent infinite loops
@@ -422,11 +435,15 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                     // Store current scroll position
                     const currentScroll = messagesContainerRef.current?.scrollTop;
 
+                    // Generate a new fetch ID
+                    const newFetchId = Date.now();
+                    useChatStore.getState().currentFetchId = newFetchId;
+
                     // Load older messages
                     if (selectedChat.type === 'user') {
-                        await fetchMessages(currentUser._id, selectedChat.id, 15, pagination.oldestMessageId);
+                        await fetchMessages(currentUser._id, selectedChat.id, 15, pagination.oldestMessageId, newFetchId);
                     } else if (selectedChat.type === 'group') {
-                        await fetchGroupMessages(selectedChat.id, 15, pagination.oldestMessageId);
+                        await fetchGroupMessages(selectedChat.id, 15, pagination.oldestMessageId, newFetchId);
                     }
 
                     // Wait for messages to be processed and rendered
@@ -462,6 +479,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
             });
             tempAudio.load();
         });
+
 
         setRecordedAudio({
             blob: audioBlob,
@@ -636,19 +654,45 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         return groups;
     };
 
-    // Add effect to mark messages as seen when chat is selected
+    // Add new useEffect to handle message seen status updates
     useEffect(() => {
-        if (selectedChat && currentUser) {
-            markMessagesAsSeen(selectedChat.id, selectedChat.type === 'group');
-        }
-    }, [selectedChat, currentUser]);
+        if (!selectedChat || !currentUser) return;
 
-    // Add effect to mark messages as seen when scrolling to bottom
-    useEffect(() => {
-        if (selectedChat && currentUser && isAtBottomRef.current) {
-            markMessagesAsSeen(selectedChat.id, selectedChat.type === 'group');
+        const handleMessageSeen = (data) => {
+            const { messageId, seenBy } = data;
+            // Force a re-render by updating the messages state
+            setMessages(state => ({
+                messages: state.messages.map(msg =>
+                    msg._id === messageId
+                        ? { ...msg, seenBy: [...new Set(seenBy)] }
+                        : msg
+                )
+            }));
+        };
+
+        const store = useChatStore.getState();
+        if (store.socket) {
+            store.socket.on('message-seen', handleMessageSeen);
         }
-    }, [messages, selectedChat, currentUser]);
+
+        return () => {
+            if (store.socket) {
+                store.socket.off('message-seen', handleMessageSeen);
+            }
+        };
+    }, [selectedChat?.id, currentUser?._id]);
+
+    // Update the message rendering to use a memoized value for seen status
+    const getMessageSeenStatus = (message) => {
+        if (!message.seenBy) return '✓';
+        // For 1-1 chat, show double tick if the other user's ID is in seenBy
+        if (selectedChat.type === 'user') {
+            const otherUserId = message.sender === currentUser._id ? message.receiver : message.sender;
+            return message.seenBy.includes(otherUserId) ? '✓✓' : '✓';
+        }
+        // For group, you may want to show a different logic (e.g., all members seen)
+        return message.seenBy.length > 1 ? '✓✓' : '✓';
+    };
 
     if (!selectedChat) {
         return (
@@ -700,7 +744,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                         <button
                             onClick={() => setShowInfoPanel(!showInfoPanel)}
                             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                            title="Contact Info"
+                            title={selectedChat.type === 'group' ? "Group Info" : "Contact Info"}
                         >
                             <Info className="w-5 h-5 text-gray-600" />
                         </button>
@@ -908,12 +952,19 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
 
                                                                 {hasAttachments && renderMessageContent(msg)}
 
-                                                                <span className={cn(
-                                                                    "text-xs mt-1 block",
-                                                                    isMyMessage ? "text-blue-100" : "text-gray-500"
-                                                                )}>
-                                                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                                </span>
+                                                                <div className="flex items-center justify-end mt-1 space-x-1">
+                                                                    <span className={cn(
+                                                                        "text-xs",
+                                                                        isMyMessage ? "text-blue-100" : "text-gray-500"
+                                                                    )}>
+                                                                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                    </span>
+                                                                    {isMyMessage && (
+                                                                        <span className="text-xs text-blue-100">
+                                                                            {getMessageSeenStatus(msg)}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     );
@@ -1111,13 +1162,20 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                         </div>
                     </Panel>
 
-                    {/* User Info Panel */}
+                    {/* Info Panel */}
                     {showInfoPanel && (
-                        <UserInfoPanel
-                            selectedChat={selectedChat}
-                            onClose={() => setShowInfoPanel(false)}
-                            currentUser={currentUser}
-                        />
+                        selectedChat.type === 'group' ? (
+                            <GroupInfoPanel
+                                selectedChat={selectedChat}
+                                onClose={() => setShowInfoPanel(false)}
+                            />
+                        ) : (
+                            <UserInfoPanel
+                                selectedChat={selectedChat}
+                                onClose={() => setShowInfoPanel(false)}
+                                currentUser={currentUser}
+                            />
+                        )
                     )}
                 </PanelGroup>
             </div>

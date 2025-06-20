@@ -34,15 +34,8 @@ exports.getAllRolesAndPermissions = async (req, res) => {
                 return { ...role, permissions: permissions ? permissions.permissions : [] };
             })
         );
-        // console.log(rolesWithPermissions)
-        // console.log("ABC")
-        // const roleName = req.user.role
 
-        // const userRole = await Role.findOne({ name: roleName })
-        // const permissions = await Permission.findOne({ role: userRole._id })
-
-        // console.log(permissions)
-
+        res.status(200).json(rolesWithPermissions);
         res.status(200).json(rolesWithPermissions);
     } catch (error) {
         res.status(500).json({ message: "Error fetching roles", error });
@@ -188,14 +181,11 @@ exports.deleteRole = async (req, res) => {
         if (!roleID) {
             return res.status(400).json({ success: false, message: "Role ID is required" });
         }
-        // // console.log("ABc")
 
         const roleResult = await Role.deleteOne({ _id: roleID });
-        // console.log("ABc")
 
         const permissionResult = await Permission.deleteOne({ role: roleID });
 
-        // console.log("ABc")
 
         res.status(200).json({
             success: true,
@@ -720,7 +710,6 @@ exports.editUserData = async (req, res) => {
 
 exports.getUserAccessPages = async (req, res) => {
     try {
-        console.log("ABC")
         const authHeader = req.headers.authorization;
         if (!authHeader) {
             return res.status(401).json({ message: "Authorization header is missing" });
@@ -730,7 +719,6 @@ exports.getUserAccessPages = async (req, res) => {
         if (!token) {
             return res.status(401).json({ message: "Token is missing" });
         }
-        console.log(token)
         // Verify the token
         const secretKey = process.env.JWT_SECRET || "yourSecretKey"; // Use your secret key
         const decoded = jwt.verify(token, secretKey);
@@ -738,7 +726,6 @@ exports.getUserAccessPages = async (req, res) => {
         // Attach user data to the request for further use
         req.user = decoded;
         const roleName = req.user.role;
-        // console.log(role)
 
         // Step 1: Find the role object
         const userRole = await Role.findOne({ name: roleName });

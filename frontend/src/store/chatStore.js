@@ -227,7 +227,19 @@ const useChatStore = create((set, get) => ({
         }
     },
 
-    initializeSocket: (shouldAttachListeners = true) => {
+    initializeSocket: (force = false) => {
+        if (isSocketInitialized && !force) return;
+        if (!socket) {
+            socket = io('http://localhost:5001', {
+                withCredentials: true,
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000,
+                transports: ['websocket', 'polling'],
+                maxHttpBufferSize: MAX_FILE_SIZE, // Increased to 100MB
+                timeout: 60000 // Increase timeout to 60 seconds
+            });
+        }
         try {
             // If socket is already initialized, clear existing listeners to prevent duplicates
             if (socket) {
@@ -243,7 +255,7 @@ const useChatStore = create((set, get) => ({
             }
 
             // Only create and connect the socket if we intend to attach listeners
-            if (shouldAttachListeners) {
+            if (force) {
                 console.log('Creating new socket connection...');
                 socket = io('http://localhost:5001', {
                     withCredentials: true,
@@ -320,27 +332,20 @@ const useChatStore = create((set, get) => ({
                         });
 
                         if (existingMessage) {
-                            console.log('Found existing message to replace:', existingMessage._id);
-
-                            let processedMessage = { ...message }; // Start with server's message data
-
-                            // If the optimistic message already had client-generated attachment URLs,
-                            // use those to prevent flickering. Only process from server if no optimistic URL exists.
-                            if (existingMessage.attachmentUrls && existingMessage.attachmentUrls.length > 0) {
-                                console.log('Keeping optimistic attachment URLs for message:', existingMessage._id);
-                                processedMessage.attachmentUrls = existingMessage.attachmentUrls;
-                                processedMessage.attachmentBlobs = existingMessage.attachmentBlobs; // Keep client-side blobs
-                                processedMessage.attachments = existingMessage.attachments; // Keep client-side attachment metadata
-                            } else if (message.attachments && message.attachments.length > 0) {
-                                // Otherwise, process attachments from the server's buffer data
+                            // Process attachments if present
+                            let processedMessage = { ...message };
+                            if (message.attachments && message.attachments.length > 0) {
                                 const processedAttachments = await Promise.all(message.attachments.map(async (attachment) => {
                                     const attachmentData = processAttachmentBuffer(attachment.data, attachment.contentType);
                                     return attachmentData ? { ...attachment, url: attachmentData.url, blob: attachmentData.blob } : null;
                                 }));
 
-                                processedMessage.attachmentUrls = processedAttachments.map(att => att?.url).filter(Boolean);
-                                processedMessage.attachmentBlobs = processedAttachments.map(att => att?.blob).filter(Boolean);
-                                processedMessage.attachments = processedAttachments.filter(Boolean);
+                                processedMessage = {
+                                    ...message,
+                                    attachmentUrls: processedAttachments.map(att => att?.url).filter(Boolean),
+                                    attachmentBlobs: processedAttachments.map(att => att?.blob).filter(Boolean),
+                                    attachments: processedAttachments.filter(Boolean)
+                                };
                             }
 
                             // Ensure the _id is updated to the server's actual _id
@@ -395,7 +400,7 @@ const useChatStore = create((set, get) => ({
                             }
 
                             get().setMessages([...get().messages, processedMessage]);
-                            get().markMessagesAsRead(chatId);
+                            get().markMessagesAsSeen(chatId, selectedChat.type === 'group');
                         } else {
                             // Increment unread count for other chats
                             get().setUnreadMessages(chatId, (get().unreadMessages[chatId] || 0) + 1);
@@ -404,10 +409,13 @@ const useChatStore = create((set, get) => ({
 
                     socket.on('update-online-users', (users) => {
                         console.log('Received online users update:', users);
-                        if (Array.isArray(users)) {
-                            const validUsers = users.filter(id => id && typeof id === 'string');
-                            set({ onlineUsers: validUsers });
-                        }
+                        set({ onlineUsers: users });
+                    });
+
+                    // Add new socket event for message seen status
+                    socket.on('message-seen', (data) => {
+                        console.log('Socket event: message-seen', data);
+                        get().updateMessageSeenStatus(data.messageId, data.seenBy);
                     });
 
                     socket.on('user-online', (userId) => {
@@ -428,9 +436,9 @@ const useChatStore = create((set, get) => ({
                         }
                     });
 
-                    socket.on('typing', ({ userId, isTyping }) => {
-                        if (get().selectedChat?.id === userId) {
-                            set({ isTyping });
+                    socket.on('typing', (data) => {
+                        if (get().selectedChat?.id === data.userId) {
+                            set({ isTyping: data.isTyping });
                         }
                     });
 
@@ -721,6 +729,10 @@ const useChatStore = create((set, get) => ({
                     (selectedChat.type === 'group' && selectedChat.id === userId2))) {
                 get().markMessagesAsSeen(userId2, selectedChat.type === 'group');
             }
+
+            // Calculate unread count for a chat
+            const unreadCount = get().calculateUnreadCount(userId2, currentUser._id);
+            get().setUnreadMessages(userId2, unreadCount);
         } catch (error) {
             console.error('fetchMessages: Error fetching messages:', error.message, error.response?.data);
             // Only update loading state if this is still the current fetch
@@ -736,7 +748,7 @@ const useChatStore = create((set, get) => ({
     },
 
     fetchGroupMessages: async (groupId, limit = 15, beforeId = null, fetchId = null) => {
-        const { selectedChat, currentFetchId } = get();
+        const { currentUser, selectedChat, currentFetchId } = get();
 
         // Check if this fetch is still valid
         if (fetchId !== currentFetchId) {
@@ -856,6 +868,10 @@ const useChatStore = create((set, get) => ({
                     }
                 }));
             }
+
+            // Calculate unread count for a chat
+            const unreadCount = get().calculateUnreadCount(groupId, currentUser._id);
+            get().setUnreadMessages(groupId, unreadCount);
         } catch (error) {
             console.error('fetchGroupMessages: Error fetching group messages:', error.message, error.response?.data);
             // Only update loading state if this is still the current fetch
@@ -1025,37 +1041,109 @@ const useChatStore = create((set, get) => ({
         }
     },
 
-    markMessagesAsSeen: async (chatId, isGroup = false) => {
+    markMessagesAsSeen: async (chatId, isGroup) => {
+        const currentUser = get().currentUser;
+        console.log('Calling markMessagesAsSeen:', { chatId, isGroup, userId: currentUser?._id });
         try {
-            const { currentUser } = get();
             if (!currentUser) return;
 
-            const response = await fetch('/api/chat/mark-seen', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userId: currentUser._id,
-                    chatId,
-                    isGroup
-                })
+            const response = await axios.post('/chat/mark-seen', {
+                userId: currentUser._id,
+                chatId,
+                isGroup
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to mark messages as seen');
+            // Update local state with the latest seenBy status
+            if (response.data.messages) {
+                set(state => ({
+                    messages: state.messages.map(msg => {
+                        const updatedMsg = response.data.messages.find(m => m._id === msg._id);
+                        if (updatedMsg) {
+                            // Emit socket event for each updated message
+                            if (socket && socket.connected) {
+                                socket.emit('message-seen', {
+                                    messageId: msg._id,
+                                    seenBy: updatedMsg.seenBy
+                                });
+                            }
+                            return {
+                                ...msg,
+                                seenBy: updatedMsg.seenBy
+                            };
+                        }
+                        return msg;
+                    }),
+                    unreadMessages: {
+                        ...state.unreadMessages,
+                        [chatId]: 0
+                    }
+                }));
+            } else {
+                // Fallback to just updating unread count if no messages returned
+                set(state => ({
+                    unreadMessages: {
+                        ...state.unreadMessages,
+                        [chatId]: 0
+                    }
+                }));
             }
-
-            // Update local state
-            set(state => ({
-                unreadMessages: {
-                    ...state.unreadMessages,
-                    [chatId]: 0
-                }
-            }));
         } catch (error) {
             console.error('Error marking messages as seen:', error);
         }
+    },
+
+    // Add new function to handle individual message seen status updates
+    updateMessageSeenStatus: (messageId, seenBy) => {
+        set(state => ({
+            messages: state.messages.map(msg =>
+                msg._id === messageId
+                    ? { ...msg, seenBy: [...new Set([...msg.seenBy || [], ...seenBy])] }
+                    : msg
+            )
+        }));
+    },
+
+    // Calculate unread count for a chat
+    calculateUnreadCount: (chatId, userId) => {
+        const { messages, selectedChat } = get();
+        if (!selectedChat) return 0;
+        if (selectedChat.type === 'user') {
+            // For 1-1 chat, count all messages in this chat where userId is not in seenBy
+            return messages.filter(
+                msg =>
+                    ((msg.sender === userId || msg.receiver === userId) &&
+                        (msg.sender === chatId || msg.receiver === chatId)) &&
+                    !msg.seenBy?.includes(userId)
+            ).length;
+        } else if (selectedChat.type === 'group') {
+            // For group, count all messages in this group where userId is not in seenBy
+            return messages.filter(
+                msg => msg.group === chatId && !msg.seenBy?.includes(userId)
+            ).length;
+        }
+        return 0;
+    },
+
+    fetchUnreadCounts: async (userId) => {
+        try {
+            const response = await axios.get(`/chat/unread-counts/${userId}`);
+            const { userUnread, groupUnread } = response.data;
+            // Merge all unread counts
+            const allUnread = { ...userUnread, ...groupUnread };
+            // Count how many chats/groups have unread > 0
+            const unreadChats = Object.values(allUnread).filter(count => count > 0).length;
+            set({
+                unreadMessages: allUnread,
+                unreadChats
+            });
+        } catch (error) {
+            console.error('Error fetching unread counts:', error);
+        }
+    },
+
+    // Selector to get unread count for a specific chat/group
+    getUnreadForChat: (chatId) => {
+        return get().unreadMessages[chatId] || 0;
     }
 }));
 

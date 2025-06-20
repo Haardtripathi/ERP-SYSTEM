@@ -6,8 +6,8 @@ import useChatStore from "@/store/chatStore";
 import { getAuthUserAccessPages } from "@/services/adminService";
 
 const Sidenav = () => {
-    const { isAdmin } = useAuthStore();
-    const { unreadChats } = useChatStore();
+    const { isAdmin, user } = useAuthStore();
+    const { unreadChats, fetchUnreadCounts } = useChatStore();
     const [allowedPages, setAllowedPages] = useState([]);
 
     useEffect(() => {
@@ -23,6 +23,12 @@ const Sidenav = () => {
         };
         fetchPages();
     }, []);
+
+    useEffect(() => {
+        if (user && user._id) {
+            fetchUnreadCounts(user._id);
+        }
+    }, [user, fetchUnreadCounts]);
 
     const navGroups = [
         [
