@@ -445,6 +445,47 @@ const useChatStore = create((set, get) => ({
                         }
                     });
 
+                    // Add group-related socket events
+                    socket.on('group-created', (group) => {
+                        console.log('Group created event received:', group);
+                        set((state) => {
+                            // Check if group already exists to avoid duplicates
+                            const existingGroup = state.groups.find(g => g._id === group._id);
+                            if (!existingGroup) {
+                                return { groups: [...state.groups, group] };
+                            }
+                            return state;
+                        });
+                    });
+
+                    socket.on('group-updated', (data) => {
+                        console.log('Group updated event received:', data);
+                        set((state) => ({
+                            groups: state.groups.map(group =>
+                                group._id === data.group._id ? data.group : group
+                            )
+                        }));
+                    });
+
+                    socket.on('group-removed', (data) => {
+                        console.log('Group removed event received:', data);
+                        set((state) => ({
+                            groups: state.groups.filter(group => group._id !== data.groupId)
+                        }));
+                    });
+
+                    socket.on('group-added', (data) => {
+                        console.log('Group added event received:', data);
+                        set((state) => {
+                            // Check if group already exists to avoid duplicates
+                            const existingGroup = state.groups.find(g => g._id === data.group._id);
+                            if (!existingGroup) {
+                                return { groups: [...state.groups, data.group] };
+                            }
+                            return state;
+                        });
+                    });
+
                     isSocketInitialized = true;
                     console.log('Socket initialized successfully with listeners');
                 }
@@ -896,7 +937,7 @@ const useChatStore = create((set, get) => ({
             return;
         }
         const validMembers = Array.isArray(members) ? members.filter(member => typeof member === 'string') : [];
-        console.log('createGroup: Creating group with name:', name, 'members:', validMembers);
+        console.log('createGroup: Creating group with name:', name, 'members:', validMembers, 'isHidden:', isHidden);
         try {
             const response = await axios.post('/chat/group', {
                 name,
@@ -905,9 +946,7 @@ const useChatStore = create((set, get) => ({
                 createdBy: currentUser._id
             });
             console.log('createGroup: Group created successfully:', response.data);
-            set((state) => ({
-                groups: [...state.groups, response.data]
-            }));
+            // Don't add to local state here as it will be added via socket event
             return response.data;
         } catch (error) {
             console.error('createGroup: Error creating group:', error.message, error.response?.data);

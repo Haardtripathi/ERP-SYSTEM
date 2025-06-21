@@ -94,9 +94,32 @@ exports.getPrivateChat = async (req, res) => {
 };
 
 exports.createGroup = async (req, res) => {
-    const { name, members, visibleTo, createdBy } = req.body;
-    const group = await ChatGroup.create({ name, members, visibleTo, createdBy });
-    res.status(201).json(group);
+    try {
+        const { name, members, visibleTo, createdBy } = req.body;
+        const group = await ChatGroup.create({ name, members, visibleTo, createdBy });
+
+        // Populate the group with member details for socket emission
+        const populatedGroup = await ChatGroup.findById(group._id)
+            .populate('members', 'agent_name _id email photo')
+            .populate('createdBy', 'agent_name _id email photo');
+
+        // Emit socket event to all group members
+        const io = getIo();
+        if (io && populatedGroup) {
+            // Emit to all group members
+            populatedGroup.members.forEach(member => {
+                io.to(member._id.toString()).emit('group-created', populatedGroup);
+            });
+
+            // Also emit to the creator
+            io.to(createdBy.toString()).emit('group-created', populatedGroup);
+        }
+
+        res.status(201).json(populatedGroup);
+    } catch (error) {
+        console.error('Error in createGroup:', error);
+        res.status(500).json({ error: error.message });
+    }
 };
 
 exports.getGroupMessages = async (req, res) => {
@@ -148,8 +171,15 @@ exports.getGroupsForUser = async (req, res) => {
         return res.status(400).json({ message: "Invalid user ID" });
     }
 
-    // Find groups where the userId is in the members array
-    const groups = await ChatGroup.find({ members: userId });
+    // Find groups where the userId is either in the members array or visibleTo array
+    const groups = await ChatGroup.find({
+        $or: [
+            { members: userId },
+            { visibleTo: userId }
+        ]
+    }).populate('members', 'agent_name _id email photo')
+        .populate('createdBy', 'agent_name _id email photo');
+
     res.json(groups);
 };
 
@@ -390,6 +420,13 @@ exports.updateGroup = async (req, res) => {
             return res.status(403).json({ error: 'Only group admin can update group details' });
         }
 
+        // Get previous members to determine who was removed/added
+        const previousMembers = group.members.map(m => m.toString());
+        const newMembers = members.map(m => m.toString());
+
+        const removedMembers = previousMembers.filter(m => !newMembers.includes(m));
+        const addedMembers = newMembers.filter(m => !previousMembers.includes(m));
+
         // Update group
         const updatedGroup = await ChatGroup.findByIdAndUpdate(
             groupId,
@@ -397,6 +434,36 @@ exports.updateGroup = async (req, res) => {
             { new: true }
         ).populate('members', 'agent_name _id email photo')
             .populate('createdBy', 'agent_name _id email photo');
+
+        // Emit socket events
+        const io = getIo();
+        if (io && updatedGroup) {
+            // Emit group update to all current members
+            updatedGroup.members.forEach(member => {
+                io.to(member._id.toString()).emit('group-updated', {
+                    group: updatedGroup,
+                    action: 'updated',
+                    removedMembers,
+                    addedMembers
+                });
+            });
+
+            // Emit group removal to removed members
+            removedMembers.forEach(memberId => {
+                io.to(memberId).emit('group-removed', {
+                    groupId: groupId,
+                    action: 'removed'
+                });
+            });
+
+            // Emit group addition to newly added members
+            addedMembers.forEach(memberId => {
+                io.to(memberId).emit('group-added', {
+                    group: updatedGroup,
+                    action: 'added'
+                });
+            });
+        }
 
         res.json(updatedGroup);
     } catch (error) {

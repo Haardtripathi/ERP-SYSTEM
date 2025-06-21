@@ -21,12 +21,11 @@ const CreateGroupDialog = ({ open, onOpenChange }) => {
             return;
         }
 
-        // Ensure the current user (admin) is included in members and visibleTo
+        // Ensure the current user (admin) is included in members
         const membersWithAdmin = selectedUsers.includes(currentUser._id) ? selectedUsers : [...selectedUsers, currentUser._id];
-        const visibleToWithAdmin = selectedUsers.includes(currentUser._id) ? selectedUsers : [...selectedUsers, currentUser._id];
 
         try {
-            await createGroup(groupName, membersWithAdmin, visibleToWithAdmin, currentUser._id);
+            await createGroup(groupName, membersWithAdmin, false); // false for isHidden parameter
             onOpenChange(false);
             setGroupName('');
             setSelectedUsers([]);
@@ -120,8 +119,8 @@ const CreateGroupDialog = ({ open, onOpenChange }) => {
                                         key={user._id}
                                         onClick={() => toggleUserSelection(user._id)}
                                         className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${selectedUsers.includes(user._id)
-                                                ? 'bg-primary/10 hover:bg-primary/20'
-                                                : 'hover:bg-muted'
+                                            ? 'bg-primary/10 hover:bg-primary/20'
+                                            : 'hover:bg-muted'
                                             }`}
                                     >
                                         <div className="relative flex-shrink-0 rounded-full overflow-hidden w-8 h-8">

@@ -23,6 +23,7 @@ function setupSocket(server) {
         console.log('New socket connection:', socket.id);
 
         socket.on("join", (userId) => {
+            console.log('User joined chat:', userId, 'Socket ID:', socket.id);
             socket.join(userId);
             onlineUsers.set(userId, socket.id);
             io.emit("update-online-users", [...onlineUsers.keys()]);
