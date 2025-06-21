@@ -476,11 +476,21 @@ const GroupInfoPanel = ({ selectedChat, onClose }) => {
                                                     <p className="font-medium text-gray-800 text-sm truncate">{member.agent_name}</p>
                                                     <p className="text-xs text-gray-500 truncate">{member.email}</p>
                                                 </div>
-                                                {member._id === groupDetails.createdBy._id && (
-                                                    <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                                                        Admin
+                                                <div className="flex items-center gap-2">
+                                                    {/* Show role for all members */}
+                                                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${member.role?.name === 'Admin'
+                                                        ? 'bg-blue-100 text-blue-800'
+                                                        : 'bg-gray-100 text-gray-600'
+                                                        }`}>
+                                                        {member.role?.name || 'Member'}
                                                     </span>
-                                                )}
+                                                    {/* Highlight admin with special badge */}
+                                                    {/* {member._id === groupDetails.createdBy._id && (
+                                                        <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                                                            Group Admin
+                                                        </span>
+                                                    )} */}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>

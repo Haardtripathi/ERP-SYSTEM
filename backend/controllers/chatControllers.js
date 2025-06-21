@@ -100,8 +100,22 @@ exports.createGroup = async (req, res) => {
 
         // Populate the group with member details for socket emission
         const populatedGroup = await ChatGroup.findById(group._id)
-            .populate('members', 'agent_name _id email photo')
-            .populate('createdBy', 'agent_name _id email photo');
+            .populate({
+                path: 'members',
+                select: 'agent_name _id email photo role',
+                populate: {
+                    path: 'role',
+                    select: 'name'
+                }
+            })
+            .populate({
+                path: 'createdBy',
+                select: 'agent_name _id email photo role',
+                populate: {
+                    path: 'role',
+                    select: 'name'
+                }
+            });
 
         // Emit socket event to all group members
         const io = getIo();
@@ -177,8 +191,21 @@ exports.getGroupsForUser = async (req, res) => {
             { members: userId },
             { visibleTo: userId }
         ]
-    }).populate('members', 'agent_name _id email photo')
-        .populate('createdBy', 'agent_name _id email photo');
+    }).populate({
+        path: 'members',
+        select: 'agent_name _id email photo role',
+        populate: {
+            path: 'role',
+            select: 'name'
+        }
+    }).populate({
+        path: 'createdBy',
+        select: 'agent_name _id email photo role',
+        populate: {
+            path: 'role',
+            select: 'name'
+        }
+    });
 
     res.json(groups);
 };
@@ -318,8 +345,22 @@ exports.getGroupDetails = async (req, res) => {
     try {
         const { groupId } = req.params;
         const group = await ChatGroup.findById(groupId)
-            .populate('members', 'agent_name _id email photo')
-            .populate('createdBy', 'agent_name _id email photo');
+            .populate({
+                path: 'members',
+                select: 'agent_name _id email photo role',
+                populate: {
+                    path: 'role',
+                    select: 'name'
+                }
+            })
+            .populate({
+                path: 'createdBy',
+                select: 'agent_name _id email photo role',
+                populate: {
+                    path: 'role',
+                    select: 'name'
+                }
+            });
 
         if (!group) {
             return res.status(404).json({ error: 'Group not found' });
@@ -432,8 +473,21 @@ exports.updateGroup = async (req, res) => {
             groupId,
             { name, members },
             { new: true }
-        ).populate('members', 'agent_name _id email photo')
-            .populate('createdBy', 'agent_name _id email photo');
+        ).populate({
+            path: 'members',
+            select: 'agent_name _id email photo role',
+            populate: {
+                path: 'role',
+                select: 'name'
+            }
+        }).populate({
+            path: 'createdBy',
+            select: 'agent_name _id email photo role',
+            populate: {
+                path: 'role',
+                select: 'name'
+            }
+        });
 
         // Emit socket events
         const io = getIo();
