@@ -249,6 +249,7 @@ const useChatStore = create((set, get) => ({
                 socket.off('typing');
                 socket.off('user-online');
                 socket.off('user-offline');
+                socket.off('message-seen');
                 socket.disconnect();
                 socket = null;
                 isSocketInitialized = false;
@@ -414,8 +415,10 @@ const useChatStore = create((set, get) => ({
 
                     // Add new socket event for message seen status
                     socket.on('message-seen', (data) => {
-                        console.log('Socket event: message-seen', data);
+                        console.log('Socket event: message-seen received', data);
+                        console.log('Current messages before update:', get().messages.length);
                         get().updateMessageSeenStatus(data.messageId, data.seenBy);
+                        console.log('Messages after update:', get().messages.length);
                     });
 
                     socket.on('user-online', (userId) => {
@@ -983,11 +986,11 @@ const useChatStore = create((set, get) => ({
                 socket.off('typing');
                 socket.off('user-online');
                 socket.off('user-offline');
-                socket.disconnect(); // Disconnect the socket
-                socket = null; // Clear the socket instance
+                socket.off('message-seen');
+                socket.disconnect();
+                socket = null;
             }
-            isSocketInitialized = false; // Reset initialization flag
-            // Revoke all remaining active image URLs on socket cleanup/app unmount
+            isSocketInitialized = false;
             get().activeImageUrls.forEach(url => URL.revokeObjectURL(url));
             set({ activeImageUrls: new Set() });
         } catch (error) {
@@ -1059,13 +1062,6 @@ const useChatStore = create((set, get) => ({
                     messages: state.messages.map(msg => {
                         const updatedMsg = response.data.messages.find(m => m._id === msg._id);
                         if (updatedMsg) {
-                            // Emit socket event for each updated message
-                            if (socket && socket.connected) {
-                                socket.emit('message-seen', {
-                                    messageId: msg._id,
-                                    seenBy: updatedMsg.seenBy
-                                });
-                            }
                             return {
                                 ...msg,
                                 seenBy: updatedMsg.seenBy
@@ -1094,13 +1090,18 @@ const useChatStore = create((set, get) => ({
 
     // Add new function to handle individual message seen status updates
     updateMessageSeenStatus: (messageId, seenBy) => {
-        set(state => ({
-            messages: state.messages.map(msg =>
-                msg._id === messageId
-                    ? { ...msg, seenBy: [...new Set([...msg.seenBy || [], ...seenBy])] }
-                    : msg
-            )
-        }));
+        console.log('updateMessageSeenStatus called for messageId:', messageId, 'with seenBy:', seenBy);
+        set(state => {
+            const updatedMessages = state.messages.map(msg => {
+                if (msg._id === messageId) {
+                    console.log('Updating message:', msg._id, 'from seenBy:', msg.seenBy, 'to:', seenBy);
+                    return { ...msg, seenBy: seenBy }; // Use the complete seenBy array from server
+                }
+                return msg;
+            });
+            console.log('Updated messages count:', updatedMessages.length);
+            return { messages: updatedMessages };
+        });
     },
 
     // Calculate unread count for a chat

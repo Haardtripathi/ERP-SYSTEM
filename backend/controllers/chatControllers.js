@@ -2,6 +2,7 @@ const ChatMessage = require("../models/ChatMessage");
 const ChatGroup = require("../models/ChatGroup");
 const User = require("../models/User");
 const mongoose = require('mongoose');
+const { getIo } = require("../socket/chatSocket");
 
 exports.sendMessage = async (req, res) => {
     try {
@@ -316,7 +317,6 @@ exports.markMessagesAsSeen = async (req, res) => {
                 seenBy: { $ne: userId }
             };
 
-
         // Update all unread messages
         const result = await ChatMessage.updateMany(
             query,
@@ -324,8 +324,45 @@ exports.markMessagesAsSeen = async (req, res) => {
         );
 
         // Fetch the updated messages to return the latest seenBy status
-        const updatedMessages = await ChatMessage.find(query).select('_id seenBy');
+        // Use a different query to get messages that were just updated
+        const updatedMessagesQuery = isGroup
+            ? { group: chatId, seenBy: userId }
+            : {
+                $or: [
+                    { sender: chatId, receiver: userId },
+                    { sender: userId, receiver: chatId }
+                ],
+                seenBy: userId
+            };
 
+        const updatedMessages = await ChatMessage.find(updatedMessagesQuery).select('_id seenBy');
+
+        // Emit socket event for each updated message
+        const io = getIo();
+        console.log('Socket IO instance:', !!io, 'Updated messages count:', updatedMessages?.length);
+        if (updatedMessages && updatedMessages.length > 0 && io) {
+            updatedMessages.forEach(msg => {
+                if (isGroup) {
+                    console.log('Emitting message-seen for', msg._id, 'to group', chatId, 'seenBy:', msg.seenBy);
+                    io.to(chatId.toString()).emit('message-seen', {
+                        messageId: msg._id,
+                        seenBy: msg.seenBy
+                    });
+                } else {
+                    console.log('Emitting message-seen for', msg._id, 'to users', userId, chatId, 'seenBy:', msg.seenBy);
+                    io.to(userId.toString()).emit('message-seen', {
+                        messageId: msg._id,
+                        seenBy: msg.seenBy
+                    });
+                    io.to(chatId.toString()).emit('message-seen', {
+                        messageId: msg._id,
+                        seenBy: msg.seenBy
+                    });
+                }
+            });
+        } else {
+            console.log('No socket events emitted. IO:', !!io, 'Messages:', updatedMessages?.length);
+        }
 
         res.status(200).json({
             success: true,

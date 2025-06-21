@@ -23,7 +23,6 @@ function setupSocket(server) {
         console.log('New socket connection:', socket.id);
 
         socket.on("join", (userId) => {
-            console.log('User joined:', userId);
             socket.join(userId);
             onlineUsers.set(userId, socket.id);
             io.emit("update-online-users", [...onlineUsers.keys()]);
@@ -104,8 +103,9 @@ function setupSocket(server) {
         });
 
         socket.on("join-group", (groupId) => {
-            console.log('User joined group:', groupId);
+            console.log('User joined group:', groupId, 'Socket ID:', socket.id);
             socket.join(groupId);
+            console.log('User rooms after joining group:', socket.rooms);
         });
 
         socket.on("message-seen", async (data) => {
@@ -121,15 +121,19 @@ function setupSocket(server) {
                     message.seenBy = uniqueSeenBy;
                     await message.save();
 
+                    console.log('Message updated in DB:', messageId, 'new seenBy:', uniqueSeenBy);
+
                     // Broadcast the update to all relevant users
                     if (message.group) {
                         // For group messages, emit to all group members
+                        console.log('Emitting to group room:', message.group.toString());
                         io.to(message.group.toString()).emit('message-seen', {
                             messageId,
                             seenBy: uniqueSeenBy
                         });
                     } else {
                         // For private messages, emit to both sender and receiver
+                        console.log('Emitting to user rooms:', message.sender.toString(), message.receiver.toString());
                         io.to(message.sender.toString()).emit('message-seen', {
                             messageId,
                             seenBy: uniqueSeenBy
@@ -139,6 +143,8 @@ function setupSocket(server) {
                             seenBy: uniqueSeenBy
                         });
                     }
+                } else {
+                    console.log('Message not found:', messageId);
                 }
             } catch (error) {
                 console.error('Error updating message seen status:', error);

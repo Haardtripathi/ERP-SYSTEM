@@ -658,28 +658,8 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
     useEffect(() => {
         if (!selectedChat || !currentUser) return;
 
-        const handleMessageSeen = (data) => {
-            const { messageId, seenBy } = data;
-            // Force a re-render by updating the messages state
-            setMessages(state => ({
-                messages: state.messages.map(msg =>
-                    msg._id === messageId
-                        ? { ...msg, seenBy: [...new Set(seenBy)] }
-                        : msg
-                )
-            }));
-        };
-
-        const store = useChatStore.getState();
-        if (store.socket) {
-            store.socket.on('message-seen', handleMessageSeen);
-        }
-
-        return () => {
-            if (store.socket) {
-                store.socket.off('message-seen', handleMessageSeen);
-            }
-        };
+        // The message-seen event is already handled in the store
+        // No need for duplicate listener here
     }, [selectedChat?.id, currentUser?._id]);
 
     // Update the message rendering to use a memoized value for seen status
