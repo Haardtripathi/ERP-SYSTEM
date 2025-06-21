@@ -8,7 +8,7 @@ import { Panel } from 'react-resizable-panels';
 import VideoPlayer from './VideoPlayer';
 
 const GroupInfoPanel = ({ selectedChat, onClose }) => {
-    const { currentUser } = useChatStore();
+    const { currentUser, unreadMessages } = useChatStore();
     const { isAdmin } = useAuthStore();
     const [groupDetails, setGroupDetails] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
@@ -24,6 +24,9 @@ const GroupInfoPanel = ({ selectedChat, onClose }) => {
     const [totalPages, setTotalPages] = useState(1);
     const [selectedMedia, setSelectedMedia] = useState(null);
     const [hasMore, setHasMore] = useState(true);
+
+    // Get unread count for this group
+    const groupUnreadCount = unreadMessages[selectedChat?.id] || 0;
 
     // Cleanup Blob URLs when component unmounts or selectedMedia changes
     useEffect(() => {
@@ -43,6 +46,10 @@ const GroupInfoPanel = ({ selectedChat, onClose }) => {
         if (selectedChat?.id) {
             fetchGroupDetails();
             fetchGroupMedia();
+            // Mark messages as read when info panel is opened
+            useChatStore.getState().markMessagesAsSeen(selectedChat.id, true);
+            // Fetch specific group unread count
+            useChatStore.getState().fetchGroupUnreadCount(selectedChat.id);
         }
     }, [selectedChat?.id]);
 
@@ -319,7 +326,14 @@ const GroupInfoPanel = ({ selectedChat, onClose }) => {
             <div className="h-full flex flex-col bg-white border-l">
                 {/* Header */}
                 <div className="p-4 border-b flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-gray-800">Group Info</h2>
+                    <div className="flex items-center space-x-3">
+                        <h2 className="text-lg font-semibold text-gray-800">Group Info</h2>
+                        {groupUnreadCount > 0 && (
+                            <span className="px-2 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">
+                                {groupUnreadCount} unread
+                            </span>
+                        )}
+                    </div>
                     <button
                         onClick={onClose}
                         className="p-2 hover:bg-gray-100 rounded-full transition-colors"

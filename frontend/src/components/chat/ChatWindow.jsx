@@ -21,6 +21,22 @@ const getFileType = (file) => {
     return 'other';
 };
 
+// Add bufferToBase64 helper at the top (after imports)
+const bufferToBase64 = (buffer) => {
+    if (!buffer) return '';
+    if (typeof buffer === 'string') return buffer;
+    if (buffer.data && Array.isArray(buffer.data)) {
+        const chunkSize = 1024;
+        let result = '';
+        for (let i = 0; i < buffer.data.length; i += chunkSize) {
+            const chunk = buffer.data.slice(i, i + chunkSize);
+            result += String.fromCharCode.apply(null, chunk);
+        }
+        return btoa(result);
+    }
+    return '';
+};
+
 const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] }) => {
     const [message, setMessage] = useState('');
     const [selectedFiles, setSelectedFiles] = useState([]);
@@ -51,7 +67,8 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         chatPagination,
         users: storeUsers,
         unreadMessages,
-        markMessagesAsSeen
+        markMessagesAsSeen,
+        groups
     } = useChatStore();
     console.log("PAG", chatPagination)
     // Use either prop users or store users
@@ -201,6 +218,18 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         processFiles();
     }, [selectedFiles]);
 
+    // Cleanup effect for blob URLs
+    useEffect(() => {
+        return () => {
+            // Clean up blob URLs when component unmounts
+            selectedFilePreviews.forEach(preview => {
+                if (preview.url && preview.url.startsWith('blob:')) {
+                    URL.revokeObjectURL(preview.url);
+                }
+            });
+        };
+    }, [selectedFilePreviews]);
+
     const handleScroll = () => {
         const container = messagesContainerRef.current;
         if (container) {
@@ -333,6 +362,27 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         const files = Array.from(event.target.files);
         if (files.length > 0) {
             setSelectedFiles(prev => [...prev, ...files]);
+
+            // Create previews for the selected files
+            const newPreviews = files.map(file => {
+                const fileType = getFileType(file);
+                if (file.type.startsWith('image/')) {
+                    return {
+                        type: 'image',
+                        url: URL.createObjectURL(file),
+                        fileName: file.name,
+                        fileSize: file.size
+                    };
+                } else {
+                    return {
+                        type: fileType,
+                        fileName: file.name,
+                        fileSize: file.size
+                    };
+                }
+            });
+
+            setSelectedFilePreviews(prev => [...prev, ...newPreviews]);
             setTimeout(() => {
                 inputRef.current?.focus();
             }, 100);
@@ -341,6 +391,12 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
     };
 
     const handleRemoveFile = (index) => {
+        // Clean up blob URL if it exists
+        const preview = selectedFilePreviews[index];
+        if (preview && preview.url && preview.url.startsWith('blob:')) {
+            URL.revokeObjectURL(preview.url);
+        }
+
         setSelectedFiles(prev => prev.filter((_, i) => i !== index));
         setSelectedFilePreviews(prev => prev.filter((_, i) => i !== index));
         setTimeout(() => {
@@ -662,16 +718,33 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         // No need for duplicate listener here
     }, [selectedChat?.id, currentUser?._id]);
 
-    // Update the message rendering to use a memoized value for seen status
+    // Add helper to get group member IDs (excluding sender)
+    const getGroupMemberIds = (groupId) => {
+        const group = groups.find(g => g._id === groupId);
+        if (!group) return [];
+        return group.members.map(m => m._id).filter(id => id !== currentUser._id);
+    };
+
+    // Add helper to get user objects from IDs
+    const getUsersByIds = (ids) => {
+        return allUsers.filter(u => ids.includes(u._id));
+    };
+
+    // Update getMessageSeenStatus
     const getMessageSeenStatus = (message) => {
         if (!message.seenBy) return '✓';
-        // For 1-1 chat, show double tick if the other user's ID is in seenBy
         if (selectedChat.type === 'user') {
             const otherUserId = message.sender === currentUser._id ? message.receiver : message.sender;
             return message.seenBy.includes(otherUserId) ? '✓✓' : '✓';
         }
-        // For group, you may want to show a different logic (e.g., all members seen)
-        return message.seenBy.length > 1 ? '✓✓' : '✓';
+        if (selectedChat.type === 'group') {
+            // Only show double tick if all group members (except sender) have seen
+            const groupMemberIds = getGroupMemberIds(selectedChat.id);
+            if (groupMemberIds.length === 0) return '✓';
+            const allSeen = groupMemberIds.every(id => message.seenBy && message.seenBy.includes(id));
+            return allSeen ? '✓✓' : '✓';
+        }
+        return '✓';
     };
 
     if (!selectedChat) {
@@ -939,10 +1012,19 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                                                     )}>
                                                                         {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                                     </span>
-                                                                    {isMyMessage && (
-                                                                        <span className="text-xs text-blue-100">
-                                                                            {getMessageSeenStatus(msg)}
-                                                                        </span>
+                                                                    {isMyMessage && selectedChat.type === 'group' && (
+                                                                        <SeenByPopover
+                                                                            message={msg}
+                                                                            selectedChat={selectedChat}
+                                                                            currentUser={currentUser}
+                                                                            allUsers={allUsers}
+                                                                            groups={groups}
+                                                                            getMessageSeenStatus={getMessageSeenStatus}
+                                                                            bufferToBase64={bufferToBase64}
+                                                                        />
+                                                                    )}
+                                                                    {isMyMessage && selectedChat.type !== 'group' && (
+                                                                        <span className="text-xs text-blue-100">{getMessageSeenStatus(msg)}</span>
                                                                     )}
                                                                 </div>
                                                             </div>
@@ -1202,5 +1284,67 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         </div>
     );
 };
+
+function SeenByPopover({ message, selectedChat, currentUser, allUsers, groups, getMessageSeenStatus, bufferToBase64 }) {
+    const [show, setShow] = useState(false);
+    if (selectedChat.type !== 'group') {
+        return null;
+    }
+    // Get group member IDs (excluding sender)
+    const group = groups.find(g => g._id === selectedChat.id);
+    const memberIds = group ? group.members.map(m => m._id).filter(id => id !== message.sender) : [];
+    // Get users who have seen - add null check for message.seenBy
+    const seenByUsers = allUsers.filter(u => message.seenBy && message.seenBy.includes(u._id) && u._id !== message.sender);
+    // Get users who have not seen - add null check for message.seenBy
+    const notSeenByUsers = allUsers.filter(u => memberIds.includes(u._id) && (!message.seenBy || !message.seenBy.includes(u._id)));
+    return (
+        <span className="relative select-none">
+            {/* Three dots icon as trigger */}
+            <button
+                className="absolute -top-2 -right-2 p-1 text-gray-400 hover:text-blue-500 focus:outline-none"
+                onClick={e => { e.stopPropagation(); setShow(v => !v); }}
+                title="Seen by"
+                tabIndex={0}
+            >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-more-vertical"><circle cx="12" cy="6" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="12" cy="18" r="1" /></svg>
+            </button>
+            {/* Tick always visible */}
+            <span className="text-xs text-blue-100 ml-4">{getMessageSeenStatus(message)}</span>
+            {show && (
+                <div className="absolute top-6 right-0 z-50 bg-white border border-gray-200 rounded shadow-lg p-2 min-w-[160px] text-xs text-gray-800" onClick={e => e.stopPropagation()}>
+                    <div className="font-semibold mb-1">Seen by:</div>
+                    {seenByUsers.length === 0 && <div className="text-gray-400">No one yet</div>}
+                    {seenByUsers.map(u => (
+                        <div key={u._id} className="flex items-center space-x-2 mb-1">
+                            {u.photo ? (
+                                <img src={`data:${u.photo.contentType};base64,${bufferToBase64(u.photo.data)}`} alt={u.agent_name} className="w-5 h-5 rounded-full object-cover" />
+                            ) : (
+                                <div className="w-5 h-5 rounded-full bg-blue-200 flex items-center justify-center text-blue-800 font-bold text-xs">
+                                    {u.agent_name?.charAt(0)?.toUpperCase() || '?'}
+                                </div>
+                            )}
+                            <span>{u.agent_name}</span>
+                        </div>
+                    ))}
+                    {notSeenByUsers.length > 0 && (
+                        <div className="mt-1 text-gray-400">Not seen by:</div>
+                    )}
+                    {notSeenByUsers.map(u => (
+                        <div key={u._id} className="flex items-center space-x-2 opacity-60">
+                            {u.photo ? (
+                                <img src={`data:${u.photo.contentType};base64,${bufferToBase64(u.photo.data)}`} alt={u.agent_name} className="w-5 h-5 rounded-full object-cover" />
+                            ) : (
+                                <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs">
+                                    {u.agent_name?.charAt(0)?.toUpperCase() || '?'}
+                                </div>
+                            )}
+                            <span>{u.agent_name}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </span>
+    );
+}
 
 export default ChatWindow; 

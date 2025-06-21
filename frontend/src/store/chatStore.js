@@ -369,7 +369,14 @@ const useChatStore = create((set, get) => ({
                                 get().markMessagesAsSeen(chatId, selectedChat.type === 'group');
                             } else {
                                 // If we're not in the chat, increment unread count
-                                get().setUnreadMessages(chatId, (get().unreadMessages[chatId] || 0) + 1);
+                                if (message.group) {
+                                    // For group messages, use the new group-specific function
+                                    console.log('Updating group unread count for group:', message.group);
+                                    get().updateGroupUnreadCount(message.group, true);
+                                } else {
+                                    // For private messages, use the existing logic
+                                    get().setUnreadMessages(chatId, (get().unreadMessages[chatId] || 0) + 1);
+                                }
                             }
 
                             return;
@@ -404,7 +411,17 @@ const useChatStore = create((set, get) => ({
                             get().markMessagesAsSeen(chatId, selectedChat.type === 'group');
                         } else {
                             // Increment unread count for other chats
-                            get().setUnreadMessages(chatId, (get().unreadMessages[chatId] || 0) + 1);
+                            if (message.group) {
+                                // For group messages, use the new group-specific function
+                                console.log('Updating group unread count for group:', message.group, 'current user:', get().currentUser._id, 'message sender:', message.sender);
+                                // Only increment if the message is not from the current user
+                                if (message.sender !== get().currentUser._id) {
+                                    get().updateGroupUnreadCount(message.group, true);
+                                }
+                            } else {
+                                // For private messages, use the existing logic
+                                get().setUnreadMessages(chatId, (get().unreadMessages[chatId] || 0) + 1);
+                            }
                         }
                     });
 
@@ -484,6 +501,44 @@ const useChatStore = create((set, get) => ({
                             }
                             return state;
                         });
+                    });
+
+                    // Add socket event for unread count updates
+                    socket.on('unread-count-update', (data) => {
+                        console.log('Unread count update received:', data);
+                        if (data.groupId) {
+                            // Update specific group unread count
+                            set(state => {
+                                const newUnreadMessages = {
+                                    ...state.unreadMessages,
+                                    [data.groupId]: data.count
+                                };
+                                const unreadChats = Object.values(newUnreadMessages).filter(count => count > 0).length;
+
+                                console.log('Updated unread messages from socket:', newUnreadMessages);
+
+                                return {
+                                    unreadMessages: newUnreadMessages,
+                                    unreadChats
+                                };
+                            });
+                        } else if (data.userId) {
+                            // Update specific user unread count
+                            set(state => {
+                                const newUnreadMessages = {
+                                    ...state.unreadMessages,
+                                    [data.userId]: data.count
+                                };
+                                const unreadChats = Object.values(newUnreadMessages).filter(count => count > 0).length;
+
+                                console.log('Updated unread messages from socket:', newUnreadMessages);
+
+                                return {
+                                    unreadMessages: newUnreadMessages,
+                                    unreadChats
+                                };
+                            });
+                        }
                     });
 
                     isSocketInitialized = true;
@@ -1122,6 +1177,15 @@ const useChatStore = create((set, get) => ({
                     }
                 }));
             }
+
+            // For groups, also emit socket event to update seen status in real-time
+            if (isGroup && socket && socket.connected) {
+                socket.emit('message-seen', {
+                    chatId,
+                    isGroup: true,
+                    userId: currentUser._id
+                });
+            }
         } catch (error) {
             console.error('Error marking messages as seen:', error);
         }
@@ -1147,6 +1211,7 @@ const useChatStore = create((set, get) => ({
     calculateUnreadCount: (chatId, userId) => {
         const { messages, selectedChat } = get();
         if (!selectedChat) return 0;
+
         if (selectedChat.type === 'user') {
             // For 1-1 chat, count all messages in this chat where userId is not in seenBy
             return messages.filter(
@@ -1156,9 +1221,14 @@ const useChatStore = create((set, get) => ({
                     !msg.seenBy?.includes(userId)
             ).length;
         } else if (selectedChat.type === 'group') {
-            // For group, count all messages in this group where userId is not in seenBy
+            // For group, count all messages in this group where:
+            // 1. User is not the sender (don't count own messages)
+            // 2. User is not in seenBy array
             return messages.filter(
-                msg => msg.group === chatId && !msg.seenBy?.includes(userId)
+                msg =>
+                    msg.group === chatId &&
+                    msg.sender !== userId &&
+                    !msg.seenBy?.includes(userId)
             ).length;
         }
         return 0;
@@ -1184,6 +1254,105 @@ const useChatStore = create((set, get) => ({
     // Selector to get unread count for a specific chat/group
     getUnreadForChat: (chatId) => {
         return get().unreadMessages[chatId] || 0;
+    },
+
+    // New function to handle group unread message updates
+    updateGroupUnreadCount: (groupId, increment = true) => {
+        const currentUser = get().currentUser;
+        if (!currentUser) {
+            console.log('updateGroupUnreadCount: No current user, skipping update');
+            return;
+        }
+
+        console.log(`updateGroupUnreadCount: Updating group ${groupId}, increment: ${increment}`);
+
+        set(state => {
+            const currentCount = state.unreadMessages[groupId] || 0;
+            const newCount = increment ? currentCount + 1 : Math.max(0, currentCount - 1);
+
+            console.log(`updateGroupUnreadCount: Group ${groupId} - Current: ${currentCount}, New: ${newCount}`);
+
+            const newUnreadMessages = { ...state.unreadMessages, [groupId]: newCount };
+            const unreadChats = Object.values(newUnreadMessages).filter(count => count > 0).length;
+
+            console.log(`updateGroupUnreadCount: Updated unread messages state:`, newUnreadMessages);
+
+            return {
+                unreadMessages: newUnreadMessages,
+                unreadChats
+            };
+        });
+    },
+
+    // Function to refresh unread counts for all groups
+    refreshGroupUnreadCounts: async () => {
+        const currentUser = get().currentUser;
+        if (!currentUser) return;
+
+        try {
+            const response = await axios.get(`/chat/unread-counts/${currentUser._id}`);
+            const { groupUnread } = response.data;
+
+            set(state => {
+                const newUnreadMessages = { ...state.unreadMessages, ...groupUnread };
+                const unreadChats = Object.values(newUnreadMessages).filter(count => count > 0).length;
+
+                return {
+                    unreadMessages: newUnreadMessages,
+                    unreadChats
+                };
+            });
+        } catch (error) {
+            console.error('Error refreshing group unread counts:', error);
+        }
+    },
+
+    // Function to fetch unread count for a specific group
+    fetchGroupUnreadCount: async (groupId) => {
+        const currentUser = get().currentUser;
+        if (!currentUser || !groupId) return;
+
+        try {
+            const response = await axios.get(`/chat/group/${groupId}/unread/${currentUser._id}`);
+            const { unreadCount } = response.data;
+
+            set(state => ({
+                unreadMessages: {
+                    ...state.unreadMessages,
+                    [groupId]: unreadCount
+                }
+            }));
+
+            return unreadCount;
+        } catch (error) {
+            console.error('Error fetching group unread count:', error);
+            return 0;
+        }
+    },
+
+    // Function to force refresh all unread counts
+    forceRefreshUnreadCounts: async () => {
+        const currentUser = get().currentUser;
+        if (!currentUser) return;
+
+        try {
+            console.log('forceRefreshUnreadCounts: Refreshing all unread counts');
+            const response = await axios.get(`/chat/unread-counts/${currentUser._id}`);
+            const { userUnread, groupUnread } = response.data;
+
+            // Merge all unread counts
+            const allUnread = { ...userUnread, ...groupUnread };
+            const unreadChats = Object.values(allUnread).filter(count => count > 0).length;
+
+            console.log('forceRefreshUnreadCounts: Updated unread counts:', allUnread);
+
+            set({
+                unreadMessages: allUnread,
+                unreadChats
+            });
+        } catch (error) {
+            console.error('Error force refreshing unread counts:', error);
+        }
     }
 }));
 

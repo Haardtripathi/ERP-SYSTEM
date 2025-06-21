@@ -99,7 +99,7 @@ const VideoPlayer = ({ url, fileName, isMyMessage }) => {
                 if (isMounted) {
                     setError(error.message);
                     setIsLoading(false);
-                    
+
                     // Retry logic
                     if (retryCount < MAX_RETRIES) {
                         console.log(`Retrying video load (${retryCount + 1}/${MAX_RETRIES})`);
@@ -253,7 +253,7 @@ const VideoPlayer = ({ url, fileName, isMyMessage }) => {
     }
 
     return (
-        <div 
+        <div
             className={`relative w-full h-48 rounded-lg overflow-hidden cursor-pointer group ${isMyMessage ? 'bg-blue-100' : 'bg-gray-100'}`}
             onClick={handlePlay}
         >

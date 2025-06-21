@@ -20,5 +20,6 @@ router.get("/chat-media/:userId1/:userId2", isAuthenticated, chatController.getC
 router.post('/mark-seen', chatController.markMessagesAsSeen);
 
 router.get('/unread-counts/:userId', chatController.getUnreadCounts);
+router.get('/group/:groupId/unread/:userId', chatController.getGroupUnreadCount);
 
 module.exports = router;

@@ -419,6 +419,18 @@ exports.markMessagesAsSeen = async (req, res) => {
                         messageId: msg._id,
                         seenBy: msg.seenBy
                     });
+
+                    // Emit unread count update for the user who marked messages as seen
+                    ChatMessage.countDocuments({
+                        group: chatId,
+                        seenBy: { $ne: userId },
+                        sender: { $ne: userId }
+                    }).then(unreadCount => {
+                        io.to(userId.toString()).emit('unread-count-update', {
+                            groupId: chatId,
+                            count: unreadCount
+                        });
+                    });
                 } else {
                     console.log('Emitting message-seen for', msg._id, 'to users', userId, chatId, 'seenBy:', msg.seenBy);
                     io.to(userId.toString()).emit('message-seen', {
@@ -428,6 +440,18 @@ exports.markMessagesAsSeen = async (req, res) => {
                     io.to(chatId.toString()).emit('message-seen', {
                         messageId: msg._id,
                         seenBy: msg.seenBy
+                    });
+
+                    // Emit unread count update for the user who marked messages as seen
+                    ChatMessage.countDocuments({
+                        receiver: userId,
+                        seenBy: { $ne: userId },
+                        group: null
+                    }).then(unreadCount => {
+                        io.to(userId.toString()).emit('unread-count-update', {
+                            userId: chatId,
+                            count: unreadCount
+                        });
                     });
                 }
             });
@@ -633,13 +657,13 @@ exports.getUnreadCounts = async (req, res) => {
         }
     ]);
 
-    // Groups: Only count messages not sent by the user
+    // Groups: Only count messages not sent by the user and not seen by the user
     const groupUnreadAgg = await ChatMessage.aggregate([
         {
             $match: {
                 group: { $ne: null },
                 seenBy: { $ne: userObjectId },
-                sender: { $ne: userObjectId }
+                sender: { $ne: userObjectId } // Don't count user's own messages
             }
         },
         {
@@ -655,7 +679,32 @@ exports.getUnreadCounts = async (req, res) => {
 
     const groupUnread = {};
     groupUnreadAgg.forEach(row => { groupUnread[row._id] = row.count; });
-    console.log(userUnread, groupUnread)
+
+    console.log('Unread counts - Users:', userUnread, 'Groups:', groupUnread);
 
     res.json({ userUnread, groupUnread });
+};
+
+exports.getGroupUnreadCount = async (req, res) => {
+    try {
+        const { groupId, userId } = req.params;
+        if (!groupId || !userId) {
+            return res.status(400).json({ error: "Missing groupId or userId" });
+        }
+
+        const userObjectId = new mongoose.Types.ObjectId(userId);
+        const groupObjectId = new mongoose.Types.ObjectId(groupId);
+
+        // Count unread messages in this group for this user
+        const unreadCount = await ChatMessage.countDocuments({
+            group: groupObjectId,
+            seenBy: { $ne: userObjectId },
+            sender: { $ne: userObjectId } // Don't count user's own messages
+        });
+
+        res.json({ groupId, unreadCount });
+    } catch (error) {
+        console.error('Error in getGroupUnreadCount:', error);
+        res.status(500).json({ error: error.message });
+    }
 };

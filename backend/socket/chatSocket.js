@@ -1,5 +1,6 @@
 const { Server } = require("socket.io");
 const ChatMessage = require("../models/ChatMessage");
+const ChatGroup = require("../models/ChatGroup");
 const MAX_FILE_SIZE = 1000 * 1024 * 1024; // 100MB in bytes
 
 let io;
@@ -90,10 +91,42 @@ function setupSocket(server) {
                 // Emit to the appropriate room(s)
                 if (savedMessage.group) {
                     io.to(savedMessage.group.toString()).emit('receive-message', savedMessage);
+
+                    // Emit unread count update to all group members except the sender
+                    const groupMembers = await ChatGroup.findById(savedMessage.group).select('members');
+                    if (groupMembers) {
+                        groupMembers.members.forEach(memberId => {
+                            if (memberId.toString() !== savedMessage.sender.toString()) {
+                                // Calculate unread count for this specific member
+                                ChatMessage.countDocuments({
+                                    group: savedMessage.group,
+                                    seenBy: { $ne: memberId },
+                                    sender: { $ne: memberId }
+                                }).then(unreadCount => {
+                                    io.to(memberId.toString()).emit('unread-count-update', {
+                                        groupId: savedMessage.group,
+                                        count: unreadCount
+                                    });
+                                });
+                            }
+                        });
+                    }
                 } else {
                     // For private messages, emit to both sender and receiver
                     io.to(savedMessage.sender.toString()).emit('receive-message', savedMessage);
                     io.to(savedMessage.receiver.toString()).emit('receive-message', savedMessage);
+
+                    // Emit unread count update to the receiver
+                    ChatMessage.countDocuments({
+                        receiver: savedMessage.receiver,
+                        seenBy: { $ne: savedMessage.receiver },
+                        group: null
+                    }).then(unreadCount => {
+                        io.to(savedMessage.receiver.toString()).emit('unread-count-update', {
+                            userId: savedMessage.sender,
+                            count: unreadCount
+                        });
+                    });
                 }
 
                 if (callback) callback({ success: true, message: savedMessage });
