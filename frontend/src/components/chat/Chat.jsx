@@ -34,9 +34,15 @@ const Chat = () => {
         };
     }, [currentUser, initializeSocket, joinChat, fetchUsers, fetchGroups, cleanupSocket]);
 
-    // Reset selected chat when component mounts
+    // Reset selected chat when component mounts and unmounts
     useEffect(() => {
+        // Clear any previously selected chat when component mounts
         setSelectedChat(null);
+
+        // Cleanup function to clear selected chat when component unmounts
+        return () => {
+            setSelectedChat(null);
+        };
     }, [setSelectedChat]);
 
     return (

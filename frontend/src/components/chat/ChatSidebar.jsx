@@ -14,6 +14,7 @@ const ChatSidebar = () => {
         fetchUsers,
         fetchGroups,
         setSelectedChat,
+        selectedChat,
         onlineUsers,
         unreadMessages
     } = useChatStore();
@@ -127,13 +128,17 @@ const ChatSidebar = () => {
                             <div
                                 key={user._id}
                                 onClick={() => {
+                                    // Clear any previous selection first
+                                    setSelectedChat(null);
+                                    // Set the new selected chat
                                     setSelectedChat({ type: 'user', id: user._id, name: user.agent_name });
                                     useChatStore.getState().joinChat(user._id);
                                     useChatStore.getState().markMessagesAsSeen(user._id, false);
                                 }}
                                 className={cn(
                                     "flex items-center p-3 hover:bg-gray-100 cursor-pointer rounded-lg transition-colors last:mb-0 mb-2",
-                                    unreadMessages[user._id] > 0 && "bg-blue-50 border-l-4 border-blue-500"
+                                    unreadMessages[user._id] > 0 && "bg-blue-50 border-l-4 border-blue-500",
+                                    selectedChat?.type === 'user' && selectedChat?.id === user._id && "bg-blue-100 border-l-4 border-blue-600"
                                 )}
                             >
                                 <div className="relative flex-shrink-0 rounded-full overflow-hidden w-10 h-10">
@@ -181,6 +186,9 @@ const ChatSidebar = () => {
                             <div
                                 key={group._id}
                                 onClick={() => {
+                                    // Clear any previous selection first
+                                    setSelectedChat(null);
+                                    // Set the new selected chat
                                     setSelectedChat({ type: 'group', id: group._id, name: group.name });
                                     useChatStore.getState().joinGroup(group._id);
                                     // Mark messages as seen and clear unread count for this group
@@ -190,7 +198,8 @@ const ChatSidebar = () => {
                                 }}
                                 className={cn(
                                     "flex items-center p-3 hover:bg-gray-100 cursor-pointer rounded-lg transition-colors last:mb-0 mb-2",
-                                    unreadMessages[group._id] > 0 && "bg-blue-50 border-l-4 border-blue-500"
+                                    unreadMessages[group._id] > 0 && "bg-blue-50 border-l-4 border-blue-500",
+                                    selectedChat?.type === 'group' && selectedChat?.id === group._id && "bg-blue-100 border-l-4 border-blue-600"
                                 )}
                             >
                                 <div className="flex-shrink-0">

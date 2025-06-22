@@ -36,7 +36,6 @@ exports.getAllRolesAndPermissions = async (req, res) => {
         );
 
         res.status(200).json(rolesWithPermissions);
-        res.status(200).json(rolesWithPermissions);
     } catch (error) {
         res.status(500).json({ message: "Error fetching roles", error });
     }

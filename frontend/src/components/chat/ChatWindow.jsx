@@ -4,6 +4,7 @@ import { Send, Users, Loader2, Image as ImageIcon, XCircle, X, ChevronUp, Chevro
 import { cn } from "@/lib/utils";
 import UserInfoPanel from './UserInfoPanel';
 import GroupInfoPanel from './GroupInfoPanel';
+import AdminUserInfoPanel from './AdminUserInfoPanel';
 import { PanelGroup, Panel } from 'react-resizable-panels';
 import AudioPlayer from './AudioPlayer';
 import AudioRecorder from './AudioRecorder';
@@ -37,7 +38,7 @@ const bufferToBase64 = (buffer) => {
     return '';
 };
 
-const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] }) => {
+const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], showInfoPanel: propShowInfoPanel, setShowInfoPanel: propSetShowInfoPanel }) => {
     const [message, setMessage] = useState('');
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [selectedFilePreviews, setSelectedFilePreviews] = useState([]);
@@ -73,6 +74,11 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
     console.log("PAG", chatPagination)
     // Use either prop users or store users
     const allUsers = users.length > 0 ? users : storeUsers;
+    console.log("ChatWindow - allUsers:", allUsers.length, allUsers.map(u => ({ id: u._id, name: u.agent_name })));
+
+    // Use prop values if provided, otherwise use internal state
+    const currentShowInfoPanel = propShowInfoPanel !== undefined ? propShowInfoPanel : showInfoPanel;
+    const currentSetShowInfoPanel = propSetShowInfoPanel || setShowInfoPanel;
 
     // Message Skeleton Component
     const MessageSkeleton = ({ isMyMessage }) => (
@@ -277,9 +283,25 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
         const oldestDisplayedMessageElement = messageElements.length > 0 ? messageElements[0] : null;
         const oldestDisplayedMessageId = oldestDisplayedMessageElement ? oldestDisplayedMessageElement.dataset.messageId : null;
 
-        // Get the correct chat ID based on chat type
-        const chatId = selectedChat.id;
-        const pagination = chatPagination[chatId];
+        // Get the correct chat ID and pagination key based on chat type and mode
+        let chatId, paginationKey;
+
+        if (selectedChat.type === 'user') {
+            if (isReadOnly && selectedChat.user1Id && selectedChat.user2Id) {
+                // In monitoring mode, use user2Id as the pagination key (same as in fetchMessages)
+                chatId = selectedChat.id;
+                paginationKey = selectedChat.user2Id;
+            } else {
+                // Normal mode
+                chatId = selectedChat.id;
+                paginationKey = selectedChat.id;
+            }
+        } else if (selectedChat.type === 'group') {
+            chatId = selectedChat.id;
+            paginationKey = selectedChat.id;
+        }
+
+        const pagination = chatPagination[paginationKey];
 
         if (pagination?.hasMore && !pagination?.isLoading) {
             // Store current scroll position and height
@@ -291,14 +313,12 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
             useChatStore.getState().currentFetchId = newFetchId;
 
             if (selectedChat.type === 'user') {
-                if (isReadOnly) {
-                    const firstMessage = messages[0];
-                    if (firstMessage) {
-                        const user1Id = firstMessage.sender;
-                        const user2Id = firstMessage.receiver;
-                        fetchMessages(user1Id, user2Id, 15, pagination.oldestMessageId, newFetchId);
-                    }
+                if (isReadOnly && selectedChat.user1Id && selectedChat.user2Id) {
+                    // In monitoring mode, use the user IDs from selectedChat
+                    console.log('Loading older messages in monitoring mode:', selectedChat.user1Id, selectedChat.user2Id);
+                    fetchMessages(selectedChat.user1Id, selectedChat.user2Id, 15, pagination.oldestMessageId, newFetchId);
                 } else {
+                    // Normal mode
                     fetchMessages(currentUser._id, selectedChat.id, 15, pagination.oldestMessageId, newFetchId);
                 }
             } else if (selectedChat.type === 'group') {
@@ -780,7 +800,22 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
     }
 
     const currentChatId = selectedChat.type === 'user' ? selectedChat.id : selectedChat.id;
-    const pagination = chatPagination[currentChatId] || { hasMore: true, oldestMessageId: null, isLoading: false };
+
+    // Get the correct pagination key based on chat type and mode
+    let paginationKey;
+    if (selectedChat.type === 'user') {
+        if (isReadOnly && selectedChat.user1Id && selectedChat.user2Id) {
+            // In monitoring mode, use user2Id as the pagination key (same as in fetchMessages)
+            paginationKey = selectedChat.user2Id;
+        } else {
+            // Normal mode
+            paginationKey = currentChatId;
+        }
+    } else if (selectedChat.type === 'group') {
+        paginationKey = currentChatId;
+    }
+
+    const pagination = chatPagination[paginationKey] || { hasMore: true, oldestMessageId: null, isLoading: false };
 
     // Generate skeleton messages for initial loading
     const renderSkeletons = () => {
@@ -814,9 +849,9 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                             <span>Typing...</span>
                         </div>
                     )}
-                    {selectedChat && !isReadOnly && (
+                    {selectedChat && (!isReadOnly || (isReadOnly && selectedChat.user1Id && selectedChat.user2Id)) && (
                         <button
-                            onClick={() => setShowInfoPanel(!showInfoPanel)}
+                            onClick={() => currentSetShowInfoPanel(!currentShowInfoPanel)}
                             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                             title={selectedChat.type === 'group' ? "Group Info" : "Contact Info"}
                         >
@@ -976,7 +1011,35 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                                                                                 : "text-blue-100"
                                                                             : "opacity-90"
                                                                     )}>
-                                                                        {allUsers.find(u => u._id === msg.sender)?.agent_name || 'Unknown User'}
+                                                                        {(() => {
+                                                                            const foundUser = allUsers.find(u => u._id === msg.sender);
+                                                                            if (!foundUser) {
+                                                                                console.log('ChatWindow - User not found:', {
+                                                                                    senderId: msg.sender,
+                                                                                    messageData: {
+                                                                                        id: msg._id,
+                                                                                        sender: msg.sender,
+                                                                                        receiver: msg.receiver,
+                                                                                        message: msg.message?.substring(0, 50)
+                                                                                    },
+                                                                                    allUserIds: allUsers.map(u => u._id),
+                                                                                    allUsers: allUsers.map(u => ({ id: u._id, name: u.agent_name }))
+                                                                                });
+
+                                                                                // Try to find user by other means if direct ID match fails
+                                                                                const alternativeUser = allUsers.find(u =>
+                                                                                    u._id === msg.sender ||
+                                                                                    u.agent_name === msg.senderName ||
+                                                                                    u.email === msg.senderEmail
+                                                                                );
+
+                                                                                if (alternativeUser) {
+                                                                                    console.log('ChatWindow - Found user by alternative means:', alternativeUser);
+                                                                                    return alternativeUser.agent_name;
+                                                                                }
+                                                                            }
+                                                                            return foundUser?.agent_name || 'Unknown User';
+                                                                        })()}
                                                                     </p>
                                                                 )}
 
@@ -1246,16 +1309,22 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                     </Panel>
 
                     {/* Info Panel */}
-                    {showInfoPanel && (
+                    {currentShowInfoPanel && (
                         selectedChat.type === 'group' ? (
                             <GroupInfoPanel
                                 selectedChat={selectedChat}
-                                onClose={() => setShowInfoPanel(false)}
+                                onClose={() => currentSetShowInfoPanel(false)}
+                            />
+                        ) : isReadOnly && selectedChat.user1Id && selectedChat.user2Id ? (
+                            <AdminUserInfoPanel
+                                selectedChat={selectedChat}
+                                onClose={() => currentSetShowInfoPanel(false)}
+                                currentUser={currentUser}
                             />
                         ) : (
                             <UserInfoPanel
                                 selectedChat={selectedChat}
-                                onClose={() => setShowInfoPanel(false)}
+                                onClose={() => currentSetShowInfoPanel(false)}
                                 currentUser={currentUser}
                             />
                         )

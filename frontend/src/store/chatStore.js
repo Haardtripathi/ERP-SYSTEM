@@ -741,9 +741,22 @@ const useChatStore = create((set, get) => ({
         }
 
         // Check if we're still fetching for the currently selected chat
-        if (selectedChat?.type === 'user' && selectedChat.id !== userId2) {
-            console.log('fetchMessages: Aborted, chat selection changed during fetch');
-            return;
+        // For monitoring mode, we need to check both user1Id and user2Id
+        if (selectedChat?.type === 'user') {
+            const isMonitoring = selectedChat.user1Id && selectedChat.user2Id;
+            if (isMonitoring) {
+                // In monitoring mode, check if the current fetch matches the selected user pair
+                if (selectedChat.user1Id !== userId1 || selectedChat.user2Id !== userId2) {
+                    console.log('fetchMessages: Aborted, chat selection changed during fetch (monitoring mode)');
+                    return;
+                }
+            } else {
+                // Normal mode, check if selectedChat.id matches userId2
+                if (selectedChat.id !== userId2) {
+                    console.log('fetchMessages: Aborted, chat selection changed during fetch');
+                    return;
+                }
+            }
         }
 
         console.log(`fetchMessages: Fetching messages for users: ${userId1} and ${userId2} with limit ${limit} and beforeId ${beforeId}`);

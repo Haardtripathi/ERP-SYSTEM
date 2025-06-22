@@ -1,267 +1,244 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Play, AlertCircle } from 'lucide-react';
 
 const VideoPlayer = ({ url, fileName, isMyMessage }) => {
     const [isPlaying, setIsPlaying] = useState(false);
-    const videoRef = useRef(null);
+    const [videoError, setVideoError] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [thumbnailUrl, setThumbnailUrl] = useState(null);
-    const [videoUrl, setVideoUrl] = useState(null);
+    const [errorDetails, setErrorDetails] = useState(null);
+    const videoRef = useRef(null);
+    const loadTimeoutRef = useRef(null);
 
-    // Debug logging for state changes
+    // Reset error state when URL changes
     useEffect(() => {
-        console.log('VideoPlayer state:', {
-            url,
-            videoUrl,
-            isLoading,
-            error,
-            isPlaying,
-            hasVideoRef: !!videoRef.current
-        });
-    }, [url, videoUrl, isLoading, error, isPlaying]);
+        setVideoError(false);
+        setIsLoading(true);
+        setErrorDetails(null);
 
-    useEffect(() => {
-        let isMounted = true;
-
-        const loadVideo = async () => {
-            if (!url) {
-                console.error('No URL provided to VideoPlayer');
-                setError('No video URL provided');
-                setIsLoading(false);
-                return;
-            }
-
-            console.log('Starting video load process for URL:', url);
-            setIsLoading(true);
-            setError(null);
-            setVideoUrl(url);
-
-            try {
-                // Create thumbnail
-                const video = document.createElement('video');
-                video.crossOrigin = 'anonymous';
-                video.src = url;
-                video.currentTime = 0.1;
-                video.muted = true; // Mute for thumbnail generation
-
-                video.onloadeddata = () => {
-                    if (!isMounted) return;
-                    console.log('Thumbnail video loaded successfully');
-                    try {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = video.videoWidth;
-                        canvas.height = video.videoHeight;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                        const thumbnailUrl = canvas.toDataURL('image/jpeg');
-                        setThumbnailUrl(thumbnailUrl);
-                    } catch (thumbnailError) {
-                        console.warn('Failed to create thumbnail:', thumbnailError);
-                    }
-                    setIsLoading(false);
-                };
-
-                video.onerror = (e) => {
-                    if (!isMounted) return;
-                    console.error('Error loading video for thumbnail:', e);
-                    setIsLoading(false);
-                };
-
-                // Set a timeout to prevent infinite loading
-                setTimeout(() => {
-                    if (isMounted && isLoading) {
-                        console.log('Video thumbnail loading timeout, proceeding without thumbnail');
-                        setIsLoading(false);
-                    }
-                }, 5000);
-
-            } catch (error) {
-                console.error('Error in loadVideo:', error);
-                if (isMounted) {
-                    setError(error.message);
-                    setIsLoading(false);
-                }
-            }
-        };
-
-        loadVideo();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [url]);
-
-    const handlePlay = () => {
-        console.log('Attempting to play video:', {
-            hasVideoRef: !!videoRef.current,
-            url: videoUrl
-        });
-
-        if (!videoUrl) {
-            console.error('No video URL available');
-            setError('No video URL available');
-            return;
+        // Clear any existing timeout
+        if (loadTimeoutRef.current) {
+            clearTimeout(loadTimeoutRef.current);
         }
 
-        setIsPlaying(true);
+        // Validate URL before attempting to load
+        if (url) {
+            console.log('VideoPlayer - URL validation:', {
+                url: url,
+                urlType: url.startsWith('blob:') ? 'blob' : 'other',
+                urlLength: url.length,
+                fileName: fileName
+            });
+
+            // For blob URLs, just check if they're properly formatted
+            // Don't use fetch validation as it can cause issues with blob URLs
+            if (url.startsWith('blob:')) {
+                // Basic blob URL format validation
+                const blobUrlPattern = /^blob:https?:\/\/[^/]+\/[a-f0-9-]+$/;
+                if (!blobUrlPattern.test(url)) {
+                    console.error('VideoPlayer - Invalid blob URL format:', url);
+                    setErrorDetails('Invalid video URL format');
+                    setVideoError(true);
+                }
+            } else if (!url.startsWith('http') && !url.startsWith('data:')) {
+                console.error('VideoPlayer - Unsupported URL type:', url);
+                setErrorDetails('Unsupported video URL type');
+                setVideoError(true);
+            }
+
+            // Set a timeout to detect if video loading takes too long
+            loadTimeoutRef.current = setTimeout(() => {
+                if (isLoading) {
+                    console.warn('VideoPlayer - Video loading timeout:', { url, fileName });
+                    setErrorDetails('Video loading timeout');
+                    setVideoError(true);
+                    setIsLoading(false);
+                }
+            }, 10000); // 10 second timeout
+        }
+
+        return () => {
+            if (loadTimeoutRef.current) {
+                clearTimeout(loadTimeoutRef.current);
+            }
+        };
+    }, [url, fileName]);
+
+    const handlePlay = () => {
+        if (url && !videoError) {
+            console.log('VideoPlayer - Attempting to play video:', { url, fileName });
+            setIsPlaying(true);
+        } else {
+            console.warn('VideoPlayer - Cannot play video:', {
+                hasUrl: !!url,
+                hasError: videoError,
+                errorDetails
+            });
+        }
     };
 
     const handleClose = () => {
-        console.log('Closing video player');
-        if (videoRef.current) {
-            videoRef.current.pause();
-            videoRef.current.currentTime = 0;
-        }
         setIsPlaying(false);
     };
 
     const handleVideoError = (e) => {
-        console.error('Video playback error:', e);
-        const video = e.target;
-        console.log('Video error details:', {
-            error: video.error,
-            networkState: video.networkState,
-            readyState: video.readyState,
-            src: video.src,
-            duration: video.duration,
-            videoWidth: video.videoWidth,
-            videoHeight: video.videoHeight
+        const error = e.nativeEvent || e;
+        const errorCode = error.target?.error?.code;
+        const errorMessage = error.target?.error?.message || 'Unknown video error';
+
+        console.error('VideoPlayer - Detailed error info:', {
+            errorCode,
+            errorMessage,
+            url: url,
+            fileName: fileName,
+            isBlobUrl: url?.startsWith('blob:'),
+            videoElement: error.target,
+            event: e
         });
 
-        let errorMessage = 'Failed to play video';
-        if (video.error) {
-            switch (video.error.code) {
-                case 1:
-                    errorMessage = 'Video loading aborted';
-                    break;
-                case 2:
-                    errorMessage = 'Network error while loading video';
-                    break;
-                case 3:
-                    errorMessage = 'Video decoding error';
-                    break;
-                case 4:
-                    errorMessage = 'Video not supported';
-                    break;
-            }
+        // Clear the loading timeout
+        if (loadTimeoutRef.current) {
+            clearTimeout(loadTimeoutRef.current);
+            loadTimeoutRef.current = null;
         }
 
-        setError(errorMessage);
-        handleClose();
+        setErrorDetails(`Error ${errorCode}: ${errorMessage}`);
+        setVideoError(true);
+        setIsLoading(false);
     };
 
-    // Add a simple test to check if the URL is a valid blob URL
-    const isValidBlobUrl = (url) => {
-        return url && url.startsWith('blob:');
+    const handleVideoLoad = () => {
+        console.log('VideoPlayer - Video loaded successfully:', { url, fileName });
+
+        // Clear the loading timeout
+        if (loadTimeoutRef.current) {
+            clearTimeout(loadTimeoutRef.current);
+            loadTimeoutRef.current = null;
+        }
+
+        setIsLoading(false);
+        setVideoError(false);
+        setErrorDetails(null);
     };
 
-    if (isLoading) {
-        return (
-            <div className={`relative w-full h-48 rounded-lg overflow-hidden ${isMyMessage ? 'bg-blue-100' : 'bg-gray-100'}`}>
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                </div>
-                <div className="absolute bottom-2 left-2 text-xs text-gray-500">
-                    Loading video...
-                </div>
-                {url && (
-                    <div className="absolute top-2 left-2 text-xs text-gray-500">
-                        URL: {isValidBlobUrl(url) ? 'Valid blob URL' : 'Invalid URL'}
-                    </div>
-                )}
-            </div>
-        );
-    }
+    const handleVideoLoadStart = () => {
+        console.log('VideoPlayer - Video load started:', { url, fileName });
+        setIsLoading(true);
+    };
 
-    if (error) {
-        return (
-            <div className={`relative w-full h-48 rounded-lg overflow-hidden ${isMyMessage ? 'bg-blue-100' : 'bg-gray-100'}`}>
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                        <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
-                        <p className="text-red-500 text-sm">{error}</p>
-                        <p className="text-gray-500 text-xs mt-1">{fileName}</p>
-                        {url && (
-                            <p className="text-gray-400 text-xs mt-1">
-                                URL: {url.substring(0, 50)}...
-                            </p>
-                        )}
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (isPlaying) {
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
-                <div className="relative w-full max-w-4xl bg-black rounded-lg overflow-hidden">
-                    <div className="absolute top-2 right-2 z-10">
-                        <button
-                            onClick={handleClose}
-                            className="text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2"
-                        >
-                            <X size={24} />
-                        </button>
-                    </div>
-                    <div className="relative w-full" style={{ paddingTop: '56.25%' }}> {/* 16:9 aspect ratio */}
-                        <video
-                            ref={videoRef}
-                            key={videoUrl}
-                            src={videoUrl}
-                            className="absolute top-0 left-0 w-full h-full"
-                            controls
-                            playsInline
-                            preload="auto"
-                            onError={handleVideoError}
-                            onLoadedData={() => {
-                                console.log('Video loaded successfully');
-                            }}
-                            onCanPlay={() => {
-                                console.log('Video can play');
-                            }}
-                            onLoadStart={() => console.log('Video load started')}
-                            onWaiting={() => console.log('Video waiting for data')}
-                            onStalled={() => console.log('Video stalled')}
-                        >
-                            Your browser does not support the video tag.
-                        </video>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    return (
+    // This is the thumbnail view shown in the chat or info panel
+    const renderThumbnail = () => (
         <div
             className={`relative w-full h-48 rounded-lg overflow-hidden cursor-pointer group ${isMyMessage ? 'bg-blue-100' : 'bg-gray-100'}`}
             onClick={handlePlay}
         >
-            {thumbnailUrl ? (
-                <img
-                    src={thumbnailUrl}
-                    alt="Video thumbnail"
-                    className="w-full h-full object-cover"
-                />
-            ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-500">Video</span>
+            <div className="w-full h-full bg-black flex items-center justify-center">
+                {!videoError ? (
+                    <video
+                        src={url}
+                        ref={videoRef}
+                        muted
+                        preload="metadata"
+                        className="w-full h-full object-cover"
+                        onLoadedMetadata={() => {
+                            if (videoRef.current) {
+                                videoRef.current.currentTime = 0.1;
+                            }
+                            handleVideoLoad();
+                        }}
+                        onError={handleVideoError}
+                        onLoadStart={handleVideoLoadStart}
+                        onAbort={(e) => console.warn('VideoPlayer - Video load aborted:', e)}
+                        onStalled={(e) => console.warn('VideoPlayer - Video stalled:', e)}
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                        <AlertCircle className="w-8 h-8 text-red-500" />
+                        {errorDetails && (
+                            <div className="absolute bottom-2 left-2 right-2 text-xs text-red-400 bg-black bg-opacity-50 p-1 rounded">
+                                {errorDetails}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+            {!videoError && (
+                <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center group-hover:bg-opacity-30 transition-all">
+                    <Play size={48} className="text-white" />
                 </div>
             )}
-            <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center group-hover:bg-opacity-30 transition-all">
-                <Play size={48} className="text-white" />
-            </div>
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-2">
                 <p className="text-white text-sm truncate">{fileName}</p>
             </div>
-            {url && (
-                <div className="absolute top-2 left-2 text-xs text-white bg-black bg-opacity-50 px-1 rounded">
-                    {isValidBlobUrl(url) ? 'Blob URL' : 'Other URL'}
-                </div>
-            )}
         </div>
     );
+
+    // This is the full-screen modal view
+    const renderModalPlayer = () => (
+        <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center p-4" onClick={handleClose}>
+            <div className="relative w-full max-w-4xl bg-black rounded-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                <div className="absolute top-2 right-2 z-10">
+                    <button
+                        onClick={handleClose}
+                        className="text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+                <div className="relative w-full" style={{ paddingTop: '56.25%' }}> {/* 16:9 aspect ratio */}
+                    {!videoError ? (
+                        <video
+                            src={url}
+                            className="absolute top-0 left-0 w-full h-full"
+                            controls
+                            autoPlay
+                            playsInline
+                            preload="auto"
+                            onError={handleVideoError}
+                            onLoadedData={handleVideoLoad}
+                            onLoadStart={handleVideoLoadStart}
+                            onAbort={(e) => console.warn('VideoPlayer - Modal video load aborted:', e)}
+                            onStalled={(e) => console.warn('VideoPlayer - Modal video stalled:', e)}
+                        >
+                            Your browser does not support the video tag.
+                        </video>
+                    ) : (
+                        <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800">
+                            <div className="text-center text-white">
+                                <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+                                <p className="text-lg font-semibold mb-2">Video Error</p>
+                                <p className="text-sm opacity-80 mb-2">Unable to load video</p>
+                                {errorDetails && (
+                                    <p className="text-xs opacity-60 mb-4 max-w-md break-words">
+                                        {errorDetails}
+                                    </p>
+                                )}
+                                <button
+                                    onClick={handleClose}
+                                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+                <div className="p-4 bg-black text-white">
+                    <p className="font-semibold">{fileName}</p>
+                </div>
+            </div>
+        </div>
+    );
+
+    if (!url) {
+        return (
+            <div className={`relative w-full h-48 rounded-lg overflow-hidden flex items-center justify-center ${isMyMessage ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                <AlertCircle className="w-8 h-8 text-red-500" />
+                <p className="ml-2 text-red-500 text-sm">Video URL is missing.</p>
+            </div>
+        );
+    }
+
+    return isPlaying ? renderModalPlayer() : renderThumbnail();
 };
 
 export default VideoPlayer; 
