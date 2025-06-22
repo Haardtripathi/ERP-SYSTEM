@@ -410,11 +410,11 @@ exports.markMessagesAsSeen = async (req, res) => {
 
         // Emit socket event for each updated message
         const io = getIo();
-        console.log('Socket IO instance:', !!io, 'Updated messages count:', updatedMessages?.length);
+
         if (updatedMessages && updatedMessages.length > 0 && io) {
             updatedMessages.forEach(msg => {
                 if (isGroup) {
-                    console.log('Emitting message-seen for', msg._id, 'to group', chatId, 'seenBy:', msg.seenBy);
+
                     io.to(chatId.toString()).emit('message-seen', {
                         messageId: msg._id,
                         seenBy: msg.seenBy
@@ -432,7 +432,7 @@ exports.markMessagesAsSeen = async (req, res) => {
                         });
                     });
                 } else {
-                    console.log('Emitting message-seen for', msg._id, 'to users', userId, chatId, 'seenBy:', msg.seenBy);
+
                     io.to(userId.toString()).emit('message-seen', {
                         messageId: msg._id,
                         seenBy: msg.seenBy
@@ -456,7 +456,7 @@ exports.markMessagesAsSeen = async (req, res) => {
                 }
             });
         } else {
-            console.log('No socket events emitted. IO:', !!io, 'Messages:', updatedMessages?.length);
+
         }
 
         res.status(200).json({
@@ -557,7 +557,7 @@ exports.getGroupMedia = async (req, res) => {
         const limit = parseInt(req.query.limit) || 12;
         const skip = (page - 1) * limit;
 
-        console.log('Getting group media with params:', { groupId, page, limit, skip });
+
 
         // Aggregation pipeline to get individual attachments with pagination
         const pipeline = [
@@ -597,7 +597,7 @@ exports.getGroupMedia = async (req, res) => {
 
         const totalAttachmentsResult = await ChatMessage.aggregate(totalCountPipeline);
         const totalCount = totalAttachmentsResult.length > 0 ? totalAttachmentsResult[0].totalAttachments : 0;
-        console.log('Total individual attachments:', totalCount);
+
 
         // Apply pagination to the main pipeline
         const mediaPipeline = [
@@ -607,7 +607,7 @@ exports.getGroupMedia = async (req, res) => {
         ];
 
         const mediaItems = await ChatMessage.aggregate(mediaPipeline);
-        console.log('Found media items for current page:', mediaItems.length);
+
 
         // Calculate total pages
         const totalPages = Math.ceil(totalCount / limit);
@@ -680,7 +680,7 @@ exports.getUnreadCounts = async (req, res) => {
     const groupUnread = {};
     groupUnreadAgg.forEach(row => { groupUnread[row._id] = row.count; });
 
-    console.log('Unread counts - Users:', userUnread, 'Groups:', groupUnread);
+
 
     res.json({ userUnread, groupUnread });
 };

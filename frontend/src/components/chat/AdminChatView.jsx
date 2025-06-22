@@ -104,10 +104,6 @@ const AdminChatView = () => {
     }, [userPairs, searchQuery, selectedUser1, selectedUser2]);
 
     const handleSelectPair = (pair) => {
-        console.log('AdminChatView - Selected pair:', {
-            user1: { id: pair.user1._id, name: pair.user1.agent_name },
-            user2: { id: pair.user2._id, name: pair.user2.agent_name }
-        });
         setSelectedUserPair(pair);
 
         // Explicitly clean up socket before setting selected chat for monitoring
