@@ -588,6 +588,22 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                 <div className="grid grid-cols-1 gap-1 mb-1 last:mb-0">
                     {message.attachments.map((attachment, index) => {
                         const attachmentUrl = message.attachmentUrls?.[index];
+
+                        // Debug logging for video attachments
+                        if (attachment.contentType?.startsWith('video/') ||
+                            attachment.fileName?.toLowerCase().endsWith('.mp4') ||
+                            attachment.fileName?.toLowerCase().endsWith('.webm') ||
+                            attachment.fileName?.toLowerCase().endsWith('.mov')) {
+                            console.log('Video attachment found:', {
+                                attachment,
+                                attachmentUrl,
+                                contentType: attachment.contentType,
+                                fileName: attachment.fileName,
+                                hasData: !!attachment.data,
+                                urlType: attachmentUrl ? (attachmentUrl.startsWith('blob:') ? 'blob' : 'other') : 'none'
+                            });
+                        }
+
                         if (!attachmentUrl) return null;
 
                         // Check if the file is an audio file
@@ -616,6 +632,11 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [] })
                         }
 
                         if (isVideo) {
+                            console.log('Rendering VideoPlayer with:', {
+                                url: attachmentUrl,
+                                fileName: attachment.fileName,
+                                isMyMessage: message.sender === currentUser._id
+                            });
                             return (
                                 <div key={index} className="w-full">
                                     <VideoPlayer

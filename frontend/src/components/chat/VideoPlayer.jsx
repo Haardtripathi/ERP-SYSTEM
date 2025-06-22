@@ -1,91 +1,64 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Play } from 'lucide-react';
+import { X, Play, AlertCircle } from 'lucide-react';
 
 const VideoPlayer = ({ url, fileName, isMyMessage }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const videoRef = useRef(null);
-    const [videoSrc, setVideoSrc] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [thumbnailUrl, setThumbnailUrl] = useState(null);
-    const [isVideoReady, setIsVideoReady] = useState(false);
-    const [retryCount, setRetryCount] = useState(0);
-    const MAX_RETRIES = 3;
+    const [videoUrl, setVideoUrl] = useState(null);
 
     // Debug logging for state changes
     useEffect(() => {
         console.log('VideoPlayer state:', {
             url,
-            videoSrc,
+            videoUrl,
             isLoading,
             error,
-            isVideoReady,
             isPlaying,
-            hasVideoRef: !!videoRef.current,
-            retryCount
+            hasVideoRef: !!videoRef.current
         });
-    }, [url, videoSrc, isLoading, error, isVideoReady, isPlaying, retryCount]);
-
-    const createVideoBlob = async (videoUrl) => {
-        try {
-            console.log('Creating video blob from URL:', videoUrl);
-            const response = await fetch(videoUrl);
-            if (!response.ok) throw new Error('Failed to fetch video');
-            const blob = await response.blob();
-            const newUrl = URL.createObjectURL(blob);
-            console.log('Created new blob URL:', newUrl);
-            return newUrl;
-        } catch (error) {
-            console.error('Error creating video blob:', error);
-            throw error;
-        }
-    };
+    }, [url, videoUrl, isLoading, error, isPlaying]);
 
     useEffect(() => {
         let isMounted = true;
-        let blobUrl = null;
 
         const loadVideo = async () => {
-            if (!url) return;
+            if (!url) {
+                console.error('No URL provided to VideoPlayer');
+                setError('No video URL provided');
+                setIsLoading(false);
+                return;
+            }
 
             console.log('Starting video load process for URL:', url);
             setIsLoading(true);
             setError(null);
-            setIsVideoReady(false);
+            setVideoUrl(url);
 
             try {
-                // If the URL is already a blob URL, use it directly
-                if (url.startsWith('blob:')) {
-                    console.log('Using existing blob URL');
-                    if (isMounted) {
-                        setVideoSrc(url);
-                        blobUrl = url;
-                    }
-                } else {
-                    // Create a new blob URL
-                    console.log('Creating new blob URL from URL');
-                    const newBlobUrl = await createVideoBlob(url);
-                    if (isMounted) {
-                        setVideoSrc(newBlobUrl);
-                        blobUrl = newBlobUrl;
-                    }
-                }
-
                 // Create thumbnail
                 const video = document.createElement('video');
-                video.src = blobUrl;
+                video.crossOrigin = 'anonymous';
+                video.src = url;
                 video.currentTime = 0.1;
+                video.muted = true; // Mute for thumbnail generation
 
                 video.onloadeddata = () => {
                     if (!isMounted) return;
                     console.log('Thumbnail video loaded successfully');
-                    const canvas = document.createElement('canvas');
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    const thumbnailUrl = canvas.toDataURL('image/jpeg');
-                    setThumbnailUrl(thumbnailUrl);
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        const thumbnailUrl = canvas.toDataURL('image/jpeg');
+                        setThumbnailUrl(thumbnailUrl);
+                    } catch (thumbnailError) {
+                        console.warn('Failed to create thumbnail:', thumbnailError);
+                    }
                     setIsLoading(false);
                 };
 
@@ -94,17 +67,20 @@ const VideoPlayer = ({ url, fileName, isMyMessage }) => {
                     console.error('Error loading video for thumbnail:', e);
                     setIsLoading(false);
                 };
+
+                // Set a timeout to prevent infinite loading
+                setTimeout(() => {
+                    if (isMounted && isLoading) {
+                        console.log('Video thumbnail loading timeout, proceeding without thumbnail');
+                        setIsLoading(false);
+                    }
+                }, 5000);
+
             } catch (error) {
                 console.error('Error in loadVideo:', error);
                 if (isMounted) {
                     setError(error.message);
                     setIsLoading(false);
-
-                    // Retry logic
-                    if (retryCount < MAX_RETRIES) {
-                        console.log(`Retrying video load (${retryCount + 1}/${MAX_RETRIES})`);
-                        setRetryCount(prev => prev + 1);
-                    }
                 }
             }
         };
@@ -113,37 +89,22 @@ const VideoPlayer = ({ url, fileName, isMyMessage }) => {
 
         return () => {
             isMounted = false;
-            if (blobUrl) {
-                console.log('Cleaning up blob URL:', blobUrl);
-                URL.revokeObjectURL(blobUrl);
-            }
         };
-    }, [url, retryCount]);
+    }, [url]);
 
-    const handlePlay = async () => {
+    const handlePlay = () => {
         console.log('Attempting to play video:', {
             hasVideoRef: !!videoRef.current,
-            videoSrc,
-            isVideoReady
+            url: videoUrl
         });
 
-        if (!videoSrc) {
-            console.error('No video source available');
-            setError('No video source available');
+        if (!videoUrl) {
+            console.error('No video URL available');
+            setError('No video URL available');
             return;
         }
 
-        try {
-            // Ensure we have a valid blob URL
-            if (!videoSrc.startsWith('blob:')) {
-                const newBlobUrl = await createVideoBlob(videoSrc);
-                setVideoSrc(newBlobUrl);
-            }
-            setIsPlaying(true);
-        } catch (error) {
-            console.error('Error preparing video for playback:', error);
-            setError('Failed to prepare video for playback');
-        }
+        setIsPlaying(true);
     };
 
     const handleClose = () => {
@@ -190,12 +151,25 @@ const VideoPlayer = ({ url, fileName, isMyMessage }) => {
         handleClose();
     };
 
+    // Add a simple test to check if the URL is a valid blob URL
+    const isValidBlobUrl = (url) => {
+        return url && url.startsWith('blob:');
+    };
+
     if (isLoading) {
         return (
             <div className={`relative w-full h-48 rounded-lg overflow-hidden ${isMyMessage ? 'bg-blue-100' : 'bg-gray-100'}`}>
                 <div className="absolute inset-0 flex items-center justify-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                 </div>
+                <div className="absolute bottom-2 left-2 text-xs text-gray-500">
+                    Loading video...
+                </div>
+                {url && (
+                    <div className="absolute top-2 left-2 text-xs text-gray-500">
+                        URL: {isValidBlobUrl(url) ? 'Valid blob URL' : 'Invalid URL'}
+                    </div>
+                )}
             </div>
         );
     }
@@ -204,7 +178,16 @@ const VideoPlayer = ({ url, fileName, isMyMessage }) => {
         return (
             <div className={`relative w-full h-48 rounded-lg overflow-hidden ${isMyMessage ? 'bg-blue-100' : 'bg-gray-100'}`}>
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <p className="text-red-500">{error}</p>
+                    <div className="text-center">
+                        <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+                        <p className="text-red-500 text-sm">{error}</p>
+                        <p className="text-gray-500 text-xs mt-1">{fileName}</p>
+                        {url && (
+                            <p className="text-gray-400 text-xs mt-1">
+                                URL: {url.substring(0, 50)}...
+                            </p>
+                        )}
+                    </div>
                 </div>
             </div>
         );
@@ -225,8 +208,8 @@ const VideoPlayer = ({ url, fileName, isMyMessage }) => {
                     <div className="relative w-full" style={{ paddingTop: '56.25%' }}> {/* 16:9 aspect ratio */}
                         <video
                             ref={videoRef}
-                            key={videoSrc}
-                            src={videoSrc}
+                            key={videoUrl}
+                            src={videoUrl}
                             className="absolute top-0 left-0 w-full h-full"
                             controls
                             playsInline
@@ -234,11 +217,9 @@ const VideoPlayer = ({ url, fileName, isMyMessage }) => {
                             onError={handleVideoError}
                             onLoadedData={() => {
                                 console.log('Video loaded successfully');
-                                setIsVideoReady(true);
                             }}
                             onCanPlay={() => {
                                 console.log('Video can play');
-                                setIsVideoReady(true);
                             }}
                             onLoadStart={() => console.log('Video load started')}
                             onWaiting={() => console.log('Video waiting for data')}
@@ -274,6 +255,11 @@ const VideoPlayer = ({ url, fileName, isMyMessage }) => {
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-2">
                 <p className="text-white text-sm truncate">{fileName}</p>
             </div>
+            {url && (
+                <div className="absolute top-2 left-2 text-xs text-white bg-black bg-opacity-50 px-1 rounded">
+                    {isValidBlobUrl(url) ? 'Blob URL' : 'Other URL'}
+                </div>
+            )}
         </div>
     );
 };
