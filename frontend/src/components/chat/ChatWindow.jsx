@@ -612,14 +612,6 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
                             attachment.fileName?.toLowerCase().endsWith('.mp4') ||
                             attachment.fileName?.toLowerCase().endsWith('.webm') ||
                             attachment.fileName?.toLowerCase().endsWith('.mov')) {
-                            console.log('Video attachment found:', {
-                                attachment,
-                                attachmentUrl,
-                                contentType: attachment.contentType,
-                                fileName: attachment.fileName,
-                                hasData: !!attachment.data,
-                                urlType: attachmentUrl ? (attachmentUrl.startsWith('blob:') ? 'blob' : 'other') : 'none'
-                            });
                         }
 
                         if (!attachmentUrl) return null;
@@ -650,11 +642,6 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
                         }
 
                         if (isVideo) {
-                            console.log('Rendering VideoPlayer with:', {
-                                url: attachmentUrl,
-                                fileName: attachment.fileName,
-                                isMyMessage: message.sender === currentUser._id
-                            });
                             return (
                                 <div key={index} className="w-full">
                                     <VideoPlayer
@@ -1012,17 +999,6 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
                                                                         {(() => {
                                                                             const foundUser = allUsers.find(u => u._id === msg.sender);
                                                                             if (!foundUser) {
-                                                                                console.log('ChatWindow - User not found:', {
-                                                                                    senderId: msg.sender,
-                                                                                    messageData: {
-                                                                                        id: msg._id,
-                                                                                        sender: msg.sender,
-                                                                                        receiver: msg.receiver,
-                                                                                        message: msg.message?.substring(0, 50)
-                                                                                    },
-                                                                                    allUserIds: allUsers.map(u => u._id),
-                                                                                    allUsers: allUsers.map(u => ({ id: u._id, name: u.agent_name }))
-                                                                                });
 
                                                                                 // Try to find user by other means if direct ID match fails
                                                                                 const alternativeUser = allUsers.find(u =>

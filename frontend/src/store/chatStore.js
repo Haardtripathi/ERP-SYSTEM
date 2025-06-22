@@ -99,12 +99,6 @@ const getFileType = (file) => {
 // Helper function to process file data
 const processFileData = async (file) => {
     try {
-        console.log('Processing file:', {
-            name: file.name,
-            type: file.type,
-            size: file.size
-        });
-
         // Add file size check
         if (file.size > MAX_FILE_SIZE) {
             throw new Error(`File size exceeds the maximum limit of ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
@@ -601,14 +595,6 @@ const useChatStore = create((set, get) => ({
                 return;
             }
 
-            console.log('Frontend - sendMessage called with:', {
-                content,
-                receiverId,
-                groupId,
-                filesCount: files.length,
-                replyToId
-            });
-
             const { currentUser } = get();
             if (!currentUser || !currentUser._id) {
                 console.error('sendMessage: Aborted, currentUser or currentUser._id is null/undefined.', currentUser);
@@ -634,12 +620,6 @@ const useChatStore = create((set, get) => ({
             const fileBlobs = [];
 
             for (const file of files) {
-                console.log('Frontend - Processing file:', {
-                    name: file.name,
-                    type: file.type,
-                    size: file.size
-                });
-
                 try {
                     const processedFile = await processFileData(file);
                     if (processedFile) {

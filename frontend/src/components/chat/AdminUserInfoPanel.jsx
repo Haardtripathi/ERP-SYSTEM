@@ -129,12 +129,6 @@ const AdminUserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
 
             if (data && data.media) {
                 const processedMedia = data.media.map(item => {
-                    console.log('Processing media item before URL creation:', {
-                        fileName: item.fileName,
-                        contentType: item.contentType,
-                        hasData: !!item.data,
-                        dataType: item.data ? typeof item.data : 'no data',
-                    });
 
                     // For images, ensure we're handling the data correctly
                     if (item.contentType?.startsWith('image/')) {

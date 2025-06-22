@@ -22,12 +22,6 @@ const VideoPlayer = ({ url, fileName, isMyMessage }) => {
 
         // Validate URL before attempting to load
         if (url) {
-            console.log('VideoPlayer - URL validation:', {
-                url: url,
-                urlType: url.startsWith('blob:') ? 'blob' : 'other',
-                urlLength: url.length,
-                fileName: fileName
-            });
 
             // For blob URLs, just check if they're properly formatted
             // Don't use fetch validation as it can cause issues with blob URLs

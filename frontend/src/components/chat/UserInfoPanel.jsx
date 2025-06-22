@@ -128,25 +128,11 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
             try {
                 setLoading(true);
                 setError(null);
-                console.log('Fetching media with params:', {
-                    userId1: currentUser._id,
-                    userId2: selectedChat.id,
-                    page: currentPage,
-                    limit: 12
-                });
                 const data = await getChatMedia(currentUser._id, selectedChat.id, currentPage, 12);
 
 
                 if (data && data.media) {
                     const processedMedia = data.media.map(item => {
-                        console.log('Processing media item before URL creation:', {
-                            fileName: item.fileName,
-                            contentType: item.contentType,
-                            hasData: !!item.data,
-                            dataType: item.data ? typeof item.data : 'no data',
-                            // Log the actual item.data for inspection
-                            dataContent: item.data // BE CAREFUL WITH LARGE DATA, ONLY FOR DEBUGGING
-                        });
 
                         // For images, ensure we're handling the data correctly
                         if (item.contentType?.startsWith('image/')) {

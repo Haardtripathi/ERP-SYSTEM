@@ -4,13 +4,11 @@ import axiosInstance from '../axiosInstance';
 
 export const getAllRoles = async () => {
     const response = await axiosInstance.get("/admin/roles");
-    console.log(response)
     return response.data;
 };
 
 export const getAuthUserAccessPages = async () => {
     const response = await axiosInstance.get("/admin/get-user-access-pages");
-    console.log(response)
     return response.data;
 }
 
@@ -24,12 +22,10 @@ export const deleteRole = async (id) => {
     const response = await axiosInstance.delete(`/admin/delete-role`, {
         data: { roleID: id }, // ✅ This sends the body correctly
     });
-    console.log(response)
     return response.data;
 };
 
 export const updateRole = async (id, data) => {
-    console.log(data)
     const response = await axiosInstance.post(`/admin/edit-role-data`, { id, data });
     return response.data;
 }
@@ -47,7 +43,6 @@ export const getPagesAndColumns = async () => {
 // Add a new role
 export const addRole = async (roleData) => {
     try {
-        console.log(roleData)
         const response = await axiosInstance.post(`/admin/add-role`, roleData);
         return response.data;
     } catch (error) {
