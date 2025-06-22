@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import axios from '../axiosInstance';
 import io from 'socket.io-client';
 
+// Debug flag - set to true to enable verbose logging
+const DEBUG_MODE = false;
+
 // Move socket instance outside of store to prevent multiple connections
 let socket = null;
 let isSocketInitialized = false;
@@ -19,35 +22,36 @@ const getUint8ArrayFromBuffer = (buffer) => {
         return new Uint8Array();
     }
     const uint8Array = new Uint8Array(buffer.data);
-    console.log('getUint8ArrayFromBuffer: Generated Uint8Array (length):', uint8Array.length, 'first 10 bytes:', uint8Array.slice(0, 10));
+    // console.log('getUint8ArrayFromBuffer: Generated Uint8Array (length):', uint8Array.length, 'first 10 bytes:', uint8Array.slice(0, 10));
     return uint8Array;
 };
 
 // Function to create Blob URL from Uint8Array
 const createBlobUrl = (uint8Array, contentType) => {
-    console.log('createBlobUrl: Received Uint8Array (length):', uint8Array.length, 'contentType:', contentType);
+    // console.log('createBlobUrl: Received Uint8Array (length):', uint8Array.length, 'contentType:', contentType);
     const blob = new Blob([uint8Array], { type: contentType });
-    console.log('createBlobUrl: Created Blob object (size, type):', blob.size, blob.type);
+    // console.log('createBlobUrl: Created Blob object (size, type):', blob.size, blob.type);
     const url = URL.createObjectURL(blob);
-    console.log('createBlobUrl: Generated Blob URL:', url);
+    // console.log('createBlobUrl: Generated Blob URL:', url);
     return { url, blob };
 };
 
 const processAttachmentBuffer = (buffer, contentType) => {
-    console.log('processAttachmentBuffer: Received buffer (before check):', buffer);
-    console.log('processAttachmentBuffer: Received buffer.data (before check):', buffer?.data);
-    console.log('processAttachmentBuffer: Received contentType:', contentType);
+    // Only log in development mode or when debugging is explicitly enabled
+    // console.log('processAttachmentBuffer: Received buffer (before check):', buffer);
+    // console.log('processAttachmentBuffer: Received buffer.data (before check):', buffer?.data);
+    // console.log('processAttachmentBuffer: Received contentType:', contentType);
 
     let uint8ArrayData = null;
 
     if (buffer && buffer.data && Array.isArray(buffer.data)) {
-        console.log('processAttachmentBuffer: Processing Buffer object with .data');
+        // console.log('processAttachmentBuffer: Processing Buffer object with .data');
         uint8ArrayData = buffer.data;
     } else if (buffer instanceof ArrayBuffer) {
-        console.log('processAttachmentBuffer: Processing raw ArrayBuffer');
+        // console.log('processAttachmentBuffer: Processing raw ArrayBuffer');
         uint8ArrayData = new Uint8Array(buffer);
     } else if (typeof buffer === 'string' && buffer.startsWith('data:')) {
-        console.log('processAttachmentBuffer: Processing data URL string');
+        // console.log('processAttachmentBuffer: Processing data URL string');
         try {
             const base64Data = buffer.split('base64,')[1];
             uint8ArrayData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
@@ -64,14 +68,14 @@ const processAttachmentBuffer = (buffer, contentType) => {
 
     try {
         const uint8Array = new Uint8Array(uint8ArrayData);
-        console.log('processAttachmentBuffer: Created Uint8Array (length):', uint8Array.length);
+        // console.log('processAttachmentBuffer: Created Uint8Array (length):', uint8Array.length);
         const { url, blob } = createBlobUrl(uint8Array, contentType);
 
         // Store the blob URL in the activeImageUrls set for both images and videos
         if (contentType.startsWith('image/') || contentType.startsWith('video/')) {
             const store = useChatStore.getState();
             store.activeImageUrls.add(url);
-            console.log('Added URL to activeImageUrls:', url);
+            // console.log('Added URL to activeImageUrls:', url);
         }
 
         return { url, blob };
@@ -150,10 +154,13 @@ const useChatStore = create((set, get) => ({
     isMonitoringAdminView: false, // New state to indicate if in admin monitoring mode
     currentFetchId: null,
     lastSeenMessages: {}, // Track last seen message IDs per chat
+    processedSeenEvents: new Set(), // Track processed message-seen events to prevent duplicates
 
     // Actions
     setMessages: (newMessages) => {
-        console.log('setMessages: Setting messages:', newMessages.length);
+        if (DEBUG_MODE) {
+            console.log('setMessages: Setting messages:', newMessages.length);
+        }
 
         // Process attachments before updating messages
         const processedMessages = newMessages.map(msg => {
@@ -302,7 +309,7 @@ const useChatStore = create((set, get) => ({
                     });
 
                     socket.on('receive-message', async (message) => {
-                        console.log('Received message:', message);
+                        // console.log('Received message:', message);
                         if (!message || !message._id) {
                             console.error('Invalid message received:', message);
                             return;
@@ -310,7 +317,7 @@ const useChatStore = create((set, get) => ({
 
                         // Check for duplicate messages
                         if (processedMessageIds.has(message._id)) {
-                            console.log('Duplicate message received, skipping:', message._id);
+                            // console.log('Duplicate message received, skipping:', message._id);
                             return;
                         }
                         processedMessageIds.add(message._id);
@@ -426,20 +433,23 @@ const useChatStore = create((set, get) => ({
                     });
 
                     socket.on('update-online-users', (users) => {
-                        console.log('Received online users update:', users);
+                        // console.log('Received online users update:', users);
                         set({ onlineUsers: users });
                     });
 
                     // Add new socket event for message seen status
                     socket.on('message-seen', (data) => {
-                        console.log('Socket event: message-seen received', data);
-                        console.log('Current messages before update:', get().messages.length);
+                        const currentMessagesCount = get().messages.length;
                         get().updateMessageSeenStatus(data.messageId, data.seenBy);
-                        console.log('Messages after update:', get().messages.length);
+                        // Only log if messages were actually updated (count changed)
+                        const newMessagesCount = get().messages.length;
+                        if (newMessagesCount !== currentMessagesCount) {
+                            // console.log('Message seen status updated for:', data.messageId);
+                        }
                     });
 
                     socket.on('user-online', (userId) => {
-                        console.log('User came online:', userId);
+                        // console.log('User came online:', userId);
                         if (userId && typeof userId === 'string') {
                             set((state) => ({
                                 onlineUsers: [...new Set([...state.onlineUsers, userId])]
@@ -448,7 +458,7 @@ const useChatStore = create((set, get) => ({
                     });
 
                     socket.on('user-offline', (userId) => {
-                        console.log('User went offline:', userId);
+                        // console.log('User went offline:', userId);
                         if (userId && typeof userId === 'string') {
                             set((state) => ({
                                 onlineUsers: state.onlineUsers.filter(id => id !== userId)
@@ -464,7 +474,7 @@ const useChatStore = create((set, get) => ({
 
                     // Add group-related socket events
                     socket.on('group-created', (group) => {
-                        console.log('Group created event received:', group);
+                        // console.log('Group created event received:', group);
                         set((state) => {
                             // Check if group already exists to avoid duplicates
                             const existingGroup = state.groups.find(g => g._id === group._id);
@@ -476,7 +486,7 @@ const useChatStore = create((set, get) => ({
                     });
 
                     socket.on('group-updated', (data) => {
-                        console.log('Group updated event received:', data);
+                        // console.log('Group updated event received:', data);
                         set((state) => ({
                             groups: state.groups.map(group =>
                                 group._id === data.group._id ? data.group : group
@@ -485,14 +495,14 @@ const useChatStore = create((set, get) => ({
                     });
 
                     socket.on('group-removed', (data) => {
-                        console.log('Group removed event received:', data);
+                        // console.log('Group removed event received:', data);
                         set((state) => ({
                             groups: state.groups.filter(group => group._id !== data.groupId)
                         }));
                     });
 
                     socket.on('group-added', (data) => {
-                        console.log('Group added event received:', data);
+                        // console.log('Group added event received:', data);
                         set((state) => {
                             // Check if group already exists to avoid duplicates
                             const existingGroup = state.groups.find(g => g._id === data.group._id);
@@ -505,7 +515,7 @@ const useChatStore = create((set, get) => ({
 
                     // Add socket event for unread count updates
                     socket.on('unread-count-update', (data) => {
-                        console.log('Unread count update received:', data);
+                        // console.log('Unread count update received:', data);
                         if (data.groupId) {
                             // Update specific group unread count
                             set(state => {
@@ -515,7 +525,7 @@ const useChatStore = create((set, get) => ({
                                 };
                                 const unreadChats = Object.values(newUnreadMessages).filter(count => count > 0).length;
 
-                                console.log('Updated unread messages from socket:', newUnreadMessages);
+                                // console.log('Updated unread messages from socket:', newUnreadMessages);
 
                                 return {
                                     unreadMessages: newUnreadMessages,
@@ -531,7 +541,7 @@ const useChatStore = create((set, get) => ({
                                 };
                                 const unreadChats = Object.values(newUnreadMessages).filter(count => count > 0).length;
 
-                                console.log('Updated unread messages from socket:', newUnreadMessages);
+                                // console.log('Updated unread messages from socket:', newUnreadMessages);
 
                                 return {
                                     unreadMessages: newUnreadMessages,
@@ -1157,6 +1167,25 @@ const useChatStore = create((set, get) => ({
         try {
             if (!currentUser) return;
 
+            // Add guard to prevent multiple calls in quick succession
+            const now = Date.now();
+            const lastSeenTime = get().lastSeenMessages[chatId] || 0;
+            const timeSinceLastSeen = now - lastSeenTime;
+
+            // Prevent calling markMessagesAsSeen more than once per second for the same chat
+            if (timeSinceLastSeen < 1000) {
+                console.log('markMessagesAsSeen: Skipping call, too soon since last seen:', timeSinceLastSeen, 'ms');
+                return;
+            }
+
+            // Update last seen time
+            set(state => ({
+                lastSeenMessages: {
+                    ...state.lastSeenMessages,
+                    [chatId]: now
+                }
+            }));
+
             const response = await axios.post('/chat/mark-seen', {
                 userId: currentUser._id,
                 chatId,
@@ -1191,14 +1220,8 @@ const useChatStore = create((set, get) => ({
                 }));
             }
 
-            // For groups, also emit socket event to update seen status in real-time
-            if (isGroup && socket && socket.connected) {
-                socket.emit('message-seen', {
-                    chatId,
-                    isGroup: true,
-                    userId: currentUser._id
-                });
-            }
+            // Remove the redundant socket emit - the backend already handles this
+            // The backend markMessagesAsSeen function emits the necessary socket events
         } catch (error) {
             console.error('Error marking messages as seen:', error);
         }
@@ -1206,17 +1229,51 @@ const useChatStore = create((set, get) => ({
 
     // Add new function to handle individual message seen status updates
     updateMessageSeenStatus: (messageId, seenBy) => {
-        console.log('updateMessageSeenStatus called for messageId:', messageId, 'with seenBy:', seenBy);
+        // Create a unique key for this event
+        const eventKey = `${messageId}-${JSON.stringify(seenBy)}`;
+
+        // Check if we've already processed this exact event
+        if (get().processedSeenEvents.has(eventKey)) {
+            console.log('updateMessageSeenStatus: Skipping duplicate event:', messageId);
+            return;
+        }
+
         set(state => {
+            // Check if the message exists in the current messages array
+            const messageExists = state.messages.some(msg => msg._id === messageId);
+
+            if (!messageExists) {
+                // Only log in debug mode or when verbose logging is enabled
+                // console.log('Message not found in current messages array, skipping update:', messageId);
+                return state; // Return unchanged state
+            }
+
             const updatedMessages = state.messages.map(msg => {
                 if (msg._id === messageId) {
-                    console.log('Updating message:', msg._id, 'from seenBy:', msg.seenBy, 'to:', seenBy);
+                    console.log('Updating message seen status:', msg._id, 'seenBy:', seenBy);
                     return { ...msg, seenBy: seenBy }; // Use the complete seenBy array from server
                 }
                 return msg;
             });
-            console.log('Updated messages count:', updatedMessages.length);
-            return { messages: updatedMessages };
+
+            // Add this event to processed events
+            const newProcessedEvents = new Set(state.processedSeenEvents);
+            newProcessedEvents.add(eventKey);
+
+            // Clean up old events (keep only last 100)
+            if (newProcessedEvents.size > 100) {
+                const eventsArray = Array.from(newProcessedEvents);
+                const recentEvents = new Set(eventsArray.slice(-100));
+                return {
+                    messages: updatedMessages,
+                    processedSeenEvents: recentEvents
+                };
+            }
+
+            return {
+                messages: updatedMessages,
+                processedSeenEvents: newProcessedEvents
+            };
         });
     },
 
@@ -1273,22 +1330,22 @@ const useChatStore = create((set, get) => ({
     updateGroupUnreadCount: (groupId, increment = true) => {
         const currentUser = get().currentUser;
         if (!currentUser) {
-            console.log('updateGroupUnreadCount: No current user, skipping update');
+            // console.log('updateGroupUnreadCount: No current user, skipping update');
             return;
         }
 
-        console.log(`updateGroupUnreadCount: Updating group ${groupId}, increment: ${increment}`);
+        // console.log(`updateGroupUnreadCount: Updating group ${groupId}, increment: ${increment}`);
 
         set(state => {
             const currentCount = state.unreadMessages[groupId] || 0;
             const newCount = increment ? currentCount + 1 : Math.max(0, currentCount - 1);
 
-            console.log(`updateGroupUnreadCount: Group ${groupId} - Current: ${currentCount}, New: ${newCount}`);
+            // console.log(`updateGroupUnreadCount: Group ${groupId} - Current: ${currentCount}, New: ${newCount}`);
 
             const newUnreadMessages = { ...state.unreadMessages, [groupId]: newCount };
             const unreadChats = Object.values(newUnreadMessages).filter(count => count > 0).length;
 
-            console.log(`updateGroupUnreadCount: Updated unread messages state:`, newUnreadMessages);
+            // console.log(`updateGroupUnreadCount: Updated unread messages state:`, newUnreadMessages);
 
             return {
                 unreadMessages: newUnreadMessages,

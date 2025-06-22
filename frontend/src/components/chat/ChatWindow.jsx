@@ -71,10 +71,8 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
         markMessagesAsSeen,
         groups
     } = useChatStore();
-    console.log("PAG", chatPagination)
     // Use either prop users or store users
     const allUsers = users.length > 0 ? users : storeUsers;
-    console.log("ChatWindow - allUsers:", allUsers.length, allUsers.map(u => ({ id: u._id, name: u.agent_name })));
 
     // Use prop values if provided, otherwise use internal state
     const currentShowInfoPanel = propShowInfoPanel !== undefined ? propShowInfoPanel : showInfoPanel;
