@@ -611,10 +611,9 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
                         if (attachment.contentType?.startsWith('video/') ||
                             attachment.fileName?.toLowerCase().endsWith('.mp4') ||
                             attachment.fileName?.toLowerCase().endsWith('.webm') ||
-                            attachment.fileName?.toLowerCase().endsWith('.mov')) {
-                        }
+                            attachment.fileName?.toLowerCase().endsWith('.mov'))
 
-                        if (!attachmentUrl) return null;
+                            if (!attachmentUrl) return null;
 
                         // Check if the file is an audio file
                         const isAudio = attachment.contentType?.startsWith('audio/') ||

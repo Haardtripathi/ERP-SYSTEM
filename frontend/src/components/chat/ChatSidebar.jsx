@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import useChatStore from '../../store/chatStore';
 import useAuthStore from '../../store/authStore';
-import { Users, UserPlus, MessageSquare, Plus, Loader2 } from 'lucide-react';
+import { Users, UserPlus, MessageSquare, Plus, Loader2, Filter } from 'lucide-react';
 import CreateGroupDialog from './CreateGroupDialog';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { getAllRoleNames } from '../../services/adminService';
 
 const ChatSidebar = () => {
     const {
@@ -22,6 +24,9 @@ const ChatSidebar = () => {
     const { isAdmin } = useAuthStore();
     const [searchQuery, setSearchQuery] = useState('');
     const [showCreateGroup, setShowCreateGroup] = useState(false);
+    const [roles, setRoles] = useState([]);
+    const [selectedRole, setSelectedRole] = useState('all');
+    const [loadingRoles, setLoadingRoles] = useState(false);
 
     // Helper function to convert buffer to base64
     const bufferToBase64 = (buffer) => {
@@ -39,6 +44,19 @@ const ChatSidebar = () => {
         return '';
     };
 
+    // Fetch roles
+    const fetchRoles = async () => {
+        try {
+            setLoadingRoles(true);
+            const rolesData = await getAllRoleNames();
+            setRoles(rolesData);
+        } catch (error) {
+            console.error('Error fetching roles:', error);
+        } finally {
+            setLoadingRoles(false);
+        }
+    };
+
     useEffect(() => {
         if (currentUser && users.length === 0 && groups.length === 0) {
             fetchUsers();
@@ -51,6 +69,11 @@ const ChatSidebar = () => {
             useChatStore.getState().refreshGroupUnreadCounts();
         }
     }, [currentUser, users.length, groups.length]);
+
+    // Fetch roles on mount
+    useEffect(() => {
+        fetchRoles();
+    }, []);
 
     // Periodic refresh of unread counts
     useEffect(() => {
@@ -83,10 +106,16 @@ const ChatSidebar = () => {
         );
     }
 
-    const filteredUsers = users.filter(user =>
-        user._id !== currentUser._id &&
-        user.agent_name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Filter users based on search query and selected role
+    const filteredUsers = users.filter(user => {
+        const matchesSearch = user._id !== currentUser._id &&
+            user.agent_name.toLowerCase().includes(searchQuery.toLowerCase());
+
+        const matchesRole = selectedRole === 'all' ||
+            (user.role && user.role.name === selectedRole);
+
+        return matchesSearch && matchesRole;
+    });
 
     const filteredGroups = groups.filter(group =>
         group.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -106,6 +135,55 @@ const ChatSidebar = () => {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
 
+                    {/* Role Filter */}
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2 mb-1">
+                            <Filter className="w-4 h-4 text-blue-500" />
+                            <span className="text-sm font-semibold text-blue-700">Role Filter</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Select value={selectedRole} onValueChange={setSelectedRole}>
+                                <SelectTrigger className="w-full rounded-full border-blue-200 shadow-sm focus:ring-2 focus:ring-blue-400">
+                                    <SelectValue placeholder="Select role to filter" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-blue-100 shadow-lg">
+                                    <SelectItem value="all" className="rounded-full">
+                                        All Roles ({users.filter(u => u._id !== currentUser._id).length})
+                                    </SelectItem>
+                                    {loadingRoles ? (
+                                        <SelectItem value="loading" disabled>
+                                            <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading...</span>
+                                        </SelectItem>
+                                    ) : (
+                                        roles.map((role) => {
+                                            const roleUserCount = users.filter(u =>
+                                                u._id !== currentUser._id &&
+                                                u.role &&
+                                                u.role.name === role.name
+                                            ).length;
+                                            return (
+                                                <SelectItem key={role._id} value={role.name} className="rounded-full">
+                                                    {role.name} ({roleUserCount})
+                                                </SelectItem>
+                                            );
+                                        })
+                                    )}
+                                </SelectContent>
+                            </Select>
+                            {selectedRole !== 'all' && (
+                                <button
+                                    className="ml-1 px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition flex items-center gap-1 border border-blue-200"
+                                    onClick={() => setSelectedRole('all')}
+                                    title="Clear role filter"
+                                >
+                                    {selectedRole}
+                                    <span className="ml-1 text-blue-500">&times;</span>
+                                </button>
+                            )}
+                        </div>
+                        {/* <div className="border-t border-gray-200 my-2" /> */}
+                    </div>
+
                     {isAdmin && (
                         <Button
                             onClick={() => setShowCreateGroup(true)}
@@ -122,7 +200,19 @@ const ChatSidebar = () => {
             {/* Users and Groups List */}
             <div className="flex-1 overflow-y-auto">
                 <div className="p-2">
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2 px-2">Users</h3>
+                    <div className="flex items-center justify-between mb-2 px-2">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase">Users</h3>
+                        {selectedRole !== 'all' && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                                    Filtered by: {selectedRole}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                    ({filteredUsers.length} of {users.filter(u => u._id !== currentUser._id).length})
+                                </span>
+                            </div>
+                        )}
+                    </div>
                     {filteredUsers.length > 0 ? (
                         filteredUsers.map(user => (
                             <div
@@ -159,7 +249,26 @@ const ChatSidebar = () => {
                                     )}>
                                         {user.agent_name}
                                     </p>
-                                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                                    <p className="text-xs text-gray-500 truncate">
+                                        {user.email}
+                                        {user.role?.name ? (
+                                            <span
+                                                className={cn(
+                                                    "inline-block mt-1 px-2 py-0.5 rounded-full text-[11px] font-semibold",
+                                                    user.role.name.toLowerCase() === "admin"
+                                                        ? "bg-blue-100 text-blue-700"
+                                                        : "bg-gray-200 text-gray-700"
+                                                )}
+                                                title={user.role.name}
+                                            >
+                                                {user.role.name}
+                                            </span>
+                                        ) : (
+                                            <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 text-[11px] font-semibold">
+                                                No Role
+                                            </span>
+                                        )}
+                                    </p>
                                 </div>
                                 {onlineUsers.includes(user._id) && (
                                     <span className="ml-auto w-3 h-3 bg-green-500 rounded-full border-2 border-gray-400 flex-shrink-0" />

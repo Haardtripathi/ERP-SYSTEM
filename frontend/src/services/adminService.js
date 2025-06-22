@@ -1,9 +1,13 @@
-
 import axiosInstance from '../axiosInstance';
 
 
 export const getAllRoles = async () => {
     const response = await axiosInstance.get("/admin/roles");
+    return response.data;
+};
+
+export const getAllRoleNames = async () => {
+    const response = await axiosInstance.get("/admin/role-names");
     return response.data;
 };
 

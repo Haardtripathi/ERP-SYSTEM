@@ -211,12 +211,10 @@ exports.getGroupsForUser = async (req, res) => {
 };
 
 exports.getAllUsers = async (req, res) => {
-    // Exclude the current user from the list
-    // Assuming authenticated user ID is available in req.user._id
     const currentUserId = req.user._id;
-    // Log current user ID
-    const users = await User.find({ _id: { $ne: currentUserId } }, "_id agent_name email photo phone_number address");
-    // Log fetched users
+    const users = await User.find({ _id: { $ne: currentUserId } })
+        .select("_id agent_name email photo phone_number address role")
+        .populate({ path: "role", select: "name" });
     res.json(users);
 };
 

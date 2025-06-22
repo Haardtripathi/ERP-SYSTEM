@@ -41,6 +41,16 @@ exports.getAllRolesAndPermissions = async (req, res) => {
     }
 };
 
+// Get all role names (no admin protection needed)
+exports.getAllRoleNames = async (req, res) => {
+    try {
+        const roles = await Role.find({}, 'name _id').lean();
+        res.status(200).json(roles);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching role names", error });
+    }
+};
+
 exports.getAllPermissionsOfRole = async (req, res) => {
     try {
         const roleName = req.user.role
