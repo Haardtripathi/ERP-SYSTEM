@@ -58,10 +58,10 @@ const GroupInfoPanel = ({ selectedChat, onClose }) => {
             setLoading(true);
             setError(null);
             const response = await axios.get(`/chat/group/${selectedChat.id}`);
-            console.log('Group Details Response:', response.data);
+
             if (response.data) {
                 setGroupDetails(response.data);
-                console.log('Group Members:', response.data.members);
+
                 setEditedName(response.data.name || '');
                 setSelectedMembers(response.data.members?.map(m => m._id) || []);
             } else {

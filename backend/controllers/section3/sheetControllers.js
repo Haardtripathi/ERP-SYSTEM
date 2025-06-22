@@ -51,7 +51,7 @@ const escapeRegex = (input) => {
 };
 
 module.exports.getAllSheetData = async (req, res) => {
-    console.log(req.query);
+
     try {
         // Pagination setup
         const page = parseInt(req.query.page, 10) || 1;

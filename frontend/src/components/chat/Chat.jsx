@@ -17,7 +17,7 @@ const Chat = () => {
     // Initialize socket and fetch data on mount
     useEffect(() => {
         if (currentUser) {
-            console.log('Chat: Initializing socket and fetching data for user:', currentUser._id);
+
             // Initialize socket with listeners
             initializeSocket(true);
             // Join chat with current user's ID
@@ -29,7 +29,7 @@ const Chat = () => {
 
         // Cleanup on unmount
         return () => {
-            console.log('Chat: Cleaning up socket on unmount');
+
             cleanupSocket();
         };
     }, [currentUser, initializeSocket, joinChat, fetchUsers, fetchGroups, cleanupSocket]);

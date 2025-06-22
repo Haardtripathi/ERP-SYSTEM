@@ -40,7 +40,7 @@ const AdminChatView = () => {
             }
         }
         setUserPairs(pairs);
-        console.log('AdminChatView - Users loaded:', users.length, users.map(u => ({ id: u._id, name: u.agent_name })));
+
     }, [users, currentUser]); // Depend only on 'users' and 'currentUser' for pair creation
 
     const handleSelectPair = (pair) => {
@@ -63,7 +63,7 @@ const AdminChatView = () => {
         }, true); // Pass true for isMonitoring
 
         // Fetch messages for the selected pair
-        console.log('AdminChatView - Fetching messages for pair:', pair.user1._id, pair.user2._id);
+
         fetchMessages(pair.user1._id, pair.user2._id);
     };
 

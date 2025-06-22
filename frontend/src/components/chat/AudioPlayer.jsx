@@ -13,12 +13,12 @@ const AudioPlayer = ({ url, fileName, isMyMessage }) => {
     const retryCountRef = useRef(0);
 
     // Generate random waveform heights for visualization
-    const waveformHeights = Array.from({ length: 20 }, () => 
+    const waveformHeights = Array.from({ length: 20 }, () =>
         Math.floor(Math.random() * 30) + 10
     );
 
     useEffect(() => {
-        console.log('AudioPlayer mounted with URL:', url);
+
         const audio = audioRef.current;
         if (!audio) return;
 
@@ -33,10 +33,10 @@ const AudioPlayer = ({ url, fileName, isMyMessage }) => {
                 networkState: audio.networkState,
                 src: audio.currentSrc
             });
-            
+
             // Try to get duration from the audio element
             let audioDuration = audio.duration;
-            
+
             // If duration is not available from the audio element, try to get it from the URL
             if (!isFinite(audioDuration) || isNaN(audioDuration)) {
                 // For recorded audio, we need to wait for the audio to be fully loaded
@@ -48,7 +48,7 @@ const AudioPlayer = ({ url, fileName, isMyMessage }) => {
             } else {
                 setDuration(audioDuration);
             }
-            
+
             setIsLoading(false);
             setError(null);
         };
@@ -60,14 +60,14 @@ const AudioPlayer = ({ url, fileName, isMyMessage }) => {
         };
 
         const handleDurationChange = () => {
-            console.log('Duration changed:', audio.duration);
+
             if (isFinite(audio.duration) && !isNaN(audio.duration)) {
                 setDuration(audio.duration);
             }
         };
 
         const handleEnded = () => {
-            console.log('Audio playback ended');
+
             setIsPlaying(false);
             setCurrentTime(0);
         };
@@ -79,10 +79,10 @@ const AudioPlayer = ({ url, fileName, isMyMessage }) => {
                 readyState: audio.readyState,
                 src: audio.currentSrc
             });
-            
+
             // Check if it's a blob URL
             const isBlobUrl = url.startsWith('blob:');
-            
+
             if (isBlobUrl && retryCountRef.current < 1) {
                 // For blob URLs, try once without CORS
                 retryCountRef.current += 1;
@@ -109,20 +109,20 @@ const AudioPlayer = ({ url, fileName, isMyMessage }) => {
         };
 
         const handlePlay = () => {
-            console.log('Audio started playing');
+
         };
 
         const handlePause = () => {
-            console.log('Audio paused');
+
         };
 
         const handleStalled = () => {
-            console.log('Audio stalled');
+
             setIsLoading(true);
         };
 
         const handleWaiting = () => {
-            console.log('Audio waiting for data');
+
             setIsLoading(true);
         };
 
@@ -141,7 +141,7 @@ const AudioPlayer = ({ url, fileName, isMyMessage }) => {
         // Set audio properties
         audio.preload = 'metadata';
         audio.controls = false; // Hide default controls
-        
+
         // Only set crossOrigin for non-blob URLs
         if (!url.startsWith('blob:')) {
             audio.crossOrigin = 'anonymous';
@@ -204,7 +204,7 @@ const AudioPlayer = ({ url, fileName, isMyMessage }) => {
         const rect = progressRef.current.getBoundingClientRect();
         const pos = (e.clientX - rect.left) / rect.width;
         const newTime = pos * audioRef.current.duration;
-        
+
         // Ensure the new time is within bounds
         if (newTime >= 0 && newTime <= audioRef.current.duration) {
             audioRef.current.currentTime = newTime;
@@ -250,9 +250,9 @@ const AudioPlayer = ({ url, fileName, isMyMessage }) => {
 
     return (
         <div className={`flex items-center gap-3 p-3 rounded-lg relative ${isMyMessage ? 'bg-blue-500' : 'bg-gray-100'}`}>
-            <audio 
-                ref={audioRef} 
-                src={url} 
+            <audio
+                ref={audioRef}
+                src={url}
                 preload="metadata"
                 onLoadedMetadata={(e) => {
                     const audio = e.target;
@@ -270,7 +270,7 @@ const AudioPlayer = ({ url, fileName, isMyMessage }) => {
                 }}
                 onError={(e) => console.error('Audio element error:', e)}
             />
-            
+
             {/* Play/Pause Button */}
             <button
                 onClick={togglePlay}
@@ -293,9 +293,8 @@ const AudioPlayer = ({ url, fileName, isMyMessage }) => {
                 {waveformHeights.map((height, index) => (
                     <div
                         key={index}
-                        className={`w-1 rounded-full transition-all duration-200 ${
-                            isMyMessage ? 'bg-white' : 'bg-blue-500'
-                        }`}
+                        className={`w-1 rounded-full transition-all duration-200 ${isMyMessage ? 'bg-white' : 'bg-blue-500'
+                            }`}
                         style={{
                             height: `${height}px`,
                             opacity: isPlaying ? 0.8 : 0.4,
@@ -307,23 +306,20 @@ const AudioPlayer = ({ url, fileName, isMyMessage }) => {
             </div>
 
             {/* Progress Bar */}
-            <div 
+            <div
                 ref={progressRef}
-                className={`absolute bottom-0 left-0 right-0 h-2 cursor-pointer group ${
-                    isMyMessage ? 'bg-blue-600/20' : 'bg-gray-200'
-                }`}
+                className={`absolute bottom-0 left-0 right-0 h-2 cursor-pointer group ${isMyMessage ? 'bg-blue-600/20' : 'bg-gray-200'
+                    }`}
                 onMouseDown={handleMouseDown}
             >
-                <div 
-                    className={`h-full transition-all duration-100 relative ${
-                        isMyMessage ? 'bg-white' : 'bg-blue-500'
-                    }`}
+                <div
+                    className={`h-full transition-all duration-100 relative ${isMyMessage ? 'bg-white' : 'bg-blue-500'
+                        }`}
                     style={{ width: `${(currentTime / duration) * 100}%` }}
                 >
                     {/* Progress handle */}
-                    <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full transform scale-0 group-hover:scale-100 transition-transform ${
-                        isMyMessage ? 'bg-white' : 'bg-blue-500'
-                    } shadow-md`} />
+                    <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full transform scale-0 group-hover:scale-100 transition-transform ${isMyMessage ? 'bg-white' : 'bg-blue-500'
+                        } shadow-md`} />
                 </div>
             </div>
 

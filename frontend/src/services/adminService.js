@@ -20,7 +20,7 @@ export const getEditRoleData = async (id) => {
 }
 
 export const deleteRole = async (id) => {
-    console.log("Deleting role with ID:", id);
+
     const response = await axiosInstance.delete(`/admin/delete-role`, {
         data: { roleID: id }, // ✅ This sends the body correctly
     });

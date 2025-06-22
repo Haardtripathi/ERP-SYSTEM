@@ -18,7 +18,7 @@ const useAuthStore = create((set, get) => ({
 
         const token = localStorage.getItem('token');
         if (!token) {
-            console.log('authStore: checkAuth - No token found, setting user to null');
+
             set({ user: null, token: null, loading: false });
             return;
         }
@@ -40,7 +40,7 @@ const useAuthStore = create((set, get) => ({
             });
 
         } catch {
-            console.log('authStore: checkAuth - Error checking auth, removing token and setting user to null');
+
             localStorage.removeItem('token');
             set({ user: null, token: null, loading: false });
         } finally {
@@ -55,7 +55,7 @@ const useAuthStore = create((set, get) => ({
             const userIsAdmin = decodedUser.isAdmin === true;
 
             localStorage.setItem("token", token); // ✅ Save the token
-            console.log('authStore: setUser - Setting user from token:', decodedUser);
+
             set({ user: decodedUser, token, loading: false, isAdmin: userIsAdmin });
 
             // ✅ Ensure checkAuth() runs to persist session
@@ -66,7 +66,7 @@ const useAuthStore = create((set, get) => ({
     },
 
     logout: () => {
-        console.log('authStore: logout - Setting user to null');
+
         localStorage.removeItem('token');
         set({ user: null, token: null, loading: false, permissions: [], role: null });
     },

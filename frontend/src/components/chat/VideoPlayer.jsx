@@ -65,7 +65,7 @@ const VideoPlayer = ({ url, fileName, isMyMessage }) => {
 
     const handlePlay = () => {
         if (url && !videoError) {
-            console.log('VideoPlayer - Attempting to play video:', { url, fileName });
+
             setIsPlaying(true);
         } else {
             console.warn('VideoPlayer - Cannot play video:', {
@@ -107,7 +107,7 @@ const VideoPlayer = ({ url, fileName, isMyMessage }) => {
     };
 
     const handleVideoLoad = () => {
-        console.log('VideoPlayer - Video loaded successfully:', { url, fileName });
+
 
         // Clear the loading timeout
         if (loadTimeoutRef.current) {
@@ -121,7 +121,7 @@ const VideoPlayer = ({ url, fileName, isMyMessage }) => {
     };
 
     const handleVideoLoadStart = () => {
-        console.log('VideoPlayer - Video load started:', { url, fileName });
+
         setIsLoading(true);
     };
 

@@ -22,36 +22,36 @@ const getUint8ArrayFromBuffer = (buffer) => {
         return new Uint8Array();
     }
     const uint8Array = new Uint8Array(buffer.data);
-    // console.log('getUint8ArrayFromBuffer: Generated Uint8Array (length):', uint8Array.length, 'first 10 bytes:', uint8Array.slice(0, 10));
+
     return uint8Array;
 };
 
 // Function to create Blob URL from Uint8Array
 const createBlobUrl = (uint8Array, contentType) => {
-    // console.log('createBlobUrl: Received Uint8Array (length):', uint8Array.length, 'contentType:', contentType);
+
     const blob = new Blob([uint8Array], { type: contentType });
-    // console.log('createBlobUrl: Created Blob object (size, type):', blob.size, blob.type);
+
     const url = URL.createObjectURL(blob);
-    // console.log('createBlobUrl: Generated Blob URL:', url);
+
     return { url, blob };
 };
 
 const processAttachmentBuffer = (buffer, contentType) => {
     // Only log in development mode or when debugging is explicitly enabled
-    // console.log('processAttachmentBuffer: Received buffer (before check):', buffer);
-    // console.log('processAttachmentBuffer: Received buffer.data (before check):', buffer?.data);
-    // console.log('processAttachmentBuffer: Received contentType:', contentType);
+
+
+
 
     let uint8ArrayData = null;
 
     if (buffer && buffer.data && Array.isArray(buffer.data)) {
-        // console.log('processAttachmentBuffer: Processing Buffer object with .data');
+
         uint8ArrayData = buffer.data;
     } else if (buffer instanceof ArrayBuffer) {
-        // console.log('processAttachmentBuffer: Processing raw ArrayBuffer');
+
         uint8ArrayData = new Uint8Array(buffer);
     } else if (typeof buffer === 'string' && buffer.startsWith('data:')) {
-        // console.log('processAttachmentBuffer: Processing data URL string');
+
         try {
             const base64Data = buffer.split('base64,')[1];
             uint8ArrayData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
@@ -68,14 +68,14 @@ const processAttachmentBuffer = (buffer, contentType) => {
 
     try {
         const uint8Array = new Uint8Array(uint8ArrayData);
-        // console.log('processAttachmentBuffer: Created Uint8Array (length):', uint8Array.length);
+
         const { url, blob } = createBlobUrl(uint8Array, contentType);
 
         // Store the blob URL in the activeImageUrls set for both images and videos
         if (contentType.startsWith('image/') || contentType.startsWith('video/')) {
             const store = useChatStore.getState();
             store.activeImageUrls.add(url);
-            // console.log('Added URL to activeImageUrls:', url);
+
         }
 
         return { url, blob };
@@ -159,7 +159,7 @@ const useChatStore = create((set, get) => ({
     // Actions
     setMessages: (newMessages) => {
         if (DEBUG_MODE) {
-            console.log('setMessages: Setting messages:', newMessages.length);
+
         }
 
         // Process attachments before updating messages
@@ -200,7 +200,7 @@ const useChatStore = create((set, get) => ({
                 get().initializeSocket(true); // Initialize with listeners
                 get().joinChat(actualUser._id);
             } else if (actualUser && get().isAdmin) {
-                console.log('setCurrentUser: Admin user detected, skipping automatic socket initialization and chat join.');
+
                 get().cleanupSocket(); // Ensure no socket is active for admin on login
             }
         } catch (error) {
@@ -221,12 +221,12 @@ const useChatStore = create((set, get) => ({
 
     getChatMedia: async (userId1, userId2, page = 1, limit = 12) => {
         try {
-            console.log('Fetching chat media with params:', { userId1, userId2, page, limit });
+
             const response = await axios.get(`/chat/chat-media/${userId1}/${userId2}`, {
                 params: { page, limit },
                 timeout: 30000 // Increase timeout to 30 seconds
             });
-            console.log('Chat media response:', response.data);
+
             return response.data;
         } catch (error) {
             console.error('Error fetching chat media:', error);
@@ -250,7 +250,7 @@ const useChatStore = create((set, get) => ({
         try {
             // If socket is already initialized, clear existing listeners to prevent duplicates
             if (socket) {
-                console.log('Socket already exists. Clearing existing listeners for re-configuration.');
+
                 socket.off('receive-message');
                 socket.off('update-online-users');
                 socket.off('typing');
@@ -264,7 +264,7 @@ const useChatStore = create((set, get) => ({
 
             // Only create and connect the socket if we intend to attach listeners
             if (force) {
-                console.log('Creating new socket connection...');
+
                 socket = io('http://localhost:5001', {
                     withCredentials: true,
                     reconnection: true,
@@ -277,14 +277,14 @@ const useChatStore = create((set, get) => ({
 
                 // Attach listeners if socket exists and is connected
                 if (socket) {
-                    console.log('Attaching socket listeners...');
+
                     const processedMessageIds = new Set();
 
                     socket.on('connect', () => {
-                        console.log('Socket connected successfully');
+
                         // Re-join chat if we have a current user
                         if (get().currentUser?._id) {
-                            console.log('Re-joining chat after connection:', get().currentUser._id);
+
                             get().joinChat(get().currentUser._id);
                             // Request current online users list
                             socket.emit('get-online-users');
@@ -292,14 +292,14 @@ const useChatStore = create((set, get) => ({
                             // Re-join group if in a group chat
                             const selectedChat = get().selectedChat;
                             if (selectedChat?.type === 'group') {
-                                console.log('Re-joining group after connection:', selectedChat.id);
+
                                 get().joinGroup(selectedChat.id);
                             }
                         }
                     });
 
                     socket.on('disconnect', (reason) => {
-                        console.log('Socket disconnected:', reason);
+
                         set({ onlineUsers: [] });
                     });
 
@@ -309,7 +309,7 @@ const useChatStore = create((set, get) => ({
                     });
 
                     socket.on('receive-message', async (message) => {
-                        // console.log('Received message:', message);
+
                         if (!message || !message._id) {
                             console.error('Invalid message received:', message);
                             return;
@@ -317,7 +317,7 @@ const useChatStore = create((set, get) => ({
 
                         // Check for duplicate messages
                         if (processedMessageIds.has(message._id)) {
-                            // console.log('Duplicate message received, skipping:', message._id);
+
                             return;
                         }
                         processedMessageIds.add(message._id);
@@ -378,7 +378,7 @@ const useChatStore = create((set, get) => ({
                                 // If we're not in the chat, increment unread count
                                 if (message.group) {
                                     // For group messages, use the new group-specific function
-                                    console.log('Updating group unread count for group:', message.group);
+
                                     get().updateGroupUnreadCount(message.group, true);
                                 } else {
                                     // For private messages, use the existing logic
@@ -420,7 +420,7 @@ const useChatStore = create((set, get) => ({
                             // Increment unread count for other chats
                             if (message.group) {
                                 // For group messages, use the new group-specific function
-                                console.log('Updating group unread count for group:', message.group, 'current user:', get().currentUser._id, 'message sender:', message.sender);
+
                                 // Only increment if the message is not from the current user
                                 if (message.sender !== get().currentUser._id) {
                                     get().updateGroupUnreadCount(message.group, true);
@@ -433,7 +433,7 @@ const useChatStore = create((set, get) => ({
                     });
 
                     socket.on('update-online-users', (users) => {
-                        // console.log('Received online users update:', users);
+
                         set({ onlineUsers: users });
                     });
 
@@ -444,12 +444,12 @@ const useChatStore = create((set, get) => ({
                         // Only log if messages were actually updated (count changed)
                         const newMessagesCount = get().messages.length;
                         if (newMessagesCount !== currentMessagesCount) {
-                            // console.log('Message seen status updated for:', data.messageId);
+
                         }
                     });
 
                     socket.on('user-online', (userId) => {
-                        // console.log('User came online:', userId);
+
                         if (userId && typeof userId === 'string') {
                             set((state) => ({
                                 onlineUsers: [...new Set([...state.onlineUsers, userId])]
@@ -458,7 +458,7 @@ const useChatStore = create((set, get) => ({
                     });
 
                     socket.on('user-offline', (userId) => {
-                        // console.log('User went offline:', userId);
+
                         if (userId && typeof userId === 'string') {
                             set((state) => ({
                                 onlineUsers: state.onlineUsers.filter(id => id !== userId)
@@ -474,7 +474,7 @@ const useChatStore = create((set, get) => ({
 
                     // Add group-related socket events
                     socket.on('group-created', (group) => {
-                        // console.log('Group created event received:', group);
+
                         set((state) => {
                             // Check if group already exists to avoid duplicates
                             const existingGroup = state.groups.find(g => g._id === group._id);
@@ -486,7 +486,7 @@ const useChatStore = create((set, get) => ({
                     });
 
                     socket.on('group-updated', (data) => {
-                        // console.log('Group updated event received:', data);
+
                         set((state) => ({
                             groups: state.groups.map(group =>
                                 group._id === data.group._id ? data.group : group
@@ -495,14 +495,14 @@ const useChatStore = create((set, get) => ({
                     });
 
                     socket.on('group-removed', (data) => {
-                        // console.log('Group removed event received:', data);
+
                         set((state) => ({
                             groups: state.groups.filter(group => group._id !== data.groupId)
                         }));
                     });
 
                     socket.on('group-added', (data) => {
-                        // console.log('Group added event received:', data);
+
                         set((state) => {
                             // Check if group already exists to avoid duplicates
                             const existingGroup = state.groups.find(g => g._id === data.group._id);
@@ -515,7 +515,7 @@ const useChatStore = create((set, get) => ({
 
                     // Add socket event for unread count updates
                     socket.on('unread-count-update', (data) => {
-                        // console.log('Unread count update received:', data);
+
                         if (data.groupId) {
                             // Update specific group unread count
                             set(state => {
@@ -525,7 +525,7 @@ const useChatStore = create((set, get) => ({
                                 };
                                 const unreadChats = Object.values(newUnreadMessages).filter(count => count > 0).length;
 
-                                // console.log('Updated unread messages from socket:', newUnreadMessages);
+
 
                                 return {
                                     unreadMessages: newUnreadMessages,
@@ -541,7 +541,7 @@ const useChatStore = create((set, get) => ({
                                 };
                                 const unreadChats = Object.values(newUnreadMessages).filter(count => count > 0).length;
 
-                                // console.log('Updated unread messages from socket:', newUnreadMessages);
+
 
                                 return {
                                     unreadMessages: newUnreadMessages,
@@ -552,7 +552,7 @@ const useChatStore = create((set, get) => ({
                     });
 
                     isSocketInitialized = true;
-                    console.log('Socket initialized successfully with listeners');
+
                 }
             }
         } catch (error) {
@@ -567,13 +567,13 @@ const useChatStore = create((set, get) => ({
 
     joinChat: (userId) => {
         try {
-            console.log('Joining chat with userId:', userId);
+
             if (socket && socket.connected && !get().isMonitoringAdminView) {
                 socket.emit('join', userId);
                 // Request online users list after joining
                 socket.emit('get-online-users');
             } else {
-                console.log('Cannot join chat: Socket not connected or in monitoring view');
+
             }
         } catch (error) {
             console.error('Error joining chat:', error);
@@ -582,12 +582,12 @@ const useChatStore = create((set, get) => ({
 
     joinGroup: (groupId) => {
         try {
-            console.log('joinGroup: Joining group with groupId:', groupId);
+
             // Only join if socket exists AND not in monitoring view AND socket is connected
             if (socket && !get().isMonitoringAdminView && socket.connected) {
                 socket.emit('join-group', groupId);
             } else {
-                console.log(`joinGroup: Skipping join. Socket connected: ${socket?.connected}, isMonitoringAdminView: ${get().isMonitoringAdminView}`);
+
             }
         } catch (error) {
             console.error('Error joining group:', error);
@@ -621,7 +621,7 @@ const useChatStore = create((set, get) => ({
 
             // Ensure socket is initialized and connected
             if (!socket || !socket.connected) {
-                console.log('sendMessage: Socket not connected, initializing...');
+
                 get().initializeSocket(true);
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 if (!socket || !socket.connected) {
@@ -695,7 +695,7 @@ const useChatStore = create((set, get) => ({
                 createdAt: message.createdAt,
                 replyTo: message.replyTo
             }, (response) => {
-                console.log('Frontend - Received server response:', response);
+
                 if (response && response.error) {
                     console.error('Frontend - Server error:', response.error);
                     // Remove the optimistic message if there was an error
@@ -711,10 +711,10 @@ const useChatStore = create((set, get) => ({
     },
 
     fetchUsers: async () => {
-        console.log('fetchUsers: Fetching users...');
+
         try {
             const response = await axios.get('/chat/users');
-            console.log('fetchUsers: Fetched users successfully:', response.data.length, 'users.');
+
             set({ users: response.data });
         } catch (error) {
             console.error('fetchUsers: Error fetching users:', error.message, error.response?.data);
@@ -727,10 +727,10 @@ const useChatStore = create((set, get) => ({
             console.error('fetchGroups: Aborted, currentUser or currentUser._id is null/undefined.', currentUser);
             return;
         }
-        console.log('fetchGroups: Fetching groups for user:', currentUser._id);
+
         try {
             const response = await axios.get(`/chat/mygroups/${currentUser._id}`);
-            console.log('fetchGroups: Fetched groups successfully:', response.data.length, 'groups.');
+
             set({ groups: response.data });
         } catch (error) {
             console.error('fetchGroups: Error fetching groups:', error.message, error.response?.data);
@@ -746,7 +746,7 @@ const useChatStore = create((set, get) => ({
 
         // Only abort if there's a newer fetch in progress
         if (fetchId && currentFetchId && fetchId < currentFetchId) {
-            console.log('fetchMessages: Aborted, newer fetch in progress');
+
             return;
         }
 
@@ -757,19 +757,19 @@ const useChatStore = create((set, get) => ({
             if (isMonitoring) {
                 // In monitoring mode, check if the current fetch matches the selected user pair
                 if (selectedChat.user1Id !== userId1 || selectedChat.user2Id !== userId2) {
-                    console.log('fetchMessages: Aborted, chat selection changed during fetch (monitoring mode)');
+
                     return;
                 }
             } else {
                 // Normal mode, check if selectedChat.id matches userId2
                 if (selectedChat.id !== userId2) {
-                    console.log('fetchMessages: Aborted, chat selection changed during fetch');
+
                     return;
                 }
             }
         }
 
-        console.log(`fetchMessages: Fetching messages for users: ${userId1} and ${userId2} with limit ${limit} and beforeId ${beforeId}`);
+
         try {
             set(state => ({
                 chatPagination: {
@@ -787,11 +787,11 @@ const useChatStore = create((set, get) => ({
 
             // Check again if this fetch is still valid
             if (fetchId && currentFetchId && fetchId < currentFetchId) {
-                console.log('fetchMessages: Aborted after fetch, newer fetch in progress');
+
                 return;
             }
 
-            console.log('fetchMessages: Raw messages received:', response.data.messages.length);
+
 
             const messagesToProcess = response.data.messages;
             const messagesWithProcessedAttachments = await Promise.all(
@@ -874,17 +874,17 @@ const useChatStore = create((set, get) => ({
 
         // Check if this fetch is still valid
         if (fetchId !== currentFetchId) {
-            console.log('fetchGroupMessages: Aborted, newer fetch in progress');
+
             return;
         }
 
         // Check if we're still fetching for the currently selected chat
         if (selectedChat?.type === 'group' && selectedChat.id !== groupId) {
-            console.log('fetchGroupMessages: Aborted, chat selection changed during fetch');
+
             return;
         }
 
-        console.log(`fetchGroupMessages: Fetching group messages for group: ${groupId} with limit ${limit} and beforeId ${beforeId}`);
+
         try {
             set(state => ({
                 chatPagination: {
@@ -915,11 +915,11 @@ const useChatStore = create((set, get) => ({
 
             // Check again if this fetch is still valid
             if (fetchId !== get().currentFetchId) {
-                console.log('fetchGroupMessages: Aborted after fetch, newer fetch in progress');
+
                 return;
             }
 
-            console.log('fetchGroupMessages: Raw group messages received:', response.data.messages.length);
+
 
             const messagesToProcess = response.data.messages;
 
@@ -939,7 +939,7 @@ const useChatStore = create((set, get) => ({
 
                 // Process attachments in replyTo, if it exists and has attachments
                 if (processedMsg.replyTo && processedMsg.replyTo.attachments && processedMsg.replyTo.attachments.length > 0) {
-                    console.log('Processing replyTo attachments for fetched group message:', processedMsg._id);
+
                     const processedReplyAttachments = await Promise.all(processedMsg.replyTo.attachments.map(async (att) => {
                         const attachmentData = processAttachmentBuffer(att.data, att.contentType);
                         return attachmentData ? { ...att, url: attachmentData.url, blob: attachmentData.blob } : null;
@@ -957,7 +957,7 @@ const useChatStore = create((set, get) => ({
 
             // Final check if this fetch is still valid
             if (fetchId !== get().currentFetchId) {
-                console.log('fetchGroupMessages: Aborted after processing, newer fetch in progress');
+
                 return;
             }
 
@@ -1015,7 +1015,7 @@ const useChatStore = create((set, get) => ({
             return;
         }
         const validMembers = Array.isArray(members) ? members.filter(member => typeof member === 'string') : [];
-        console.log('createGroup: Creating group with name:', name, 'members:', validMembers, 'isHidden:', isHidden);
+
         try {
             const response = await axios.post('/chat/group', {
                 name,
@@ -1023,7 +1023,7 @@ const useChatStore = create((set, get) => ({
                 visibleTo: isHidden ? [currentUser._id] : validMembers,
                 createdBy: currentUser._id
             });
-            console.log('createGroup: Group created successfully:', response.data);
+
             // Don't add to local state here as it will be added via socket event
             return response.data;
         } catch (error) {
@@ -1033,7 +1033,7 @@ const useChatStore = create((set, get) => ({
     },
 
     setSelectedChat: (chat, isMonitoring = false) => {
-        console.log('setSelectedChat: Called with chat:', chat, 'isMonitoring:', isMonitoring);
+
 
         // Cancel any ongoing fetches by setting a flag
         const currentFetchId = Date.now();
@@ -1041,7 +1041,7 @@ const useChatStore = create((set, get) => ({
 
         // Revoke all existing image URLs when changing chats
         get().activeImageUrls.forEach(url => {
-            console.log('setSelectedChat: Revoking Blob URL:', url);
+
             URL.revokeObjectURL(url);
         });
         set({ activeImageUrls: new Set() }); // Clear the set
@@ -1090,13 +1090,13 @@ const useChatStore = create((set, get) => ({
         if (get().activeImageUrls.has(url)) {
             URL.revokeObjectURL(url);
             get().activeImageUrls.delete(url);
-            console.log('revokeImageUrl: Revoked Blob URL:', url);
+
         }
     },
 
     cleanupSocket: () => {
         try {
-            console.log('cleanupSocket: Cleaning up socket listeners and disconnecting.');
+
             if (socket) {
                 socket.off('receive-message');
                 socket.off('update-online-users');
@@ -1116,7 +1116,7 @@ const useChatStore = create((set, get) => ({
     },
 
     cleanupBlobUrls: () => {
-        console.log('cleanupBlobUrls: Cleaning up all Blob URLs');
+
         const store = get();
 
         // Only revoke URLs that are no longer in use
@@ -1134,7 +1134,7 @@ const useChatStore = create((set, get) => ({
         // Revoke URLs that are no longer active
         store.activeImageUrls.forEach(url => {
             if (!activeUrls.has(url)) {
-                console.log('Revoking unused URL:', url);
+
                 URL.revokeObjectURL(url);
                 store.activeImageUrls.delete(url);
             }
@@ -1151,19 +1151,19 @@ const useChatStore = create((set, get) => ({
                 unreadChats
             };
         });
-        console.log(`setUnreadMessages: Updated unread count for ${chatId} to ${count}`);
+
     },
 
     markMessagesAsRead: (chatId) => {
         if (get().unreadMessages[chatId] > 0) {
             get().setUnreadMessages(chatId, 0);
-            console.log(`markMessagesAsRead: Marked chat ${chatId} as read.`);
+
         }
     },
 
     markMessagesAsSeen: async (chatId, isGroup) => {
         const currentUser = get().currentUser;
-        console.log('Calling markMessagesAsSeen:', { chatId, isGroup, userId: currentUser?._id });
+
         try {
             if (!currentUser) return;
 
@@ -1174,7 +1174,7 @@ const useChatStore = create((set, get) => ({
 
             // Prevent calling markMessagesAsSeen more than once per second for the same chat
             if (timeSinceLastSeen < 1000) {
-                console.log('markMessagesAsSeen: Skipping call, too soon since last seen:', timeSinceLastSeen, 'ms');
+
                 return;
             }
 
@@ -1234,7 +1234,7 @@ const useChatStore = create((set, get) => ({
 
         // Check if we've already processed this exact event
         if (get().processedSeenEvents.has(eventKey)) {
-            console.log('updateMessageSeenStatus: Skipping duplicate event:', messageId);
+
             return;
         }
 
@@ -1244,13 +1244,13 @@ const useChatStore = create((set, get) => ({
 
             if (!messageExists) {
                 // Only log in debug mode or when verbose logging is enabled
-                // console.log('Message not found in current messages array, skipping update:', messageId);
+
                 return state; // Return unchanged state
             }
 
             const updatedMessages = state.messages.map(msg => {
                 if (msg._id === messageId) {
-                    console.log('Updating message seen status:', msg._id, 'seenBy:', seenBy);
+
                     return { ...msg, seenBy: seenBy }; // Use the complete seenBy array from server
                 }
                 return msg;
@@ -1330,22 +1330,22 @@ const useChatStore = create((set, get) => ({
     updateGroupUnreadCount: (groupId, increment = true) => {
         const currentUser = get().currentUser;
         if (!currentUser) {
-            // console.log('updateGroupUnreadCount: No current user, skipping update');
+
             return;
         }
 
-        // console.log(`updateGroupUnreadCount: Updating group ${groupId}, increment: ${increment}`);
+
 
         set(state => {
             const currentCount = state.unreadMessages[groupId] || 0;
             const newCount = increment ? currentCount + 1 : Math.max(0, currentCount - 1);
 
-            // console.log(`updateGroupUnreadCount: Group ${groupId} - Current: ${currentCount}, New: ${newCount}`);
+
 
             const newUnreadMessages = { ...state.unreadMessages, [groupId]: newCount };
             const unreadChats = Object.values(newUnreadMessages).filter(count => count > 0).length;
 
-            // console.log(`updateGroupUnreadCount: Updated unread messages state:`, newUnreadMessages);
+
 
             return {
                 unreadMessages: newUnreadMessages,
@@ -1406,7 +1406,7 @@ const useChatStore = create((set, get) => ({
         if (!currentUser) return;
 
         try {
-            console.log('forceRefreshUnreadCounts: Refreshing all unread counts');
+
             const response = await axios.get(`/chat/unread-counts/${currentUser._id}`);
             const { userUnread, groupUnread } = response.data;
 
@@ -1414,7 +1414,7 @@ const useChatStore = create((set, get) => ({
             const allUnread = { ...userUnread, ...groupUnread };
             const unreadChats = Object.values(allUnread).filter(count => count > 0).length;
 
-            console.log('forceRefreshUnreadCounts: Updated unread counts:', allUnread);
+
 
             set({
                 unreadMessages: allUnread,

@@ -313,7 +313,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
             if (selectedChat.type === 'user') {
                 if (isReadOnly && selectedChat.user1Id && selectedChat.user2Id) {
                     // In monitoring mode, use the user IDs from selectedChat
-                    console.log('Loading older messages in monitoring mode:', selectedChat.user1Id, selectedChat.user2Id);
+
                     fetchMessages(selectedChat.user1Id, selectedChat.user2Id, 15, pagination.oldestMessageId, newFetchId);
                 } else {
                     // Normal mode
@@ -498,7 +498,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
 
             const tryLoadAndScroll = async () => {
                 if (attempts >= maxAttempts) {
-                    console.log('Max attempts reached to find referenced message');
+
                     return;
                 }
 
@@ -1032,7 +1032,7 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
                                                                                 );
 
                                                                                 if (alternativeUser) {
-                                                                                    console.log('ChatWindow - Found user by alternative means:', alternativeUser);
+
                                                                                     return alternativeUser.agent_name;
                                                                                 }
                                                                             }

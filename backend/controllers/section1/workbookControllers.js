@@ -94,7 +94,7 @@ exports.getAllWorkbookData = async (req, res) => {
     const token = req.header("Authorization").split(" ")[1];
 
     try {
-        console.log(req.query);
+
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = decoded;
 

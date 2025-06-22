@@ -78,10 +78,10 @@
 //                     navigate("/login"); // Redirect if no token
 //                     return;
 //                 }
-//                 console.log("ABC");
+
 
 //                 const response = await axiosInstance.get(`/permissions?page=${page}`);
-//                 console.log(response);
+
 
 //                 if (response.status === 403) {
 //                     navigate("/not-authorized"); // Redirect if no access
@@ -138,7 +138,7 @@ const useAccessControl = (page = null) => {
                     navigate("/login"); // Redirect if no token
                     return;
                 }
-                console.log("Fetching permissions for:", page || "ALL");
+
 
                 const url = page ? `/permissions?page=${page}` : `/permissions`; // Handle both cases
                 const response = await axiosInstance.get(url);

@@ -32,7 +32,7 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
 
     // Helper function to create Blob URL from buffer data
     const createMediaBlobUrl = (buffer, contentType) => {
-        console.log('createMediaBlobUrl received - buffer type:', typeof buffer, 'buffer instance:', buffer instanceof ArrayBuffer, 'buffer is array:', Array.isArray(buffer), 'buffer has data property:', !!buffer?.data, 'contentType:', contentType);
+
         if (!buffer || !contentType) return null;
         try {
             // Handle different buffer formats
@@ -78,10 +78,10 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
                 return null;
             }
 
-            console.log('createMediaBlobUrl - uint8Array created, length:', uint8Array.length, 'first 10 bytes:', uint8Array.slice(0, 10));
+
             const blob = new Blob([uint8Array], { type: contentType });
             const url = URL.createObjectURL(blob);
-            console.log('createMediaBlobUrl - Blob URL created:', url);
+
             return url;
         } catch (error) {
             console.error('Error creating Blob URL for media:', error);
@@ -110,9 +110,9 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
             try {
                 setLoadingUser(true);
                 setError(null);
-                console.log('Fetching user info for:', selectedChat.id);
+
                 const data = await getUserInfo(selectedChat.id);
-                console.log('User info response:', data);
+
                 setUserInfo(data);
             } catch (error) {
                 console.error('Error fetching user info:', error);
@@ -135,7 +135,7 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
                     limit: 12
                 });
                 const data = await getChatMedia(currentUser._id, selectedChat.id, currentPage, 12);
-                console.log('Media response:', data);
+
 
                 if (data && data.media) {
                     const processedMedia = data.media.map(item => {
@@ -151,7 +151,7 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
                         // For images, ensure we're handling the data correctly
                         if (item.contentType?.startsWith('image/')) {
                             const url = createMediaBlobUrl(item.data, item.contentType);
-                            console.log('Generated image URL for ', item.fileName, ':', url);
+
                             if (!url) {
                                 console.error('Blob URL creation failed for image:', item.fileName);
                             }
@@ -164,7 +164,7 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
 
                         // For other file types
                         const url = createMediaBlobUrl(item.data, item.contentType);
-                        console.log('Generated URL for ', item.fileName, ':', url);
+
                         return {
                             ...item,
                             url: url,
@@ -181,19 +181,19 @@ const UserInfoPanel = ({ selectedChat, onClose, currentUser }) => {
                         setTotalPages(data.pagination.totalPages || 1);
                         const receivedHasMore = data.pagination.hasMore || false;
                         setHasMore(receivedHasMore);
-                        console.log('Frontend received hasMore:', receivedHasMore);
+
                     } else {
                         console.warn('Unexpected media response format: pagination data missing or malformed', data);
                         setTotalPages(1);
                         setHasMore(false);
-                        console.log('Frontend set hasMore to false due to missing pagination.');
+
                     }
                 } else {
                     console.warn('Unexpected media response format: media data missing', data);
                     setMedia([]);
                     setTotalPages(1);
                     setHasMore(false);
-                    console.log('Frontend set hasMore to false due to missing media.');
+
                 }
             } catch (error) {
                 console.error('Error fetching media:', error);

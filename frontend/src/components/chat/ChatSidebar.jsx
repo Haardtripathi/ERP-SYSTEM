@@ -68,7 +68,7 @@ const ChatSidebar = () => {
         const unsubscribe = useChatStore.subscribe(
             (state) => state.unreadMessages,
             (unreadMessages) => {
-                console.log('ChatSidebar: Unread messages updated:', unreadMessages);
+
             }
         );
 
@@ -128,9 +128,7 @@ const ChatSidebar = () => {
                             <div
                                 key={user._id}
                                 onClick={() => {
-                                    // Clear any previous selection first
-                                    setSelectedChat(null);
-                                    // Set the new selected chat
+                                    // Set the new selected chat directly
                                     setSelectedChat({ type: 'user', id: user._id, name: user.agent_name });
                                     useChatStore.getState().joinChat(user._id);
                                     useChatStore.getState().markMessagesAsSeen(user._id, false);
@@ -186,9 +184,7 @@ const ChatSidebar = () => {
                             <div
                                 key={group._id}
                                 onClick={() => {
-                                    // Clear any previous selection first
-                                    setSelectedChat(null);
-                                    // Set the new selected chat
+                                    // Set the new selected chat directly
                                     setSelectedChat({ type: 'group', id: group._id, name: group.name });
                                     useChatStore.getState().joinGroup(group._id);
                                     // Mark messages as seen and clear unread count for this group
