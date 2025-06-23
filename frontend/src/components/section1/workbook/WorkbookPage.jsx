@@ -854,7 +854,6 @@ const WorkbookPage = () => {
     useEffect(() => {
         if (loading) return // Wait until loading is complete
 
-        console.log("User Permissions:", permissions) // Debugging
 
         // Ensure permissions exist
         if (!permissions) {
@@ -920,7 +919,6 @@ const WorkbookPage = () => {
 
                 // Log the full URL that will be called
                 const queryString = queryParams.toString()
-                console.log(`API call URL params: ${queryString}`)
 
                 // Make the API call with the constructed query parameters
                 const response = await getAllWorkbook(queryString)
