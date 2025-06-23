@@ -482,7 +482,6 @@ const EditIncomingData = () => {
     })
     const navigate = useNavigate()
     const { permissions, loading: permissionsLoading } = useAccessControl("/edit-incoming-data/:id")
-    console.log("PERMISSIONS", permissions)
     const [columnPermissions, setColumnPermissions] = useState([])
 
     // Function to check if user has permission for a specific column

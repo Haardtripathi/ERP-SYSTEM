@@ -2734,7 +2734,6 @@ const AddRole = () => {
         // Fetch all pages & columns
         getPagesAndColumns()
             .then((data) => {
-                console.log("Fetched data:", data)
                 setAvailablePages(data)
                 setLoading(false)
             })

@@ -1093,7 +1093,6 @@ const LabelGenerator = () => {
     // Add these state variables for access control
     const [columnPermissions, setColumnPermissions] = useState([])
     const { permissions, loading } = useAccessControl("/labels-generator")
-    console.log("PERMISSIONS", permissions)
     const navigate = useNavigate()
 
     // Add search timeout state for debounce
@@ -1123,11 +1122,9 @@ const LabelGenerator = () => {
 
                 // Log the full URL that will be called
                 const queryString = queryParams.toString()
-                console.log(`API call URL params: ${queryString}`)
 
                 // Make the API call with the constructed query parameters
                 const response = await getAllLabel(queryString)
-                console.log("API Response:", response)
 
                 if (response.data && response.data.data) {
                     setLabelData(response.data.data)
@@ -1144,8 +1141,6 @@ const LabelGenerator = () => {
                     const responsePage = Number.parseInt(response.data.currentPage, 10) || pageNum
                     setCurrentPage(responsePage > pages ? 1 : responsePage)
 
-                    console.log(`Data loaded: ${response.data.data.length} items`)
-                    console.log(`Total count: ${count}, Total pages: ${pages}, Current page: ${responsePage}`)
                 } else {
                     console.error("Invalid response format:", response)
                     setLabelData([])
@@ -1198,7 +1193,6 @@ const LabelGenerator = () => {
     useEffect(() => {
         if (loading) return // Wait until loading is complete
 
-        console.log("User Permissions:", permissions) // Debugging
 
         // Ensure permissions exist
         if (!permissions) {

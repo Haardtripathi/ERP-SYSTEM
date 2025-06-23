@@ -867,7 +867,6 @@ const EditRolePage = () => {
 
                 // Fetch role data
                 const roleData = await getEditRoleData(id)
-                console.log("Fetched role data:", roleData)
                 setOriginalRole(roleData)
 
                 // Set role name - handle different possible structures
@@ -893,7 +892,6 @@ const EditRolePage = () => {
                     permissionsData = roleData.permissions
                 }
 
-                console.log("Permissions data:", permissionsData)
 
                 // Format permissions for our component state
                 const formattedPermissions = []
@@ -915,7 +913,6 @@ const EditRolePage = () => {
                     })
                 }
 
-                console.log("Formatted permissions:", formattedPermissions)
                 setPermissions(formattedPermissions)
 
                 // Mark all sections as saved initially since we're editing an existing role
@@ -1171,7 +1168,6 @@ const EditRolePage = () => {
         }
 
         try {
-            console.log(id, { roleName, permissions: filteredPermissions })
             await updateRole(id, { roleName, permissions: filteredPermissions })
             toast.success("Role updated successfully!")
             navigate("/roles")

@@ -82,7 +82,6 @@ const LeadPage = () => {
     useEffect(() => {
         if (loading) return // Wait until loading is complete
 
-        console.log("User Permissions:", permissions) // Debugging
 
         // Ensure permissions exist
         if (!permissions) {

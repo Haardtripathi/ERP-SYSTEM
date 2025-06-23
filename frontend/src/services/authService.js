@@ -14,7 +14,6 @@ export const register = async (formData) => {
                 'Authorization': `Bearer ${token}`
             },
         });
-        console.log(response)
         return response.data;
     } catch (error) {
         console.error('Registration error:', error.response?.data || error.message);

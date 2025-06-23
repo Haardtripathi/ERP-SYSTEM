@@ -98,7 +98,6 @@ const Roles = () => {
             if (!confirmDelete) return;
 
             const res = await deleteRole(id); // assuming backend expects { id } in body
-            console.log(res)
             if (res.success) {
                 toast.success("Role deleted successfully");
                 fetchRoles(); // call it again to refresh the list

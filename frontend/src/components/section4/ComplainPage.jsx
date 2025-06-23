@@ -599,7 +599,6 @@ const ComplainPage = () => {
     useEffect(() => {
         if (loading) return // Wait until loading is complete
 
-        console.log("User Permissions:", permissions) // Debugging
 
         // Ensure permissions exist
         if (!permissions) {
@@ -659,11 +658,9 @@ const ComplainPage = () => {
 
             // Log the full URL that will be called
             const queryString = queryParams.toString()
-            console.log(`API call URL params: ${queryString}`)
 
             // Make the API call with the constructed query parameters
             const response = await getAllComplain(queryString)
-            console.log("API Response:", response)
 
             if (response.data && response.data.complainData) {
                 const validData = Array.isArray(response.data.complainData)
@@ -684,8 +681,7 @@ const ComplainPage = () => {
                 const responsePage = Number.parseInt(response.data.currentPage, 10) || pageNum
                 setCurrentPage(responsePage > pages ? 1 : responsePage)
 
-                console.log(`Data loaded: ${validData.length} items`)
-                console.log(`Total count: ${count}, Total pages: ${pages}, Current page: ${responsePage}`)
+
             } else {
                 console.error("Invalid response format:", response)
                 setComplainData([])

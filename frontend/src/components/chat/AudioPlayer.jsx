@@ -26,13 +26,7 @@ const AudioPlayer = ({ url, fileName, isMyMessage }) => {
         retryCountRef.current = 0;
 
         const handleLoadedMetadata = () => {
-            console.log('Audio metadata loaded:', {
-                duration: audio.duration,
-                readyState: audio.readyState,
-                error: audio.error,
-                networkState: audio.networkState,
-                src: audio.currentSrc
-            });
+
 
             // Try to get duration from the audio element
             let audioDuration = audio.duration;
@@ -96,11 +90,7 @@ const AudioPlayer = ({ url, fileName, isMyMessage }) => {
         };
 
         const handleCanPlay = () => {
-            console.log('Audio can play:', {
-                readyState: audio.readyState,
-                networkState: audio.networkState,
-                duration: audio.duration
-            });
+
             // Try to get duration again when audio can play
             if (isFinite(audio.duration) && !isNaN(audio.duration)) {
                 setDuration(audio.duration);

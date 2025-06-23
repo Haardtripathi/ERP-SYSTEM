@@ -1415,7 +1415,6 @@ const ReturnPage = () => {
     useEffect(() => {
         if (loading) return // Wait until loading is complete
 
-        console.log("User Permissions:", permissions) // Debugging
 
         // Ensure permissions exist
         if (!permissions) {
@@ -1475,11 +1474,9 @@ const ReturnPage = () => {
 
             // Log the full URL that will be called
             const queryString = queryParams.toString()
-            console.log(`API call URL params: ${queryString}`)
 
             // Make the API call with the constructed query parameters
             const response = await getAllReturn(queryString)
-            console.log("API Response:", response)
 
             if (response.data && response.data.returnData) {
                 const validData = Array.isArray(response.data.returnData)
@@ -1500,8 +1497,6 @@ const ReturnPage = () => {
                 const responsePage = Number.parseInt(response.data.currentPage, 10) || pageNum
                 setCurrentPage(responsePage > pages ? 1 : responsePage)
 
-                console.log(`Data loaded: ${validData.length} items`)
-                console.log(`Total count: ${count}, Total pages: ${pages}, Current page: ${responsePage}`)
             } else {
                 console.error("Invalid response format:", response)
                 setReturnData([])

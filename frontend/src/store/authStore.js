@@ -27,13 +27,11 @@ const useAuthStore = create((set, get) => ({
             const { data } = await axiosInstance.get('/auth/checkAuth', {
                 headers: { Authorization: token },
             });
-            console.log(data)
             const isAdmin = data.user.agent_name === 'Panchved';
             set({ user: data, token, isAdmin });
 
             // 🔥 Fetch permissions for this role
             const { data: permissionData } = await axiosInstance.get(`/admin/permissions?role=${data.user.role}`);
-            console.log(permissionData)
             set({
                 role: permissionData.role, // Optional if you want role.name
                 permissions: permissionData.permissions,

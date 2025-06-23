@@ -48,7 +48,6 @@ const EditUserData = () => {
         const fetchUserData = async () => {
             try {
                 const data = await getEditUserData(id)
-                console.log(data)
                 if (data.user) {
                     setUserData(data.user)
                     setFormData({
@@ -110,7 +109,6 @@ const EditUserData = () => {
             }
         });
 
-        console.log('Data being sent:', jsonData); // For debugging
 
         try {
             await editUserData(id, jsonData);

@@ -1156,7 +1156,6 @@ const PendingPage = () => {
     useEffect(() => {
         if (loading) return // Wait until loading is complete
 
-        console.log("User Permissions:", permissions) // Debugging
 
         // Ensure permissions exist
         if (!permissions) {
@@ -1212,11 +1211,9 @@ const PendingPage = () => {
 
             // Log the full URL that will be called
             const queryString = queryParams.toString()
-            console.log(`API call URL params: ${queryString}`)
 
             // Make the API call with the constructed query parameters
             const response = await getAllPending(queryString)
-            console.log("API Response:", response)
 
             // Store debug info
             setDebugInfo({
@@ -1245,8 +1242,7 @@ const PendingPage = () => {
                 const responsePage = Number.parseInt(response.data.currentPage, 10) || pageNum
                 setCurrentPage(responsePage > pages ? 1 : responsePage)
 
-                console.log(`Data loaded: ${response.data.data.length} items`)
-                console.log(`Total count: ${count}, Total pages: ${pages}, Current page: ${responsePage}`)
+
             } else {
                 console.error("Invalid response format:", response)
                 setPendingData([])

@@ -1382,8 +1382,6 @@ const DispatchPage = () => {
     useEffect(() => {
         if (loading) return // Wait until loading is complete
 
-        console.log("User Permissions:", permissions) // Debugging
-
         // Ensure permissions exist
         if (!permissions) {
             navigate("/dashboard") // Redirect if no permissions
@@ -1442,11 +1440,9 @@ const DispatchPage = () => {
 
             // Log the full URL that will be called
             const queryString = queryParams.toString()
-            console.log(`API call URL params: ${queryString}`)
 
             // Make the API call with the constructed query parameters
             const response = await getAllDispatched(queryString)
-            console.log("API Response:", response)
 
             // Store debug info
             setDebugInfo({
@@ -1504,8 +1500,6 @@ const DispatchPage = () => {
                 })
                 setLastUpdateDates(initialLastUpdateDates)
 
-                console.log(`Data loaded: ${response.data.data.length} items`)
-                console.log(`Total count: ${count}, Total pages: ${pages}, Current page: ${responsePage}`)
             } else {
                 console.error("Invalid response format:", response)
                 setDispatchData([])

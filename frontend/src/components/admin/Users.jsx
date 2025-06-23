@@ -124,7 +124,6 @@ const Users = () => {
     useEffect(() => {
         const fetchUserData = async () => {
             const data = await getAllUserData();
-            console.log(data)
             setUserData(data.users);
         };
         fetchUserData();
