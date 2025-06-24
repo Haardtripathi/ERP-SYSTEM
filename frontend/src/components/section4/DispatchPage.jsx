@@ -408,7 +408,7 @@
 //     }
 
 //     return (
-//         <div className="container mx-auto p-8 bg-gray-50 min-h-screen max-w-full">
+//         <div className="container mx-auto p-8 bg-gray-50 h-full max-w-full">
 //             {/* <h1 className="text-3xl font-semibold mb-6 text-gray-800">Dispatch Data</h1>
 
 //             <div className="bg-white shadow-sm rounded-lg p-4 mb-6">
@@ -1860,7 +1860,7 @@ const DispatchPage = () => {
     }
 
     return (
-        <div className="container mx-auto p-8 bg-gray-50 min-h-screen max-w-full">
+        <div className="container mx-auto p-8 bg-gray-50 h-full max-w-full">
             <Card className="mb-6">
                 {/* Header Section */}
                 <CardHeader className="flex flex-row items-center justify-between pb-4">

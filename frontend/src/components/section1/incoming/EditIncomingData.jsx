@@ -167,7 +167,7 @@
 //     }
 
 //     return (
-//         <div className="min-h-screen bg-stone-100 text-stone-700 p-4">
+//         <div className="h-full bg-stone-100 text-stone-700 p-4">
 //             <div className="max-w-7xl mx-auto">
 //                 <Card className="bg-stone-50 shadow-sm border-t-4 border-t-stone-300">
 //                     <div className="p-6 sm:p-8">
@@ -657,7 +657,7 @@ const EditIncomingData = () => {
     }
 
     return (
-        <div className="min-h-screen bg-stone-100 text-stone-700 p-4">
+        <div className="h-full bg-stone-100 text-stone-700 p-4">
             <div className="max-w-7xl mx-auto">
                 <Card className="bg-stone-50 shadow-sm border-t-4 border-t-stone-300">
                     <div className="p-6 sm:p-8">

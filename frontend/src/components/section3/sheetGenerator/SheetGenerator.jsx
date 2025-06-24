@@ -407,7 +407,7 @@
 //     }
 
 //     return (
-//         <div className="container mx-auto p-8 bg-gray-50 min-h-screen max-w-full">
+//         <div className="container mx-auto p-8 bg-gray-50 h-full max-w-full">
 
 
 //             <Card className="mb-6">
@@ -1345,7 +1345,7 @@ const SheetGenerator = () => {
     }
 
     return (
-        <div className="container mx-auto p-8 bg-gray-50 min-h-screen max-w-full">
+        <div className="container mx-auto p-8 bg-gray-50 h-full max-w-full">
             <Card className="mb-6">
                 <CardHeader className="flex flex-row items-center justify-between pb-4">
                     <CardTitle className="text-3xl font-bold">Sheet Generator</CardTitle>
