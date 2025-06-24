@@ -113,10 +113,7 @@ const ChatSidebar = () => {
     const adminUser = users.find(u => u.role && u.role.name.toLowerCase() === 'admin');
     const roleName = typeof currentUser?.role === 'string' ? currentUser.role : currentUser?.role?.name;
     const roleGroupName = roleName ? `${roleName}-Group` : null;
-    console.log("roleGroupName:", roleGroupName, "groups:", groups, "currentUser:", currentUser, "roleName:", roleName);
     const roleGroupCandidate = groups.find(g => g.name === roleGroupName);
-    console.log("roleGroup candidate:", roleGroupCandidate);
-    console.log("currentUser._id:", currentUser._id);
     const roleGroup = groups.find(g =>
         g.name === roleGroupName &&
         Array.isArray(g.members) &&
