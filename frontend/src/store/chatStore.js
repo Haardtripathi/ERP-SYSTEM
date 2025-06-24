@@ -152,9 +152,6 @@ const useChatStore = create((set, get) => ({
 
     // Actions
     setMessages: (newMessages) => {
-        if (DEBUG_MODE) {
-
-        }
 
         // Process attachments before updating messages
         const processedMessages = newMessages.map(msg => {
@@ -437,9 +434,9 @@ const useChatStore = create((set, get) => ({
                         get().updateMessageSeenStatus(data.messageId, data.seenBy);
                         // Only log if messages were actually updated (count changed)
                         const newMessagesCount = get().messages.length;
-                        if (newMessagesCount !== currentMessagesCount) {
+                        // if (newMessagesCount !== currentMessagesCount) {
 
-                        }
+                        // }
                     });
 
                     socket.on('user-online', (userId) => {
@@ -566,9 +563,10 @@ const useChatStore = create((set, get) => ({
                 socket.emit('join', userId);
                 // Request online users list after joining
                 socket.emit('get-online-users');
-            } else {
-
             }
+            // else {
+
+            // }
         } catch (error) {
             console.error('Error joining chat:', error);
         }
@@ -580,9 +578,10 @@ const useChatStore = create((set, get) => ({
             // Only join if socket exists AND not in monitoring view AND socket is connected
             if (socket && !get().isMonitoringAdminView && socket.connected) {
                 socket.emit('join-group', groupId);
-            } else {
-
             }
+            // else {
+
+            // }
         } catch (error) {
             console.error('Error joining group:', error);
         }
