@@ -4,15 +4,12 @@ const User = require('../models/User');
 const Dropdown = require("../models/Dropdown")
 const Role = require("../models/Role")
 const Permission = require("../models/Permission")
-
+const ChatGroup = require("../models/ChatGroup");
 
 const path = require('path');
 const multer = require('multer');
 
-
 require("dotenv").config()
-
-
 
 exports.getAgentList = async (req, res) => {
     try {
@@ -126,6 +123,43 @@ exports.register = [
                 };
             }
             await newUser.save();
+
+            // --- GROUP CREATION/UPDATE LOGIC ---
+            // 1. Get the role name
+            const roleDoc = await Role.findById(role);
+            const roleName = roleDoc.name;
+            const groupName = `${roleName}-Group`;
+
+            // 2. Find all users with this role
+            const usersWithRole = await User.find({ role: roleDoc._id });
+
+            // 3. Find the admin user (assuming role name is 'Admin')
+            const adminRole = await Role.findOne({ name: 'Admin' });
+            const adminUser = await User.findOne({ role: adminRole._id });
+
+            // 4. Check if group exists
+            let group = await ChatGroup.findOne({ name: groupName });
+
+            if (usersWithRole.length === 2 && !group) {
+                // Create group with admin + both users
+                const memberIds = [adminUser._id, ...usersWithRole.map(u => u._id)];
+                group = new ChatGroup({
+                    name: groupName,
+                    members: memberIds,
+                    visibleTo: memberIds,
+                    createdBy: adminUser._id
+                });
+                await group.save();
+            } else if (usersWithRole.length > 2 && group) {
+                // Add new user to group if not already present
+                if (!group.members.some(id => id.equals(newUser._id))) {
+                    group.members.push(newUser._id);
+                    group.visibleTo.push(newUser._id);
+                    await group.save();
+                }
+            }
+            // --- END GROUP LOGIC ---
+
             res.status(201).json({ message: 'User registered successfully' });
         } catch (error) {
             console.error('Registration error:', error);

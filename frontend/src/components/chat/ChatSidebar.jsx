@@ -27,6 +27,7 @@ const ChatSidebar = () => {
     const [roles, setRoles] = useState([]);
     const [selectedRole, setSelectedRole] = useState('all');
     const [loadingRoles, setLoadingRoles] = useState(false);
+    const [loadingGroups, setLoadingGroups] = useState(false);
 
     // Helper function to convert buffer to base64
     const bufferToBase64 = (buffer) => {
@@ -57,10 +58,20 @@ const ChatSidebar = () => {
         }
     };
 
+    // Update fetchGroups to set loadingGroups
+    const fetchGroupsWithLoading = async () => {
+        setLoadingGroups(true);
+        try {
+            await fetchGroups();
+        } finally {
+            setLoadingGroups(false);
+        }
+    };
+
     useEffect(() => {
         if (currentUser && users.length === 0 && groups.length === 0) {
             fetchUsers();
-            fetchGroups();
+            fetchGroupsWithLoading();
         }
         // Fetch unread counts for all chats
         if (currentUser) {
@@ -98,6 +109,24 @@ const ChatSidebar = () => {
         return unsubscribe;
     }, []);
 
+    // Find Admin user and role group for pinned chats
+    const adminUser = users.find(u => u.role && u.role.name.toLowerCase() === 'admin');
+    const roleName = typeof currentUser?.role === 'string' ? currentUser.role : currentUser?.role?.name;
+    const roleGroupName = roleName ? `${roleName}-Group` : null;
+    const roleGroupCandidate = groups.find(g => g.name === roleGroupName);
+    const roleGroup = groups.find(g =>
+        g.name === roleGroupName &&
+        Array.isArray(g.members) &&
+        g.members.some(m => (typeof m === 'string' ? m : m._id) === currentUser._id)
+    );
+    const pinnedChats = [];
+    if (!isAdmin && adminUser && adminUser._id !== currentUser._id) {
+        pinnedChats.push({ type: 'user', data: adminUser });
+    }
+    if (roleGroup) {
+        pinnedChats.push({ type: 'group', data: roleGroup });
+    }
+
     if (!currentUser || (!users || !groups)) {
         return (
             <div className="w-80 border-r bg-gray-50 h-full flex items-center justify-center">
@@ -108,18 +137,18 @@ const ChatSidebar = () => {
 
     // Filter users based on search query and selected role
     const filteredUsers = users.filter(user => {
-        const matchesSearch = user._id !== currentUser._id &&
-            user.agent_name.toLowerCase().includes(searchQuery.toLowerCase());
-
-        const matchesRole = selectedRole === 'all' ||
-            (user.role && user.role.name === selectedRole);
-
+        // Exclude current user
+        if (user._id === currentUser._id) return false;
+        // Exclude admin if shown in pinned
+        if (!isAdmin && adminUser && adminUser._id === user._id) return false;
+        const matchesSearch = user.agent_name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesRole = selectedRole === 'all' || (user.role && user.role.name === selectedRole);
         return matchesSearch && matchesRole;
     });
 
-    const filteredGroups = groups.filter(group =>
-        group.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredGroups = groups
+        .filter(group => group.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        .filter(group => !(roleGroup && group._id === roleGroup._id));
 
     return (
         <div className="w-80 border-r bg-white h-full flex flex-col shadow-md">
@@ -181,7 +210,6 @@ const ChatSidebar = () => {
                                 </button>
                             )}
                         </div>
-                        {/* <div className="border-t border-gray-200 my-2" /> */}
                     </div>
 
                     {isAdmin && (
@@ -196,6 +224,118 @@ const ChatSidebar = () => {
                     )}
                 </div>
             </div>
+
+            {/* Pinned Chats Section (moved below header, above users) */}
+            {groups.length > 0 && pinnedChats.length > 0 && (
+                <div className="px-4 pt-3 pb-1 border-b border-gray-100">
+                    <h2 className="text-xs font-semibold text-gray-500 uppercase mb-2 px-2">Pinned Chats</h2>
+                    <div className="space-y-2">
+                        {pinnedChats.map((chat, idx) =>
+                            chat.type === 'user' ? (
+                                <div
+                                    key={chat.data._id}
+                                    onClick={() => {
+                                        setSelectedChat({ type: 'user', id: chat.data._id, name: chat.data.agent_name });
+                                        useChatStore.getState().joinChat(chat.data._id);
+                                        useChatStore.getState().markMessagesAsSeen(chat.data._id, false);
+                                    }}
+                                    className={cn(
+                                        "flex items-center p-3 hover:bg-gray-100 cursor-pointer rounded-lg transition-colors last:mb-0 mb-2",
+                                        unreadMessages[chat.data._id] > 0 && "bg-blue-50 border-l-4 border-blue-500",
+                                        selectedChat?.type === 'user' && selectedChat?.id === chat.data._id && "bg-blue-100 border-l-4 border-blue-600"
+                                    )}
+                                >
+                                    <div className="relative flex-shrink-0 rounded-full overflow-hidden w-10 h-10">
+                                        {chat.data.photo ? (
+                                            <img
+                                                src={`data:${chat.data.photo.contentType};base64,${bufferToBase64(chat.data.photo.data)}`}
+                                                alt={chat.data.agent_name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-blue-200 flex items-center justify-center text-blue-800 font-bold text-sm">
+                                                {chat.data.agent_name?.charAt(0)?.toUpperCase() || '?'}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="ml-3 flex-1">
+                                        <p className={cn(
+                                            "font-medium text-sm truncate",
+                                            unreadMessages[chat.data._id] > 0 ? "text-blue-800 font-semibold" : "text-gray-800"
+                                        )}>
+                                            {chat.data.agent_name}
+                                            {chat.data.role?.name && (
+                                                <span
+                                                    className={cn(
+                                                        "inline-block mt-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ml-2",
+                                                        chat.data.role.name.toLowerCase() === "admin"
+                                                            ? "bg-blue-100 text-blue-700"
+                                                            : "bg-gray-200 text-gray-700"
+                                                    )}
+                                                    title={chat.data.role.name}
+                                                >
+                                                    {chat.data.role.name}
+                                                </span>
+                                            )}
+                                        </p>
+                                        <p className="text-xs text-gray-500 truncate">
+                                            {chat.data.email}
+                                        </p>
+                                    </div>
+                                    {onlineUsers.includes(chat.data._id) && (
+                                        <span className="ml-auto w-3 h-3 bg-green-500 rounded-full border-2 border-gray-400 flex-shrink-0" />
+                                    )}
+                                    {unreadMessages[chat.data._id] > 0 && (
+                                        <span className="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs font-bold rounded-full flex-shrink-0 flex items-center justify-center min-w-[20px]">
+                                            {unreadMessages[chat.data._id]}
+                                        </span>
+                                    )}
+                                </div>
+                            ) : (
+                                <div
+                                    key={chat.data._id}
+                                    onClick={() => {
+                                        setSelectedChat({ type: 'group', id: chat.data._id, name: chat.data.name });
+                                        useChatStore.getState().joinGroup(chat.data._id);
+                                        useChatStore.getState().markMessagesAsSeen(chat.data._id, true);
+                                        useChatStore.getState().updateGroupUnreadCount(chat.data._id, false);
+                                    }}
+                                    className={cn(
+                                        "flex items-center p-3 hover:bg-gray-100 cursor-pointer rounded-lg transition-colors last:mb-0 mb-2",
+                                        unreadMessages[chat.data._id] > 0 && "bg-blue-50 border-l-4 border-blue-500",
+                                        selectedChat?.type === 'group' && selectedChat?.id === chat.data._id && "bg-blue-100 border-l-4 border-blue-600"
+                                    )}
+                                >
+                                    <div className="flex-shrink-0">
+                                        <div className={cn(
+                                            "w-10 h-10 rounded-full flex items-center justify-center",
+                                            unreadMessages[chat.data._id] > 0
+                                                ? "bg-blue-200 text-blue-700"
+                                                : "bg-gray-200 text-gray-700"
+                                        )}>
+                                            <MessageSquare className="w-5 h-5" />
+                                        </div>
+                                    </div>
+                                    <div className="ml-3 flex-1">
+                                        <p className={cn(
+                                            "font-medium text-sm truncate",
+                                            unreadMessages[chat.data._id] > 0 ? "text-blue-800 font-semibold" : "text-gray-800"
+                                        )}>
+                                            {chat.data.name}
+                                        </p>
+                                        <p className="text-xs text-gray-500">{chat.data.members.length} members</p>
+                                    </div>
+                                    {unreadMessages[chat.data._id] > 0 && (
+                                        <span className="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs font-bold rounded-full flex-shrink-0 flex items-center justify-center min-w-[20px]">
+                                            {unreadMessages[chat.data._id]}
+                                        </span>
+                                    )}
+                                </div>
+                            )
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Users and Groups List */}
             <div className="flex-1 overflow-y-auto">
@@ -288,7 +428,11 @@ const ChatSidebar = () => {
                 {/* Groups List */}
                 <div className="p-2 mt-4">
                     <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2 px-2">Groups</h3>
-                    {filteredGroups.length > 0 ? (
+                    {loadingGroups ? (
+                        <div className="flex justify-center items-center py-4">
+                            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                        </div>
+                    ) : filteredGroups.length > 0 ? (
                         filteredGroups.map(group => (
                             <div
                                 key={group._id}

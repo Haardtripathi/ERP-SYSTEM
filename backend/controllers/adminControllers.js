@@ -73,8 +73,12 @@ exports.getAllPermissionsOfRole = async (req, res) => {
 // Add a new role
 exports.addRole = async (req, res) => {
     try {
-
         const { roleName, permissions } = req.body;
+        // Check if role already exists
+        const existingRole = await Role.findOne({ name: roleName });
+        if (existingRole) {
+            return res.status(400).json({ error: "Role name already exists" });
+        }
         // Create a new role
         const role = new Role({ name: roleName });
         await role.save();
@@ -87,6 +91,10 @@ exports.addRole = async (req, res) => {
 
         res.status(201).json({ message: "Role created successfully" });
     } catch (error) {
+        // Handle duplicate key error (in case of race condition)
+        if (error.code === 11000) {
+            return res.status(400).json({ error: "Role name already exists" });
+        }
         res.status(500).json({ error: "Error creating role" });
     }
 };
@@ -165,22 +173,32 @@ exports.getUpdateRole = async (req, res) => {
 }
 
 exports.postUpdateRole = async (req, res) => {
-    const roleData = req.body
-    const roleName = roleData.data.roleName
-    const rolePermissions = roleData.data.permissions
-    const role = await Role.findOne({ _id: roleData.id })
-    role.name = roleName
-    await role.save()
+    try {
+        const roleData = req.body;
+        const roleName = roleData.data.roleName;
+        const rolePermissions = roleData.data.permissions;
+        // Check if another role with the same name exists
+        const existingRole = await Role.findOne({ name: roleName, _id: { $ne: roleData.id } });
+        if (existingRole) {
+            return res.status(400).json({ error: "Role name already exists" });
+        }
+        const role = await Role.findOne({ _id: roleData.id });
+        role.name = roleName;
+        await role.save();
 
-    const permission = await Permission.findOne({ role: roleData.id })
-    permission.permissions = rolePermissions
+        const permission = await Permission.findOne({ role: roleData.id });
+        permission.permissions = rolePermissions;
+        await permission.save();
 
-    await permission.save()
-
-    res.status(201).json({ message: "Role updated successfully" });
-
-
-}
+        res.status(201).json({ message: "Role updated successfully" });
+    } catch (error) {
+        // Handle duplicate key error (in case of race condition)
+        if (error.code === 11000) {
+            return res.status(400).json({ error: "Role name already exists" });
+        }
+        res.status(500).json({ error: error.message || "Error updating role" });
+    }
+};
 
 
 exports.deleteRole = async (req, res) => {
