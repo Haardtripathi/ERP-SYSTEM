@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { getAuthUserAccessPages } from "@/services/adminService";
+import useAuthStore from "@/store/authStore";
 
 // navGroups logic from Sidenav.jsx
 const navGroups = [
@@ -33,6 +34,7 @@ const SectionNav = () => {
     const [openSection, setOpenSection] = useState(null); // null means no section open
     const location = useLocation();
     const navigate = useNavigate();
+    const { isAdmin } = useAuthStore();
 
     useEffect(() => {
         const fetchPages = async () => {
@@ -53,17 +55,39 @@ const SectionNav = () => {
         .map(group => group.filter(item => allowedPages.includes(item.to)))
         .filter(group => group.length > 0);
 
+    // Add Chat section if allowed
+    const chatSection = allowedPages.includes("/chat")
+        ? [[{ to: "/chat", label: "Chat" }]]
+        : [];
+
+    // Admin links
+    const adminLinks = [
+        { to: "/roles", label: "Roles" },
+        { to: "/add-role", label: "Add Role" },
+        { to: "/admin/chat", label: "Monitor Chats" },
+        { to: "/add-user", label: "Add User" },
+        { to: "/users", label: "Users" }
+    ].filter(item => allowedPages.includes(item.to));
+    const adminSection = isAdmin && adminLinks.length > 0 ? [adminLinks] : [];
+
+    // Combine all sections
+    const allSections = [
+        ...filteredGroups,
+        ...chatSection,
+        ...adminSection
+    ];
+
     // If the open section is filtered out (e.g. after allowedPages changes), reset to null
     useEffect(() => {
-        if (openSection !== null && openSection >= filteredGroups.length) {
+        if (openSection !== null && openSection >= allSections.length) {
             setOpenSection(null);
         }
-    }, [filteredGroups.length, openSection]);
+    }, [allSections.length, openSection]);
 
     // When opening a section, auto-navigate to its first link
     useEffect(() => {
-        if (openSection !== null && filteredGroups[openSection] && filteredGroups[openSection][0]) {
-            navigate(filteredGroups[openSection][0].to);
+        if (openSection !== null && allSections[openSection] && allSections[openSection][0]) {
+            navigate(allSections[openSection][0].to);
         }
         // Only run when openSection changes
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -78,7 +102,7 @@ const SectionNav = () => {
     };
 
     // Find which section contains the current route
-    const activeSectionIdx = filteredGroups.findIndex(group =>
+    const activeSectionIdx = allSections.findIndex(group =>
         group.some(item => location.pathname === item.to)
     );
 
@@ -86,8 +110,12 @@ const SectionNav = () => {
         <div className="fixed top-16 left-0 w-full z-20 bg-white shadow">
             {/* Section Tabs */}
             <div className="border-b border-gray-200 flex items-center px-4 h-12">
-                {filteredGroups.map((_, idx) => {
+                {allSections.map((group, idx) => {
                     const isActive = openSection === idx || (openSection === null && activeSectionIdx === idx);
+                    // Label for tab: Section 1, Section 2, ..., Chat, Admin
+                    let tabLabel = `Section ${idx + 1}`;
+                    if (chatSection.length && idx === filteredGroups.length) tabLabel = "Chat";
+                    if (adminSection.length && idx === filteredGroups.length + chatSection.length) tabLabel = "Admin";
                     return (
                         <button
                             key={idx}
@@ -97,15 +125,15 @@ const SectionNav = () => {
                                 }`}
                             onClick={() => handleSectionClick(idx)}
                         >
-                            Section {idx + 1}
+                            {tabLabel}
                         </button>
                     );
                 })}
             </div>
             {/* Section Links (only if openSection is not null) */}
-            {openSection !== null && filteredGroups[openSection] && (
+            {openSection !== null && allSections[openSection] && (
                 <div className="border-b border-gray-200 flex items-center px-4 h-12 space-x-2 bg-white">
-                    {filteredGroups[openSection].map(item => (
+                    {allSections[openSection].map(item => (
                         <NavLink
                             key={item.to}
                             to={item.to}
