@@ -226,7 +226,7 @@ const ChatSidebar = () => {
             </div>
 
             {/* Pinned Chats Section (moved below header, above users) */}
-            {groups.length > 0 && pinnedChats.length > 0 && (
+            {pinnedChats.length > 0 && (
                 <div className="px-4 pt-3 pb-1 border-b border-gray-100">
                     <h2 className="text-xs font-semibold text-gray-500 uppercase mb-2 px-2">Pinned Chats</h2>
                     <div className="space-y-2">
