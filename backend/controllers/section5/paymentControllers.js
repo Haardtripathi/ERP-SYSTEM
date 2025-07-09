@@ -64,6 +64,7 @@ exports.addPayment = async (req, res) => {
 
 
 exports.getAllPaymentData = async (req, res) => {
+    console.log('DEBUG req.user (payment):', req.user);
     try {
         // 1. Escape special characters in the search term to avoid regex errors
         const escapeRegex = (input) => {
@@ -114,6 +115,11 @@ exports.getAllPaymentData = async (req, res) => {
 
         // 5. Build the query object
         const query = { isDeleted: false };
+
+        // Add remote user filtering for remote users
+        if (req.user && req.user.isRemote) {
+            query["agent_name.value"] = req.user.agent_name;
+        }
 
         // 6. Handle user-provided search text
         if (rawSearch) {

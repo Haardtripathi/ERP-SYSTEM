@@ -5,6 +5,7 @@ const Delivered = require('../../models/Delivered')
 
 
 exports.getAllDeliveredData = async (req, res) => {
+    console.log('DEBUG req.user (delivered):', req.user);
     console.log(req.query)
     try {
         // 1. Escape special characters in the search term to avoid regex errors
@@ -54,6 +55,11 @@ exports.getAllDeliveredData = async (req, res) => {
 
         // 5. Build the query object
         const query = { isDeleted: false };
+
+        // Add remote user filtering for remote users
+        if (req.user && req.user.isRemote) {
+            query["agent_name.value"] = req.user.agent_name;
+        }
 
         // 6. Handle user-provided search text
         if (rawSearch) {

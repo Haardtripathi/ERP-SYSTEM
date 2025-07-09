@@ -51,7 +51,7 @@ const escapeRegex = (input) => {
 };
 
 module.exports.getAllSheetData = async (req, res) => {
-
+    console.log('DEBUG req.user (sheet):', req.user);
     try {
         // Pagination setup
         const page = parseInt(req.query.page, 10) || 1;
@@ -72,6 +72,11 @@ module.exports.getAllSheetData = async (req, res) => {
             isDispatched: false,
             isHold: false,
         };
+
+        // Add remote user filtering for remote users
+        if (req.user && req.user.isRemote) {
+            query["agent_name.value"] = req.user.agent_name;
+        }
 
         // Searchable fields
         const stringFieldsNested = ["agent_name", "language", "disease", "remark", "source", "state"];

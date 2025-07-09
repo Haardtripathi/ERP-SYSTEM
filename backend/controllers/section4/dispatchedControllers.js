@@ -76,6 +76,11 @@ module.exports.getAllDispatchedData = async (req, res) => {
 
         const query = { isDeleted: false }
 
+        // Add remote user filtering
+        if (req.user && req.user.isRemote) {
+            query["agent_name.value"] = req.user.agent_name;
+        }
+
         if (rawSearch) {
             if (searchColumn) {
                 // If searching in a specific column

@@ -88,6 +88,11 @@ module.exports.getAllComplainData = async (req, res) => {
         // 5. Build the query object
         const query = {};
 
+        // Add remote user filtering
+        if (req.user && req.user.isRemote) {
+            query["agent_name.value"] = req.user.agent_name;
+        }
+
         // Example: if your "complain" documents are not soft-deleted, remove the isDeleted check.
         // If you have an "isDeleted" flag, you can use:  query.isDeleted = false;
 

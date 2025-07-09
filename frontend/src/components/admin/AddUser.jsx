@@ -29,6 +29,7 @@ export default function AddUser() {
         bankBranch: "",
         IFSC_Code: "",
         accountNumber: "",
+        isRemote: false // <-- add this
     })
     const [photo, setPhoto] = useState(null)
     const [roles, setRoles] = useState([]); // State to store roles
@@ -55,8 +56,11 @@ export default function AddUser() {
     }, [sameAsAddress, formData.address])
 
     const handleChange = (e) => {
-        const { name, value } = e.target
-        setFormData((prev) => ({ ...prev, [name]: value }))
+        const { name, value, type, checked } = e.target
+        setFormData((prev) => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
+        }))
     }
 
     const handleFileChange = (e) => {
@@ -71,7 +75,8 @@ export default function AddUser() {
 
         const formDataToSend = new FormData()
         Object.entries(formData).forEach(([key, value]) => {
-            formDataToSend.append(key, value)
+            // Convert boolean to string for FormData
+            formDataToSend.append(key, typeof value === 'boolean' ? String(value) : value)
         })
         if (photo) {
             formDataToSend.append("photo", photo)
@@ -192,6 +197,18 @@ export default function AddUser() {
                                             accept="image/jpeg,image/png,image/jpg"
                                             className="pl-10"
                                         />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="isRemote">Remote User</Label>
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id="isRemote"
+                                            name="isRemote"
+                                            checked={formData.isRemote}
+                                            onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isRemote: checked }))}
+                                        />
+                                        <span className="text-muted-foreground text-sm">Check if this user should only see their own data (remote user)</span>
                                     </div>
                                 </div>
                             </div>

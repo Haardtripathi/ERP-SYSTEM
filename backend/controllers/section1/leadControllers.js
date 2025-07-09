@@ -139,6 +139,10 @@ exports.getAllLeadData = async (req, res) => {
         if (user.role !== "Admin") {
             query["agent_name.value"] = user.agent_name;
         }
+        // Add remote user filtering
+        if (user.isRemote) {
+            query["agent_name.value"] = user.agent_name;
+        }
 
         if (filter === "true") query.is_sent_to_pending = true;
         else if (filter === "false") query.is_sent_to_pending = false;

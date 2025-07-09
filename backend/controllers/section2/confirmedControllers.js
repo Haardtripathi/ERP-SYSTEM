@@ -13,6 +13,7 @@ const escapeRegex = (input) => {
 };
 
 exports.getAllConfirmedData = async (req, res) => {
+    console.log('DEBUG req.user (confirmed):', req.user);
     try {
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
@@ -28,6 +29,11 @@ exports.getAllConfirmedData = async (req, res) => {
         const numberFields = ['cm_phone', 'alternate_phone', 'amount'];
 
         let query = { isDeleted: false };
+
+        // Add remote user filtering for remote users
+        if (req.user && req.user.isRemote) {
+            query["agent_name.value"] = req.user.agent_name;
+        }
 
         if (rawSearch) {
             if (searchColumn) {

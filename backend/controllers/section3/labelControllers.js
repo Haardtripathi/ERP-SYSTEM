@@ -75,6 +75,11 @@ module.exports.getAllLabelData = async (req, res) => {
             isHold: false,
         };
 
+        // Add remote user filtering for remote users
+        if (req.user && req.user.isRemote) {
+            query["agent_name.value"] = req.user.agent_name;
+        }
+
         // 5) If your app needs role-based filtering (like user.role !== "Admin")
         /*
         if (user.role !== "Admin") {

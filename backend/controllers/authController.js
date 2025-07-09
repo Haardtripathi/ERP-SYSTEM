@@ -180,7 +180,7 @@ exports.login = async (req, res) => {
         const role = await Role.findOne({ _id: user.role })
         const permissions = await Permission.findOne({ role: user.role })
         const userRole = role.name
-        const token = jwt.sign({ _id: user._id.toString(), email: user.email, agent_name: user.agent_name, role: userRole }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ _id: user._id.toString(), email: user.email, agent_name: user.agent_name, role: userRole, isRemote: user.isRemote }, process.env.JWT_SECRET, { expiresIn: '1h' });
         // const token = jwt.sign({ _id: user._id.toString(), email: user.email, agent_name: user.agent_name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
         res.json({ token });
     } catch (error) {

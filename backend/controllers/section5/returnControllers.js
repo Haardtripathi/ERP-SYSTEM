@@ -82,6 +82,11 @@ module.exports.getAllReturnData = async (req, res) => {
         // Set isDeleted to false to exclude soft-deleted records
         query.isDeleted = false
 
+        // Add remote user filtering
+        if (req.user && req.user.isRemote) {
+            query["agent_name.value"] = req.user.agent_name;
+        }
+
         // 6. Handle user-provided search text
         if (rawSearch) {
             if (searchColumn) {
