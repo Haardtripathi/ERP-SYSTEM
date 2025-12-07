@@ -4,6 +4,7 @@ const { isAdmin } = require("../middlewares/adminMiddleware");
 const { isAuthenticated } = require("../middlewares/authMiddleware")
 const { addRole, getPagesAndColumns, deleteRole, getUserAccessPages, getAllRolesAndPermissions, getAllPermissionsOfRole, getPermissions, postUpdateRole, getUpdateRole, getAllRoleNames } = require("../controllers/adminControllers");
 const { checkPermission } = require("../middlewares/permissionMiddleware")
+const { changePassword } = require("../controllers/authController");
 
 const router = express.Router();
 
@@ -35,6 +36,7 @@ router.get("/get-user-access-pages", getUserAccessPages);
 
 router.get("/pages", isAuthenticated, isAdmin, getPagesAndColumns);
 
-
+// Change password route - Admin only
+router.post("/change-password", isAuthenticated, isAdmin, changePassword);
 
 module.exports = router;

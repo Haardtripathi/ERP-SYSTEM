@@ -38,3 +38,8 @@ export const getRoleList = async () => {
     const response = await axiosInstance.get('/auth/roleList');
     return response.data;
 }
+
+export const resetAdminPassword = async (email, newPassword) => {
+    const response = await axiosInstance.post('/auth/reset-admin-password', { email, newPassword });
+    return response.data;
+}

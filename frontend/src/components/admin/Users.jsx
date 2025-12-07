@@ -116,6 +116,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import ChangePassword from "./ChangePassword";
 
 const Users = () => {
     const [userData, setUserData] = useState([]);
@@ -168,10 +169,8 @@ const Users = () => {
                                     >
                                         {user.role?.name || "Not Assigned"}
                                     </TableCell>
-                                    ``
 
-
-                                    <TableCell className="flex space-x-3 justify-center">
+                                    <TableCell className="flex space-x-3 justify-center items-center">
                                         <Button
                                             variant="default"
                                             className="bg-blue-500 hover:bg-blue-700 text-lg px-4 py-2"
@@ -179,6 +178,11 @@ const Users = () => {
                                         >
                                             Update
                                         </Button>
+
+                                        <ChangePassword 
+                                            userId={user._id} 
+                                            userName={user.agent_name}
+                                        />
 
                                         <Dialog>
                                             <DialogTrigger asChild>

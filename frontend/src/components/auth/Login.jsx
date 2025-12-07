@@ -71,6 +71,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail, Lock, Loader2 } from 'lucide-react';
+import ForgotPassword from './ForgotPassword';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -148,6 +149,10 @@ const Login = () => {
                                 'Login'
                             )}
                         </Button>
+
+                        <div className="text-center">
+                            <ForgotPassword />
+                        </div>
 
                         {/* <div className="text-center text-sm text-gray-500">
                             Dont have an account?{' '}

@@ -71,3 +71,8 @@ export const editUserData = async (data, formData) => {
     const response = await axiosInstance.post(`/admin/edit-user`, { data, formData });
     return response.data;
 }
+
+export const changePassword = async (userId, newPassword) => {
+    const response = await axiosInstance.post(`/admin/change-password`, { userId, newPassword });
+    return response.data;
+}
