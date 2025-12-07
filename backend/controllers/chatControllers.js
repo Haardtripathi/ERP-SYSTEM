@@ -6,7 +6,7 @@ const { getIo } = require("../socket/chatSocket");
 
 exports.sendMessage = async (req, res) => {
     try {
-        const { sender, receiver, group, message, attachments } = req.body;
+        const { sender, receiver, group, message, attachments, mentionedUsers } = req.body;
 
         // Create message data object
         const messageData = {
@@ -18,6 +18,23 @@ exports.sendMessage = async (req, res) => {
             // For private chats, only add sender to seenBy if they are the receiver
             seenBy: group ? [sender] : []
         };
+
+        // Handle mentions - validate and filter for group messages
+        if (mentionedUsers && Array.isArray(mentionedUsers) && mentionedUsers.length > 0) {
+            if (group) {
+                // For group messages, validate that mentioned users are group members
+                const groupData = await ChatGroup.findById(group).select('members');
+                if (groupData) {
+                    const validMentionedUsers = mentionedUsers.filter(userId => 
+                        groupData.members.some(memberId => memberId.toString() === userId.toString())
+                    );
+                    messageData.mentionedUsers = validMentionedUsers;
+                }
+            } else {
+                // For private messages, mentions are not typically used, but we'll allow it
+                messageData.mentionedUsers = mentionedUsers;
+            }
+        }
 
         // Handle attachments if present
         if (attachments && attachments.length > 0) {
@@ -32,6 +49,32 @@ exports.sendMessage = async (req, res) => {
 
         // Create the message
         const newMsg = await ChatMessage.create(messageData);
+
+        // Emit mention notifications via WebSocket
+        if (newMsg.mentionedUsers && newMsg.mentionedUsers.length > 0) {
+            const io = getIo();
+            if (io) {
+                // Fetch group name once before the loop
+                let groupName = null;
+                if (group) {
+                    const groupData = await ChatGroup.findById(group).select('name');
+                    groupName = groupData?.name || null;
+                }
+
+                newMsg.mentionedUsers.forEach(mentionedUserId => {
+                    // Don't notify the sender if they mentioned themselves
+                    if (mentionedUserId.toString() !== sender.toString()) {
+                        io.to(mentionedUserId.toString()).emit('user-mentioned', {
+                            messageId: newMsg._id,
+                            groupId: group,
+                            sender: sender,
+                            message: message,
+                            groupName: groupName
+                        });
+                    }
+                });
+            }
+        }
 
         res.status(200).json(newMsg);
     } catch (error) {
@@ -73,7 +116,15 @@ exports.getPrivateChat = async (req, res) => {
         const messages = await ChatMessage.find(query)
             .sort({ createdAt: -1 })
             .limit(parseInt(limit))
-            .populate('replyTo');
+            .populate('replyTo')
+            .populate({
+                path: 'mentionedUsers',
+                select: 'agent_name _id email photo role',
+                populate: {
+                    path: 'role',
+                    select: 'name'
+                }
+            });
 
         // Calculate if there are more messages to load
         const hasMore = beforeId ?
@@ -159,7 +210,15 @@ exports.getGroupMessages = async (req, res) => {
         const messages = await ChatMessage.find(query)
             .sort({ createdAt: -1 })
             .limit(parseInt(limit))
-            .populate('replyTo');
+            .populate('replyTo')
+            .populate({
+                path: 'mentionedUsers',
+                select: 'agent_name _id email photo role',
+                populate: {
+                    path: 'role',
+                    select: 'name'
+                }
+            });
 
         // Calculate if there are more messages to load
         const hasMore = beforeId ?

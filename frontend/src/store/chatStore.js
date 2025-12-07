@@ -542,6 +542,35 @@ const useChatStore = create((set, get) => ({
                         }
                     });
 
+                    // Add socket event for user mentions
+                    socket.on('user-mentioned', (data) => {
+                        const currentUser = get().currentUser;
+                        if (!currentUser || currentUser._id !== data.sender) {
+                            // Show notification if user is mentioned
+                            // You can customize this notification as needed
+                            if (window.Notification && Notification.permission === 'granted') {
+                                const notification = new Notification(
+                                    data.groupName ? `Mentioned in ${data.groupName}` : 'You were mentioned',
+                                    {
+                                        body: data.message || 'You were mentioned in a message',
+                                        icon: '/favicon.ico',
+                                        tag: `mention-${data.messageId}`,
+                                        requireInteraction: false
+                                    }
+                                );
+                                
+                                // Auto-close notification after 5 seconds
+                                setTimeout(() => {
+                                    notification.close();
+                                }, 5000);
+                            }
+                            
+                            // If browser doesn't support notifications or permission not granted,
+                            // you could show an in-app notification here
+                            console.log('User mentioned:', data);
+                        }
+                    });
+
                     isSocketInitialized = true;
 
                 }
@@ -587,7 +616,7 @@ const useChatStore = create((set, get) => ({
         }
     },
 
-    sendMessage: async (content, receiverId, groupId = null, files = [], replyToId = null) => {
+    sendMessage: async (content, receiverId, groupId = null, files = [], replyToId = null, mentionedUsers = []) => {
         try {
             if (get().isMonitoringAdminView) {
                 console.warn('sendMessage: Sending messages disabled in admin monitoring view.');
@@ -672,7 +701,8 @@ const useChatStore = create((set, get) => ({
                 message: message.message,
                 attachments: message.attachments,
                 createdAt: message.createdAt,
-                replyTo: message.replyTo
+                replyTo: message.replyTo,
+                mentionedUsers: mentionedUsers
             }, (response) => {
 
                 if (response && response.error) {
