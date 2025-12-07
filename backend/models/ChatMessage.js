@@ -13,7 +13,8 @@ const chatMessageSchema = new mongoose.Schema({
         fileType: { type: String, enum: ['image', 'document', 'spreadsheet', 'pdf', 'video', 'other'] }
     }],
     replyTo: { type: mongoose.Schema.Types.ObjectId, ref: "ChatMessage" },
-    seenBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]
+    seenBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    mentionedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]
 }, { timestamps: true });
 
 // Add indexes for better query performance

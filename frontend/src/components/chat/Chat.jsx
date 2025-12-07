@@ -14,6 +14,17 @@ const Chat = () => {
         cleanupSocket
     } = useChatStore();
 
+    // Request notification permission on mount
+    useEffect(() => {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    console.log('Notification permission granted');
+                }
+            });
+        }
+    }, []);
+
     // Initialize socket and fetch data on mount
     useEffect(() => {
         if (currentUser) {

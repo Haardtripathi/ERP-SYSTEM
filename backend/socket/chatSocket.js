@@ -37,7 +37,8 @@ function setupSocket(server) {
                 receiver: messageData.receiver,
                 group: messageData.group,
                 hasMessage: !!messageData.message,
-                hasAttachments: !!messageData.attachments?.length
+                hasAttachments: !!messageData.attachments?.length,
+                mentionedUsers: messageData.mentionedUsers?.length || 0
             });
 
             try {
@@ -49,6 +50,23 @@ function setupSocket(server) {
                     message: messageData.message,
                     replyTo: messageData.replyTo?._id // Include replyTo ID if present
                 };
+
+                // Handle mentions - validate and filter for group messages
+                if (messageData.mentionedUsers && Array.isArray(messageData.mentionedUsers) && messageData.mentionedUsers.length > 0) {
+                    if (messageData.group) {
+                        // For group messages, validate that mentioned users are group members
+                        const groupData = await ChatGroup.findById(messageData.group).select('members name');
+                        if (groupData) {
+                            const validMentionedUsers = messageData.mentionedUsers.filter(userId => 
+                                groupData.members.some(memberId => memberId.toString() === userId.toString())
+                            );
+                            messageToSave.mentionedUsers = validMentionedUsers;
+                        }
+                    } else {
+                        // For private messages, mentions are not typically used, but we'll allow it
+                        messageToSave.mentionedUsers = messageData.mentionedUsers;
+                    }
+                }
 
                 // Handle attachments if present
                 if (messageData.attachments && messageData.attachments.length > 0) {
@@ -79,14 +97,45 @@ function setupSocket(server) {
                 // Save message to database
                 let savedMessage = await ChatMessage.create(messageToSave);
 
-                // Populate the replyTo field before sending
+                // Populate the replyTo and mentionedUsers fields before sending
                 savedMessage = await savedMessage.populate('replyTo');
+                savedMessage = await savedMessage.populate({
+                    path: 'mentionedUsers',
+                    select: 'agent_name _id email photo role',
+                    populate: {
+                        path: 'role',
+                        select: 'name'
+                    }
+                });
 
                 console.log('Backend - Message saved to database and populated:', {
                     id: savedMessage._id,
                     message: savedMessage.message,
-                    attachmentsCount: savedMessage.attachments?.length || 0
+                    attachmentsCount: savedMessage.attachments?.length || 0,
+                    mentionedUsersCount: savedMessage.mentionedUsers?.length || 0
                 });
+
+                // Emit mention notifications to mentioned users
+                if (savedMessage.mentionedUsers && savedMessage.mentionedUsers.length > 0) {
+                    let groupName = null;
+                    if (savedMessage.group) {
+                        const groupData = await ChatGroup.findById(savedMessage.group).select('name');
+                        groupName = groupData?.name || null;
+                    }
+
+                    savedMessage.mentionedUsers.forEach(mentionedUserId => {
+                        // Don't notify the sender if they mentioned themselves
+                        if (mentionedUserId.toString() !== savedMessage.sender.toString()) {
+                            io.to(mentionedUserId.toString()).emit('user-mentioned', {
+                                messageId: savedMessage._id,
+                                groupId: savedMessage.group,
+                                sender: savedMessage.sender,
+                                message: savedMessage.message,
+                                groupName: groupName
+                            });
+                        }
+                    });
+                }
 
                 // Emit to the appropriate room(s)
                 if (savedMessage.group) {

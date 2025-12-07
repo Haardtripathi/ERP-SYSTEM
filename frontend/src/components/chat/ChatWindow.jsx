@@ -9,6 +9,7 @@ import { PanelGroup, Panel } from 'react-resizable-panels';
 import AudioPlayer from './AudioPlayer';
 import AudioRecorder from './AudioRecorder';
 import VideoPlayer from './VideoPlayer';
+import MentionAutocomplete from './MentionAutocomplete';
 
 // Helper function to determine file type
 const getFileType = (file) => {
@@ -54,6 +55,8 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
     const [showNewMessageButton, setShowNewMessageButton] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [recordedAudio, setRecordedAudio] = useState(null);
+    const [mentionState, setMentionState] = useState({ show: false, searchTerm: '', position: { bottom: 0, left: 0 }, startIndex: -1 });
+    const [displayMessage, setDisplayMessage] = useState(''); // Display version showing only @username
 
     const {
         messages,
@@ -126,6 +129,16 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
 
     useEffect(() => {
         if (selectedChat && inputRef.current) {
+            // Reset display message when chat changes
+            setDisplayMessage('');
+            setMessage('');
+            
+            // Clear contentEditable content
+            if (inputRef.current.innerHTML) {
+                inputRef.current.innerHTML = '';
+                inputRef.current.textContent = '';
+            }
+            
             // Focus input when chat is selected
             setTimeout(() => {
                 inputRef.current?.focus();
@@ -442,7 +455,28 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
 
     const handleSend = (e) => {
         e.preventDefault();
-        if (!message.trim() && selectedFiles.length === 0 && !recordedAudio) return;
+        
+        // Get text from contentEditable if it exists
+        let messageText = message;
+        if (inputRef.current) {
+            const htmlContent = inputRef.current.innerHTML;
+            // Extract text and convert mentions back to @[userId:userName] format
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+            // Get all mention spans and convert them
+            const mentionSpans = tempDiv.querySelectorAll('.mention-tag');
+            mentionSpans.forEach(span => {
+                const userId = span.getAttribute('data-user-id');
+                const userName = span.textContent.replace('@', '');
+                span.outerHTML = `@[${userId}:${userName}]`;
+            });
+            messageText = tempDiv.textContent || tempDiv.innerText || '';
+        }
+        
+        if (!messageText.trim() && selectedFiles.length === 0 && !recordedAudio) return;
+
+        // Parse mentions from message
+        const mentionedUserIds = parseMentions(messageText);
 
         // If there's a recorded audio, send it along with the message
         if (recordedAudio) {
@@ -454,26 +488,35 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
                 writable: false
             });
             sendMessage(
-                message.trim() || '🎤 Voice Message', // Add default text for voice messages
+                messageText.trim() || '🎤 Voice Message', // Add default text for voice messages
                 selectedChat.type === 'user' ? selectedChat.id : null,
                 selectedChat.type === 'group' ? selectedChat.id : null,
                 [audioFile],
-                replyingTo?._id
+                replyingTo?._id,
+                mentionedUserIds
             );
             setRecordedAudio(null);
         } else {
             sendMessage(
-                message.trim(),
+                messageText.trim(),
                 selectedChat.type === 'user' ? selectedChat.id : null,
                 selectedChat.type === 'group' ? selectedChat.id : null,
                 selectedFiles,
-                replyingTo?._id
+                replyingTo?._id,
+                mentionedUserIds
             );
         }
         setMessage('');
+        setDisplayMessage('');
+        // Clear contentEditable
+        if (inputRef.current) {
+            inputRef.current.innerHTML = '';
+            inputRef.current.textContent = '';
+        }
         setSelectedFiles([]);
         setSelectedFilePreviews([]);
         setReplyingTo(null);
+        setMentionState({ show: false, searchTerm: '', position: { bottom: 0, left: 0 }, startIndex: -1 });
         inputRef.current?.focus();
     };
 
@@ -596,6 +639,406 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
 
     const handleCancelRecordedAudio = () => {
         setRecordedAudio(null);
+    };
+
+    // Get group members for mention autocomplete
+    const getGroupMembers = () => {
+        if (selectedChat?.type !== 'group') return [];
+        const group = groups.find(g => g._id === selectedChat.id);
+        return group?.members || [];
+    };
+
+    // Handle mention detection and autocomplete
+    const handleMessageChange = (e) => {
+        const value = e.target.value;
+        const cursorPosition = e.target.selectionStart;
+        
+        // Only show mentions in group chats
+        if (selectedChat?.type !== 'group') {
+            setMentionState({ show: false, searchTerm: '', position: { bottom: 0, left: 0 }, startIndex: -1 });
+            setDisplayMessage(value);
+            setMessage(value);
+            return;
+        }
+
+        // Find @ symbol before cursor
+        const textBeforeCursor = value.substring(0, cursorPosition);
+        const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+        
+        if (lastAtIndex !== -1) {
+            // Check if there's a space after @ (meaning @ is not active)
+            const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+            if (!textAfterAt.includes(' ') && !textAfterAt.includes('\n')) {
+                // We have an active @ mention
+                const searchTerm = textAfterAt;
+                const inputRect = e.target.getBoundingClientRect();
+                const textarea = e.target;
+                
+                // Calculate position for autocomplete
+                const textBeforeAt = textBeforeCursor.substring(0, lastAtIndex);
+                const tempSpan = document.createElement('span');
+                tempSpan.style.visibility = 'hidden';
+                tempSpan.style.position = 'absolute';
+                tempSpan.style.whiteSpace = 'pre-wrap';
+                tempSpan.style.font = window.getComputedStyle(textarea).font;
+                tempSpan.textContent = textBeforeAt;
+                document.body.appendChild(tempSpan);
+                const width = tempSpan.offsetWidth;
+                document.body.removeChild(tempSpan);
+                
+                setMentionState({
+                    show: true,
+                    searchTerm: searchTerm,
+                    position: {
+                        bottom: textarea.offsetHeight - textarea.scrollTop + 5,
+                        left: Math.min(width, textarea.offsetWidth - 200)
+                    },
+                    startIndex: lastAtIndex
+                });
+            } else {
+                setMentionState({ show: false, searchTerm: '', position: { bottom: 0, left: 0 }, startIndex: -1 });
+            }
+        } else {
+            setMentionState({ show: false, searchTerm: '', position: { bottom: 0, left: 0 }, startIndex: -1 });
+        }
+        
+        // Update display message
+        setDisplayMessage(value);
+        // Convert display format back to internal format for storage
+        // Only convert if it's a group chat
+        if (selectedChat?.type === 'group') {
+            const internalValue = displayToMessage(value);
+            setMessage(internalValue);
+        } else {
+            setMessage(value);
+        }
+    };
+
+    // Convert message with @[userId:userName] to display format @userName
+    const messageToDisplay = (msg) => {
+        if (!msg) return '';
+        return msg.replace(/@\[([^:]+):([^\]]+)\]/g, '@$2');
+    };
+
+    // Convert display message @userName back to @[userId:userName] format using group members
+    const displayToMessage = (displayMsg) => {
+        if (!displayMsg || selectedChat?.type !== 'group') return displayMsg;
+        
+        const groupMembers = getGroupMembers();
+        // Replace @username with @[userId:userName] by looking up in group members
+        return displayMsg.replace(/@(\w+)/g, (match, userName) => {
+            const user = groupMembers.find(u => u.agent_name === userName);
+            if (user) {
+                return `@[${user._id}:${userName}]`;
+            }
+            return match; // Keep original if not found in group
+        });
+    };
+
+    // Convert HTML content to plain text with mentions
+    const htmlToText = (html) => {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        return tempDiv.textContent || tempDiv.innerText || '';
+    };
+
+    // Convert text with mentions to HTML with styled mentions
+    const textToHtml = (text) => {
+        if (!text) return '';
+        // Replace @[userId:userName] with styled mention spans
+        return text.replace(/@\[([^:]+):([^\]]+)\]/g, (match, userId, userName) => {
+            return `<span class="mention-tag inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-800 font-medium text-sm mx-0.5" data-user-id="${userId}" contenteditable="false">@${userName}</span>`;
+        });
+    };
+
+    // Handle rich text input changes
+    const handleRichTextChange = (e, text) => {
+        const cursorPosition = getCaretPosition(e.target);
+        
+        // Only show mentions in group chats
+        if (selectedChat?.type !== 'group') {
+            setMentionState({ show: false, searchTerm: '', position: { bottom: 0, left: 0 }, startIndex: -1 });
+            setDisplayMessage(text);
+            setMessage(text);
+            updateRichTextContent(e.target, text);
+            return;
+        }
+
+        // Find @ symbol before cursor
+        const textBeforeCursor = text.substring(0, cursorPosition);
+        const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+        
+        if (lastAtIndex !== -1) {
+            const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+            if (!textAfterAt.includes(' ') && !textAfterAt.includes('\n')) {
+                const searchTerm = textAfterAt;
+                const textarea = e.target;
+                
+                // Calculate position for autocomplete
+                const textBeforeAt = textBeforeCursor.substring(0, lastAtIndex);
+                const tempSpan = document.createElement('span');
+                tempSpan.style.visibility = 'hidden';
+                tempSpan.style.position = 'absolute';
+                tempSpan.style.whiteSpace = 'pre-wrap';
+                tempSpan.style.font = window.getComputedStyle(textarea).font;
+                tempSpan.textContent = textBeforeAt;
+                document.body.appendChild(tempSpan);
+                const width = tempSpan.offsetWidth;
+                document.body.removeChild(tempSpan);
+                
+                setMentionState({
+                    show: true,
+                    searchTerm: searchTerm,
+                    position: {
+                        bottom: textarea.offsetHeight - textarea.scrollTop + 5,
+                        left: Math.min(width, textarea.offsetWidth - 200)
+                    },
+                    startIndex: lastAtIndex
+                });
+            } else {
+                setMentionState({ show: false, searchTerm: '', position: { bottom: 0, left: 0 }, startIndex: -1 });
+            }
+        } else {
+            setMentionState({ show: false, searchTerm: '', position: { bottom: 0, left: 0 }, startIndex: -1 });
+        }
+        
+        // Update display message and convert to internal format
+        setDisplayMessage(text);
+        if (selectedChat?.type === 'group') {
+            const internalValue = displayToMessage(text);
+            setMessage(internalValue);
+            // Update HTML content with styled mentions
+            updateRichTextContent(e.target, internalValue);
+        } else {
+            setMessage(text);
+            updateRichTextContent(e.target, text);
+        }
+    };
+
+    // Update rich text content with styled mentions
+    const updateRichTextContent = (element, text) => {
+        const html = textToHtml(text);
+        const currentHtml = element.innerHTML;
+        if (currentHtml !== html) {
+            const selection = window.getSelection();
+            const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+            const cursorPos = range ? range.startOffset : 0;
+            
+            element.innerHTML = html;
+            
+            // Restore cursor position
+            if (range) {
+                try {
+                    const newRange = document.createRange();
+                    const textNode = element.childNodes[0] || element;
+                    const pos = Math.min(cursorPos, textNode.textContent?.length || 0);
+                    newRange.setStart(textNode, pos);
+                    newRange.setEnd(textNode, pos);
+                    selection.removeAllRanges();
+                    selection.addRange(newRange);
+                } catch (e) {
+                    // Ignore cursor restoration errors
+                }
+            }
+        }
+    };
+
+    // Get caret position in contentEditable
+    const getCaretPosition = (element) => {
+        const selection = window.getSelection();
+        if (selection.rangeCount === 0) return 0;
+        const range = selection.getRangeAt(0);
+        const preCaretRange = range.cloneRange();
+        preCaretRange.selectNodeContents(element);
+        preCaretRange.setEnd(range.endContainer, range.endOffset);
+        return preCaretRange.toString().length;
+    };
+
+    // Handle mention selection
+    const handleMentionSelect = (user) => {
+        if (mentionState.startIndex === -1 || !inputRef.current) return;
+        
+        const element = inputRef.current;
+        // Get display text (plain text with @username format)
+        const displayText = element.textContent || '';
+        const textBefore = displayText.substring(0, mentionState.startIndex);
+        const textAfter = displayText.substring(mentionState.startIndex);
+        const textAfterAt = textAfter.substring(1);
+        const spaceIndex = textAfterAt.indexOf(' ') !== -1 ? textAfterAt.indexOf(' ') : 
+                          textAfterAt.indexOf('\n') !== -1 ? textAfterAt.indexOf('\n') : 
+                          textAfterAt.length;
+        const remainingText = textAfterAt.substring(spaceIndex);
+        
+        // Create new display text with mention and a space after it
+        // If remainingText already starts with a space, use it; otherwise add a space
+        const spaceAfterMention = remainingText.startsWith(' ') ? remainingText : ' ' + remainingText;
+        const newDisplayText = textBefore + `@${user.agent_name}` + spaceAfterMention;
+        
+        // Convert display text to internal format (with @[userId:userName])
+        // This ensures all mentions (old and new) are in the correct format
+        const newMessage = selectedChat?.type === 'group' 
+            ? displayToMessage(newDisplayText)
+            : newDisplayText;
+        
+        // Update both states
+        setDisplayMessage(newDisplayText);
+        setMessage(newMessage);
+        
+        // Update HTML content - this will convert ALL mentions to styled spans
+        updateRichTextContent(element, newMessage);
+        
+        setMentionState({ show: false, searchTerm: '', position: { bottom: 0, left: 0 }, startIndex: -1 });
+        
+        // Focus and set cursor after the mention
+        setTimeout(() => {
+            if (element) {
+                element.focus();
+                const selection = window.getSelection();
+                const range = document.createRange();
+                
+                // Find the mention span that was just inserted
+                const mentionSpans = element.querySelectorAll('.mention-tag');
+                const targetMention = Array.from(mentionSpans).find(span => {
+                    const userId = span.getAttribute('data-user-id');
+                    return userId === user._id;
+                });
+                
+                if (targetMention) {
+                    // Place cursor after the mention and the space
+                    try {
+                        // Find the text node after the mention (should contain the space and remaining text)
+                        let nextNode = targetMention.nextSibling;
+                        
+                        if (nextNode && nextNode.nodeType === Node.TEXT_NODE) {
+                            // Use existing text node, place cursor after the space (position 1)
+                            const cursorPos = nextNode.textContent.startsWith(' ') ? 1 : 0;
+                            range.setStart(nextNode, cursorPos);
+                            range.setEnd(nextNode, cursorPos);
+                        } else {
+                            // Create a text node with space and remaining text after the mention
+                            const textNode = document.createTextNode(spaceAfterMention);
+                            if (targetMention.nextSibling) {
+                                element.insertBefore(textNode, targetMention.nextSibling);
+                            } else {
+                                element.appendChild(textNode);
+                            }
+                            // Place cursor after the space (position 1)
+                            range.setStart(textNode, 1);
+                            range.setEnd(textNode, 1);
+                        }
+                    } catch (e) {
+                        // Fallback: try to place cursor after the mention element
+                        try {
+                            range.setStartAfter(targetMention);
+                            range.setEndAfter(targetMention);
+                        } catch (e2) {
+                            // Final fallback: create text node and place cursor
+                            const textNode = document.createTextNode(spaceAfterMention);
+                            if (targetMention.nextSibling) {
+                                element.insertBefore(textNode, targetMention.nextSibling);
+                            } else {
+                                element.appendChild(textNode);
+                            }
+                            range.setStart(textNode, 1);
+                            range.setEnd(textNode, 1);
+                        }
+                    }
+                } else {
+                    // Fallback: calculate position based on text content
+                    const textContent = element.textContent || '';
+                    const mentionText = `@${user.agent_name}`;
+                    const mentionIndex = textContent.lastIndexOf(mentionText);
+                    
+                    if (mentionIndex !== -1) {
+                        // Position should be after mention + space (mentionText.length + 1)
+                        const targetPos = mentionIndex + mentionText.length + 1;
+                        // Use tree walker to find the correct text node and position
+                        let currentPos = 0;
+                        const walker = document.createTreeWalker(
+                            element,
+                            NodeFilter.SHOW_TEXT,
+                            null
+                        );
+                        let node;
+                        while (node = walker.nextNode()) {
+                            const nodeLength = node.textContent.length;
+                            if (currentPos + nodeLength >= targetPos) {
+                                const offset = targetPos - currentPos;
+                                range.setStart(node, Math.min(offset, nodeLength));
+                                range.setEnd(node, Math.min(offset, nodeLength));
+                                break;
+                            }
+                            currentPos += nodeLength;
+                        }
+                    } else {
+                        // Final fallback: place at end of element
+                        const lastNode = element.lastChild;
+                        if (lastNode && lastNode.nodeType === Node.TEXT_NODE) {
+                            range.setStart(lastNode, lastNode.textContent.length);
+                            range.setEnd(lastNode, lastNode.textContent.length);
+                        } else {
+                            const textNode = document.createTextNode(' ');
+                            element.appendChild(textNode);
+                            range.setStart(textNode, 1);
+                            range.setEnd(textNode, 1);
+                        }
+                    }
+                }
+                
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        }, 0);
+    };
+
+    // Parse mentions from message text
+    const parseMentions = (messageText) => {
+        const mentionRegex = /@\[([^:]+):([^\]]+)\]/g;
+        const mentions = [];
+        let match;
+        
+        while ((match = mentionRegex.exec(messageText)) !== null) {
+            mentions.push(match[1]); // User ID
+        }
+        
+        return mentions;
+    };
+
+    // Format message text to display mentions nicely
+    const formatMessageWithMentions = (messageText, mentionedUsers = []) => {
+        if (!messageText) return messageText;
+        
+        const mentionRegex = /@\[([^:]+):([^\]]+)\]/g;
+        const parts = [];
+        let lastIndex = 0;
+        let match;
+        
+        while ((match = mentionRegex.exec(messageText)) !== null) {
+            // Add text before mention
+            if (match.index > lastIndex) {
+                parts.push({ type: 'text', content: messageText.substring(lastIndex, match.index) });
+            }
+            
+            // Add mention
+            const userId = match[1];
+            const userName = match[2];
+            const user = mentionedUsers.find(u => u._id === userId) || allUsers.find(u => u._id === userId);
+            parts.push({
+                type: 'mention',
+                userId: userId,
+                userName: user?.agent_name || userName,
+                content: `@${user?.agent_name || userName}`
+            });
+            
+            lastIndex = match.index + match[0].length;
+        }
+        
+        // Add remaining text
+        if (lastIndex < messageText.length) {
+            parts.push({ type: 'text', content: messageText.substring(lastIndex) });
+        }
+        
+        return parts.length > 0 ? parts : [{ type: 'text', content: messageText }];
     };
 
     const renderMessageContent = (message) => {
@@ -817,6 +1260,20 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
 
     return (
         <div className="flex flex-col h-full bg-white relative">
+            <style dangerouslySetInnerHTML={{__html: `
+                .mention-tag {
+                    display: inline-flex;
+                    align-items: center;
+                    padding: 0.125rem 0.375rem;
+                    border-radius: 0.375rem;
+                    background-color: rgb(219 234 254);
+                    color: rgb(30 64 175);
+                    font-weight: 500;
+                    font-size: 0.875rem;
+                    margin: 0 0.125rem;
+                    user-select: none;
+                }
+            `}} />
             <div className="p-4 border-b bg-white shadow-sm flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                     <h2 className="text-lg font-semibold text-gray-800">{selectedChat.name || 'Select a Chat'}</h2>
@@ -1056,7 +1513,24 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
 
                                                                 {hasText && (
                                                                     <div className="break-all whitespace-pre-wrap overflow-hidden">
-                                                                        <p className="text-sm mb-1 last:mb-0 break-words">{msg.message}</p>
+                                                                        <p className="text-sm mb-1 last:mb-0 break-words">
+                                                                            {(() => {
+                                                                                const formattedParts = formatMessageWithMentions(msg.message, msg.mentionedUsers || []);
+                                                                                return formattedParts.map((part, idx) => {
+                                                                                    if (part.type === 'mention') {
+                                                                                        return (
+                                                                                            <span
+                                                                                                key={idx}
+                                                                                                className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-medium text-sm mx-0.5"
+                                                                                            >
+                                                                                                {part.content}
+                                                                                            </span>
+                                                                                        );
+                                                                                    }
+                                                                                    return <span key={idx}>{part.content}</span>;
+                                                                                });
+                                                                            })()}
+                                                                        </p>
                                                                     </div>
                                                                 )}
 
@@ -1217,29 +1691,71 @@ const ChatWindow = ({ isReadOnly = false, disableRealtime = false, users = [], s
 
                                     <form onSubmit={handleSend} className="flex items-end gap-2">
                                         <div className="flex-1 relative">
-                                            <textarea
-                                                ref={inputRef}
-                                                value={message}
-                                                onChange={(e) => setMessage(e.target.value)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                                        e.preventDefault();
-                                                        handleSend(e);
-                                                    }
-                                                }}
-                                                placeholder="Type a message..."
-                                                className="w-full p-2.5 pr-10 border rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 min-h-[40px] max-h-[100px] text-sm"
-                                                rows={1}
-                                                disabled={pagination.isLoading && messages.length === 0}
-                                                style={{
-                                                    height: 'auto',
-                                                    overflow: 'hidden'
-                                                }}
-                                                onInput={(e) => {
-                                                    e.target.style.height = 'auto';
-                                                    e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
-                                                }}
-                                            />
+                                            {mentionState.show && selectedChat?.type === 'group' && (
+                                                <MentionAutocomplete
+                                                    users={getGroupMembers()}
+                                                    searchTerm={mentionState.searchTerm}
+                                                    onSelect={handleMentionSelect}
+                                                    position={mentionState.position}
+                                                    currentUserId={currentUser._id}
+                                                />
+                                            )}
+                                            <div className="relative">
+                                                <div
+                                                    ref={inputRef}
+                                                    contentEditable
+                                                    suppressContentEditableWarning
+                                                    onInput={(e) => {
+                                                        const text = e.target.textContent || '';
+                                                        handleRichTextChange(e, text);
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        // Handle mention autocomplete navigation
+                                                        if (mentionState.show) {
+                                                            if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                                    const groupMembers = getGroupMembers();
+                                                                    const filtered = groupMembers
+                                                                        .filter(user => {
+                                                                            if (user._id === currentUser._id) return false;
+                                                                            const name = user.agent_name?.toLowerCase() || '';
+                                                                            const email = user.email?.toLowerCase() || '';
+                                                                            const search = mentionState.searchTerm.toLowerCase();
+                                                                            return name.includes(search) || email.includes(search);
+                                                                        })
+                                                                        .slice(0, 1);
+                                                                    if (filtered.length > 0) {
+                                                                        handleMentionSelect(filtered[0]);
+                                                                        return;
+                                                                    }
+                                                                }
+                                                                if (e.key === 'Escape') {
+                                                                    setMentionState({ show: false, searchTerm: '', position: { bottom: 0, left: 0 }, startIndex: -1 });
+                                                                    return;
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        if (e.key === 'Enter' && !e.shiftKey && !mentionState.show) {
+                                                            e.preventDefault();
+                                                            handleSend(e);
+                                                        }
+                                                    }}
+                                                    data-placeholder="Type a message..."
+                                                    className={cn(
+                                                        "w-full p-2.5 pr-10 border rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 min-h-[40px] max-h-[100px] text-sm",
+                                                        "overflow-y-auto whitespace-pre-wrap break-words",
+                                                        "[&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-gray-400 [&:empty]:before:pointer-events-none",
+                                                        pagination.isLoading && messages.length === 0 && "opacity-50 pointer-events-none"
+                                                    )}
+                                                    style={{
+                                                        minHeight: '40px',
+                                                        maxHeight: '100px',
+                                                        lineHeight: '1.5'
+                                                    }}
+                                                />
+                                            </div>
                                             <div className="absolute right-1.5 bottom-1.5 flex items-center gap-1">
                                                 <AudioRecorder onRecordingComplete={handleRecordingComplete} />
                                                 <button
